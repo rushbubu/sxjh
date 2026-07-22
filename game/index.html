@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>率性江湖</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="header">
+            <span id="header-title">率性江湖</span>
+            <span id="header-inv" onclick="game.showInventory()">囊</span>
+            <span id="header-menu" onclick="game.toggleMenu()">≡</span>
+        </div>
+        <div id="scene-bg"></div>
+        <div id="main-area">
+            <div id="log"></div>
+        </div>
+        <div id="choice-area"></div>
+        <div id="stats-bar">
+            <div class="stat-row">
+                <span class="stat-icon">❤</span>
+                <div class="stat-track"><div class="stat-fill hp-fill" id="hp-fill"></div></div>
+                <span class="stat-num" id="hp-text">100/100</span>
+                <span class="stat-status" id="hp-status"></span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-icon">◆</span>
+                <div class="stat-track"><div class="stat-fill mp-fill" id="mp-fill"></div></div>
+                <span class="stat-num" id="mp-text">100/100</span>
+            </div>
+            <div class="stat-row info-row">
+                <span class="stat-icon">●</span>
+                <span class="info-label">银两</span>
+                <span class="info-value" id="gold-text">0</span>
+                <span class="info-sep"></span>
+                <span class="stat-icon">★</span>
+                <span class="info-label">声望</span>
+                <span class="info-value" id="rep-text">初入江湖</span>
+                <span class="info-sep"></span>
+                <span class="stat-icon">☀</span>
+                <span class="info-label">第</span>
+                <span class="info-value" id="day-text">1</span>
+                <span class="info-label">天</span>
+            </div>
+        </div>
+
+        <!-- 菜单面板 -->
+        <div id="menu-overlay" class="hidden" onclick="game.toggleMenu()">
+            <div id="menu-panel" onclick="event.stopPropagation()">
+                <h2>角色信息</h2>
+                <div id="menu-stats"></div>
+                <div id="menu-location"></div>
+                <div id="menu-rep">声望：10</div>
+                <button onclick="game.toggleMenu()">关闭</button>
+            </div>
+        </div>
+
+        <!-- 创角界面 -->
+        <div id="create-overlay">
+            <div id="create-panel">
+                <h1>率性江湖</h1>
+                <p class="subtitle">一款文字武侠游戏</p>
+                <div id="create-attrs"></div>
+                <div id="create-points">剩余点数：<span id="remain-points">0</span></div>
+                <div id="create-ratings"></div>
+                <button id="btn-start" onclick="game.startGame()">踏入江湖</button>
+            </div>
+        </div>
+
+        <!-- 游戏结束界面 -->
+        <div id="gameover-overlay" class="hidden">
+            <div id="gameover-panel">
+                <h1>——  game over  ——</h1>
+                <p id="gameover-reason"></p>
+                <p class="subtitle">你的江湖之路到此为止</p>
+                <button onclick="location.reload()">重新开始</button>
+            </div>
+        </div>
+    </div>
+    <script src="js/data/attributes.js"></script>
+    <script src="js/data/items.js"></script>
+    <script src="js/data/world.js"></script>
+    <script src="js/data/beauties.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
