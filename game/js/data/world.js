@@ -14,10 +14,10 @@ const LOCATION_TYPES = {
     village: { label: '村庄', color: '#608060' },
 };
 
-function v(name, npcName, npcDesc, itemIds, civilian = true, combatPower = 0) {
+function v(name, npcName, npcDesc, itemIds, civilian = true, combatPower = 0, martialArt = null) {
     return {
         name,
-        npcs: [{ npcName, npcDesc, civilian, combatPower, items: itemIds.map(id => getItem(id)).filter(Boolean) }],
+        npcs: [{ npcName, npcDesc, civilian, combatPower, items: itemIds.map(id => getItem(id)).filter(Boolean), martialArt }],
     };
 }
 
@@ -40,6 +40,7 @@ const WORLD = {
                 v('绸缎庄', '赵锦华', '衣饰华贵的绸缎商人，店里的云锦是贡品级别。', ['brocade_robe', 'silk_robe', 'silk_scarf']),
                 v('怡红院', '柳妈妈', '风韵犹存的老鸨，手里的丝绢轻轻一甩便香风四溢。', ['wine_daughter', 'pastry', 'silk_scarf', 'incense']),
                 v('聚宝阁', '钱四海', '坐在柜台后的神秘商人，据说没有他弄不到的东西。', ['qin_bamboo', 'peony_painting', 'moon_poem', 'silver_ingot'], false, 50),
+                v('镇国武馆', '岳啸天', '气度沉凝的武馆总教头，一双铁掌开碑裂石。', ['chest_mirror', 'steel_blade'], false, 70),
             ],
         },
         {
@@ -53,6 +54,7 @@ const WORLD = {
                 v('绣庄', '苏绣娘', '心灵手巧的绣娘，苏绣技艺冠绝天下。', ['silk_robe', 'silk_scarf', 'screen_2side', 'shu_embroidery']),
                 v('茶庄', '陆羽', '品茶大师，店中茶香四溢，汇集天下名茶。', ['dragon_tea', 'tea_cake', 'pastry']),
                 v('兵器铺', '欧冶子', '自称欧冶子后人，打造的刀剑削铁如泥。', ['blue_sword', 'steel_blade', 'gold_silk_armor'], false, 60),
+                v('江南武馆', '柳如风', '一袭白衣的武馆馆主，剑法轻灵飘逸，人称"江南第一剑"。', ['steel_blade', 'chest_mirror'], false, 65),
             ],
         },
         {
@@ -66,6 +68,8 @@ const WORLD = {
                 v('药材行', '孙思邈', '白发苍苍的老郎中，药柜里有不少珍稀药材。', ['ginseng_100', 'powder_clear', 'herb_bandage', 'herb_ginseng_small']),
                 v('珠宝斋', '胡商', '西域来的珠宝商人，兜售各种奇珍异宝。', ['jade_ring', 'bangle_jade', 'necklace_gold', 'jade_fish']),
                 v('大光明寺', '了尘大师', '白眉垂肩的得道高僧，目光深邃如古井。', ['incense', 'buddha_relic', 'herb_bandage'], false, 80),
+                v('长安武馆', '秦仲', '虎背熊腰的西北硬汉，拳法刚猛霸道，门下弟子数百。', ['steel_blade', 'chest_mirror'], false, 75),
+                v('禅武道场', '无名僧', '来历不明的苦行僧，曾在雪山顶上独坐七日七夜。', ['incense', 'herb_bandage'], false, 110),
             ],
         },
     ],
@@ -81,6 +85,7 @@ const WORLD = {
                 v('铁匠铺', '李铁锤', '膀大腰圆的铁匠，正抡着大锤。', ['steel_blade', 'knife_wood', 'hoe_iron'], false, 30),
                 v('杂货铺', '马掌柜', '精明的商人，货物齐全。', ['silk_robe', 'stationary', 'flint', 'ration']),
                 v('酒楼', '宋厨子', '手艺一绝的大厨，招牌菜是洛阳水席。', ['wine_daughter', 'pastry', 'wine_bamboo', 'ration']),
+                v('洛阳武馆', '周侗', '名震中原的拳师，一双铁拳打遍洛阳无敌手。', ['chest_mirror', 'steel_blade'], false, 50),
             ],
         },
         {
@@ -94,6 +99,7 @@ const WORLD = {
                 v('首饰铺', '金巧手', '正在打磨银器的工匠，手艺精湛。', ['ring_silver', 'bangle_jade', 'jade_fish']),
                 v('茶馆', '竹叶青', '清雅的茶楼老板，泡得一手好茶。', ['dragon_tea', 'tea_cake', 'incense']),
                 v('药材铺', '白药仙', '背着药箱的郎中，专治疑难杂症。', ['ginseng_100', 'powder_clear', 'herb_bandage', 'herb_ginseng_small']),
+                v('蜀中武馆', '铁罗汉', '蜀中唐门的外门弟子，一手铁砂掌威震巴蜀。', ['chest_mirror', 'steel_blade'], false, 45),
             ],
         },
         {
@@ -106,6 +112,7 @@ const WORLD = {
                 v('杂货铺', '周六斤', '朴实的庄稼汉，店里都是日常所需。', ['cloth_coarse', 'ration', 'flint', 'wine_rice']),
                 v('铁匠铺', '冯大锤', '正在修补兵器的铁匠，墙上挂着各式刀剑。', ['steel_blade', 'knife_wood', 'hoe_iron'], false, 30),
                 v('酒楼', '刘一刀', '豪爽的掌柜，招牌菜是红烧狮子头。', ['wine_bamboo', 'ration', 'pastry'], false, 25),
+                v('襄阳武馆', '郭威', '守城将领退下来的老兵，教的全是战场上的杀人技。', ['chest_mirror', 'steel_blade'], false, 55),
             ],
         },
         {
@@ -118,6 +125,7 @@ const WORLD = {
                 v('糕点铺', '甜婆', '慈眉善目的老太太，做的桂花糕远近闻名。', ['pastry', 'tea_cake', 'wine_rice']),
                 v('书斋', '文徵明', '温文尔雅的读书人，收藏了不少名家字帖。', ['stationary', 'writing_brush', 'ink_stick', 'moon_poem']),
                 v('茶馆', '碧螺春', '茶艺精湛的女子，泡出的龙井香飘满街。', ['dragon_tea', 'tea_cake', 'pastry']),
+                v('苏州武馆', '顾云飞', '书香门第出身的武师，一手太极拳使得行云流水。', ['steel_blade', 'chest_mirror'], false, 40),
             ],
         },
         {
@@ -130,6 +138,7 @@ const WORLD = {
                 v('集市', '段三娘', '摆摊的当地妇人，卖些药材和土产。', ['ginseng_100', 'herb_ginseng_small', 'powder_clear']),
                 v('银器铺', '金花婆婆', '白族老匠人，打了一辈子银饰。', ['ring_silver', 'jade_fish', 'bangle_jade']),
                 v('酒馆', '风花雪月', '临街的小酒馆，自酿的青梅酒别具风味。', ['wine_rice', 'wine_bamboo', 'ration']),
+                v('大理武馆', '段正淳', '段氏皇族的旁支子弟，一阳指已有三分火候。', ['steel_blade', 'chest_mirror'], false, 50),
             ],
         },
         {
@@ -142,6 +151,7 @@ const WORLD = {
                 v('醉花楼', '赛西施', '风姿绰约的酒楼女掌柜，花雕酒远近闻名。', ['wine_daughter', 'wine_bamboo', 'pastry']),
                 v('书肆', '柳如是', '才女出身的书肆老板，店内书香四溢。', ['moon_poem', 'stationary', 'writing_brush', 'ink_stick']),
                 v('珠宝铺', '波斯客', '远道而来的波斯商人，带来不少异域珍品。', ['jade_ring', 'necklace_gold', 'ring_silver']),
+                v('扬州武馆', '燕云飞', '轻功冠绝淮左的武师，来去如风，人称"燕云十八骑"传人。', ['steel_blade', 'chest_mirror'], false, 45),
             ],
         },
     ],
@@ -195,14 +205,32 @@ const WORLD = {
             venues.push({ name: '小溪', npcs: [] });
             venues.push({ name: '田埂', npcs: [] });
             venues.push({ name: '小树林', npcs: [] });
-            const ecoBonus = { destitute:0, poor:2, subsistence:5, moderate:10, wealthy:15, very_wealthy:20, lavish:30 };
-            const b = ecoBonus[economy] || 5;
+            const villageRep = { destitute:12, poor:12, subsistence:14, moderate:16 }[economy] || 12;
+            const guardBase = { destitute:10, poor:12, subsistence:15, moderate:20 }[economy] || 10;
             return { id, name, desc, population:pop, area, areaUnit:'km²', economy, nearestCity, distanceToCity:distance,
-                repThreshold: 5 + b, guardianPower: 15 + b * 3 + Math.floor(pop / 100), venues,
-                npcs: venues.flatMap(v => v.npcs.map(n => ({ name: n.npcName, desc: n.npcDesc, civilian: n.civilian, combatPower: n.combatPower, items: [...n.items], isChief: n.isChief || false }))) };
+                repThreshold: villageRep, guardianPower: guardBase + Math.floor(pop / 100), venues,
+                travelDays: parseTravelDays(distance),
+                npcs: venues.flatMap(v => v.npcs.map(n => ({ name: n.npcName, desc: n.npcDesc, civilian: n.civilian, combatPower: n.combatPower, items: [...n.items], isChief: n.isChief || false, martialArt: n.martialArt || null }))) };
         }),
     ],
 };
+
+// Assign village martial arts (reuse 10 types across all villages)
+const VILLAGE_MARTIAL_ARTS = ['mantis', 'xingyi', 'tantui', 'hongquan', 'tongbi', 'baji', 'tiesha', 'mianzhang', 'fuhu', 'feiyan'];
+WORLD.villages.forEach((v, vi) => {
+    v.venues.forEach(ven => {
+        ven.npcs.forEach(n => {
+            if (n.combatPower > 0 && !n.martialArt) {
+                n.martialArt = VILLAGE_MARTIAL_ARTS[vi % VILLAGE_MARTIAL_ARTS.length];
+            }
+        });
+    });
+    v.npcs.forEach(n => {
+        if (n.combatPower > 0 && !n.martialArt) {
+            n.martialArt = VILLAGE_MARTIAL_ARTS[vi % VILLAGE_MARTIAL_ARTS.length];
+        }
+    });
+});
 
 // Generate flat npcs from venues (for backward compatibility / steal system)
 for (const loc of [...WORLD.big_cities, ...WORLD.small_cities]) {
@@ -233,6 +261,43 @@ function getLocationTypeLabel(id) {
 function getAllLocations() {
     return [...WORLD.big_cities, ...WORLD.small_cities, ...WORLD.villages];
 }
+
+// Assign city NPC martial arts
+const CITY_MARTIAL_ARTS = {
+    jingcheng: { '莫三千':'zuiquan', '公孙冶':'tiezhang', '聚宝阁·钱四海':'longzhua', '岳啸天':'tiangang' },
+    suzhou: { '花想容':'zhuifeng', '欧冶子':'tiezhang', '柳如风':'taiji' },
+    changan: { '雷炎':'tiesha', '了尘大师':'jingang', '秦仲':'baji', '无名僧':'nianhua' },
+    luoyang: { '王振威':'baji', '李铁锤':'tantui', '周侗':'tongbi' },
+    chengdu: { '铁罗汉':'tiesha', '杜康':null },
+    xiangyang: { '赵铁衣':'fuhu', '冯大锤':'hongquan', '郭威':'baji' },
+    suzhou_city: { '顾云飞':'taiji' },
+    dali: { '本因方丈':'yiyangzhi', '段正淳':'yiyangzhi' },
+    yangzhou: { '钱四海':'longzhua', '燕云飞':'zhuifeng' },
+};
+for (const loc of getAllLocations()) {
+    const map = CITY_MARTIAL_ARTS[loc.id];
+    if (!map) continue;
+    loc.venues.forEach(ven => {
+        ven.npcs.forEach(n => {
+            if (map[n.npcName] !== undefined) n.martialArt = map[n.npcName];
+        });
+    });
+    loc.npcs.forEach(n => {
+        if (map[n.name] !== undefined) n.martialArt = map[n.name];
+    });
+}
+
+// Assign 武馆/道场 martial arts
+const ARENA_MARTIAL_ARTS = ['zuiquan', 'wuying', 'tiangang', 'jingang', 'nianhua', 'yiyangzhi', 'longzhua', 'taiji', 'zhuifeng', 'baji', 'tiesha'];
+getAllLocations().forEach(loc => {
+    loc.venues.forEach(ven => {
+        if (ven.name.includes('武馆') || ven.name.includes('道场')) {
+            ven.npcs.forEach((n, i) => {
+                n.martialArt = ARENA_MARTIAL_ARTS[i % ARENA_MARTIAL_ARTS.length];
+            });
+        }
+    });
+});
 
 /* ─── 区域系统 ─── */
 
@@ -274,4 +339,42 @@ function canTravel(fromId, toId) {
     if (!from || !to) return true;
     if (from === to) return true;
     return REGION_TRAVEL[from] && REGION_TRAVEL[from].includes(to);
+}
+
+function parseTravelDays(str) {
+    if (!str) return 1;
+    const m = str.match(/(\d+)/);
+    if (m) return parseInt(m[1]);
+    if (str.includes('半日')) return 0.5;
+    return 1;
+}
+
+// Travel days for cities (centrality within region)
+const CITY_TRAVEL_DAYS = {
+    jingcheng: 0, suzhou: 0, changan: 0,
+    chengdu: 0, xiangyang: 0,
+    luoyang: 1, yangzhou: 1, suzhou_city: 1,
+    dali: 2,
+};
+for (const loc of getAllLocations()) {
+    if (loc.travelDays === undefined) {
+        loc.travelDays = CITY_TRAVEL_DAYS[loc.id] !== undefined ? CITY_TRAVEL_DAYS[loc.id] : 1;
+    }
+}
+
+function getTravelDays(fromId, toId) {
+    const fromLoc = getAllLocations().find(l => l.id === fromId);
+    const toLoc = getAllLocations().find(l => l.id === toId);
+    if (!fromLoc || !toLoc) return 1;
+    const fromRegion = getRegion(fromId);
+    const toRegion = getRegion(toId);
+    if (!fromRegion || !toRegion) return 1;
+    if (fromRegion === toRegion) {
+        return Math.max(1, Math.abs(fromLoc.travelDays - toLoc.travelDays) + 1);
+    }
+    // cross-region: base + both distances
+    if (canTravel(fromId, toId)) {
+        return fromLoc.travelDays + toLoc.travelDays + 3;
+    }
+    return 99; // unreachable
 }

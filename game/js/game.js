@@ -121,8 +121,9 @@ class Game {
             items: [],
             equipment: { rightHand:null, leftHand:null, head:null, upperBody:null, lowerBody:null, boots:null, bracers:null, accessory1:null, accessory2:null },
             externalSkills: [],
-            internalSkills: ['天之书'],
+            internalSkills: ['天之经'],
             locationId: null,
+            villageBlacklist: {},
         };
 
         const sv = WORLD.villages[Math.floor(Math.random() * WORLD.villages.length)];
@@ -144,12 +145,12 @@ class Game {
         this.clearChoices();
         const segs = [
             '你猛地睁开双眼。',
-            '脑海中最后的记忆，是天劫雷光劈落的那一刻——亿万雷霆将你的肉身与元神一同撕碎。',
-            '你——曾经叱咤风云、傲视九天的大能——渡劫失败了。',
-            '恍惚中你看见一张熟悉到令人心寒的面孔。你的师父。那个你最信任的人，在你渡劫的最关键时刻，动了手脚。',
-            '如今你重返凡尘。元神尽毁，灵脉俱断，一身通天修为荡然无存。',
-            '你落入了一个灵气稀薄的低武世界。昔日的仇敌，恐怕早已以为你灰飞烟灭。',
-            '唯一剩下的，只有脑海中那半部《天之书》残本。那是上古流传的无上心法，可惜你记忆不全，只记得上半卷。',
+            '最后的记忆，是华山之巅。那一剑从背后刺入，穿胸而过——你的师弟，你最信任的师弟，在你全力激战之时，递出了致命一剑。',
+            '你——华山派大弟子，江湖上赫赫有名的剑客——坠入了万劫深渊。',
+            '耳边还回响着他冷冰冰的声音：「师兄，掌门之位，你让也得让，不让也得让。」',
+            '万劫深渊，深不见底，自古无人能生还。但你没死。',
+            '深渊之底竟别有洞天。你拖着残破的身躯，在一处古墓中发现了一部残缺的经文。',
+            '唯一剩下的，只有脑海中那半部《天之经》残本。那是上古流传的无上心法，可惜你记忆不全，只记得上半卷。',
             '但，够了。这一世，你要从零开始，一步一步——让那些背叛你的人，付出代价。',
         ];
         let i = 0;
@@ -163,9 +164,9 @@ class Game {
     }
 
     afterIntro() {
-        this.addMessage('你缓缓睁开双眼，刺眼的阳光透过茅草屋顶的缝隙洒在脸上。', 'narrator');
-        this.addMessage('你坐起身来，环顾四周——一间简陋的茅屋，几张破旧的家具。', 'narrator');
-        this.addMessage('你，重生了。', 'system');
+        this.addMessage('你缓缓睁开双眼，幽暗的洞穴中只有岩缝透下的微光。', 'narrator');
+        this.addMessage('你坐起身来，身上那道穿胸剑伤竟已结痂——也不知在这谷底躺了多久。', 'narrator');
+        this.addMessage('你，活下来了。', 'system');
         this.enterLocation(this.player.locationId, false);
     }
 
@@ -192,7 +193,7 @@ class Game {
         for (const s of weaponSlots) {
             if (p.equipment[s]) weaponBonus += p.equipment[s].value;
         }
-        return Math.floor(p.attrs.root * 0.5 + p.attrs.dexterity * 0.5 + weaponBonus);
+        return Math.floor(p.attrs.root * 0.5 + p.attrs.dexterity * 0.5 + weaponBonus + p.externalSkills.length * 2 + p.internalSkills.length * 3);
     }
 
     getPlayerDefense() {
@@ -333,6 +334,19 @@ class Game {
     enterLocation(locationId, clear = true) {
         const loc = getAllLocations().find(l => l.id === locationId);
         if (!loc) return;
+        // Clean expired blacklist entries
+        for (const [id, expiry] of Object.entries(this.player.villageBlacklist || {})) {
+            if (this.player.day >= expiry) delete this.player.villageBlacklist[id];
+        }
+        // Check blacklist
+        if (this.player.villageBlacklist && this.player.villageBlacklist[locationId]) {
+            const daysLeft = this.player.villageBlacklist[locationId] - this.player.day;
+            this.clearChoices();
+            this.addMessage(`${loc.name}的村民对你怒目而视，你根本进不去。`, 'danger');
+            this.addMessage(`你决定还是避避风头，等${daysLeft}天后再回来。`, 'narrator');
+            this.showChoices([{ text: '去别处走走', action: () => this.showTravelOptions() }]);
+            return;
+        }
         this.player.locationId = locationId;
         this.currentLocation = loc;
         this.player.locationVenues = loc.venues.map(v => ({
@@ -378,13 +392,38 @@ class Game {
 
     showOutdoorChoices() {
         const loc = this.currentLocation;
-        const choices = this.player.locationVenues.map(v => ({
-            text: v.name,
-            action: () => this.enterVenue(v),
-        }));
+        const choices = [];
+        const isVillage = !!loc.nearestCity;
+        if (isVillage) {
+            const groups = {
+                '市集': this.player.locationVenues.filter(v => ['草药铺', '铁匠铺', '酒馆'].includes(v.name)),
+                '村外': this.player.locationVenues.filter(v => ['断桥', '小溪', '田埂', '小树林'].includes(v.name)),
+            };
+            const others = this.player.locationVenues.filter(v =>
+                !['草药铺', '铁匠铺', '酒馆', '断桥', '小溪', '田埂', '小树林'].includes(v.name)
+            );
+            for (const [label, list] of Object.entries(groups)) {
+                if (list.length > 0) choices.push({ text: label, action: () => this.showGroupVenues(label, list) });
+            }
+            for (const v of others) {
+                choices.push({ text: v.name, action: () => this.enterVenue(v) });
+            }
+        } else {
+            for (const v of this.player.locationVenues) {
+                choices.push({ text: v.name, action: () => this.enterVenue(v) });
+            }
+        }
         choices.push({ text: '前往其他地方', action: () => this.showTravelOptions() });
         choices.push({ text: '回去', action: () => this.showLocationChoices() });
         this.addMessage(`—— ${loc.name}的街市 ——`, 'system');
+        this.showChoices(choices);
+    }
+
+    showGroupVenues(label, venues) {
+        this.clearChoices();
+        const choices = venues.map(v => ({ text: v.name, action: () => this.enterVenue(v) }));
+        choices.push({ text: '回去', action: () => this.showOutdoorChoices() });
+        this.addMessage(`—— ${label} ——`, 'system');
         this.showChoices(choices);
     }
 
@@ -463,8 +502,8 @@ class Game {
         const loc = getAllLocations().find(l => l.id === locId);
         if (!loc) return 'mid';
         const diff = this.player.reputation - loc.repThreshold;
-        if (diff >= 10) return 'high';
-        if (diff >= -5) return 'mid';
+        if (diff >= 5) return 'high';
+        if (diff >= 0) return 'mid';
         return 'low';
     }
 
@@ -541,11 +580,6 @@ class Game {
         const repCost = isKill ? 10 : 5;
         this.player.reputation -= repCost;
         this.addMessage(`声望 -${repCost}（当前 ${this.player.reputation}）`, 'system');
-        if (this.player.reputation < 0) {
-            this.updateStatsBar();
-            this.gameOver('你声名狼藉，江湖再无容身之处……');
-            return;
-        }
         this.addMessage(`你勃然大怒，${isKill ? '拔出兵器直取' : '一拳砸向'}${npc.npcName}！`, 'danger');
         this.addMessage(`${npc.npcName}大声呼救：「来人啊！有人行凶！」`, 'narrator');
         setTimeout(() => this.arrestScene(venue, npc, type), 500);
@@ -564,12 +598,30 @@ class Game {
                 if (pPower >= guardPower) {
                     this.addMessage('你一声长啸，掌风呼啸而出，将护卫击退数步！', 'event');
                     this.addMessage('趁众人惊愕之际，你纵身一跃，逃出了村子。', 'narrator');
-                    this.addMessage(`你回头看了一眼${loc.name}，心有余悸。`, 'narrator');
                     this.player.reputation -= 2;
                     this.addMessage(`声望 -2（当前 ${this.player.reputation}）`, 'system');
                     this.updateStatsBar();
-                    if (this.player.reputation < 0) { this.gameOver('你声名狼藉，江湖再无容身之处……'); return; }
-                    setTimeout(() => this.sleepToTomorrow(true), 600);
+                    if (this.player.reputation < 0) { this.gameOver(`你在${loc.name}恶行败露，声名狼藉，再无容身之处……`); return; }
+                    this.player.villageBlacklist[loc.id] = this.player.day + 30;
+                    const escapeDest = this.findRegionEscape(loc.id);
+                    if (escapeDest) {
+                        this.addMessage(`你不敢停留，一口气逃到了附近的${escapeDest.name}。`, 'narrator');
+                        this.showChoices([{ text: '继续旅程', action: () => {
+                            const days = getTravelDays(loc.id, escapeDest.id);
+                            const cost = days * 2;
+                            if (this.player.gold >= cost) {
+                                this.player.gold -= cost;
+                                this.addMessage(`路途花费了 ${cost} 两银子。`, 'system');
+                            } else {
+                                this.player.hp = Math.max(1, this.player.hp - cost);
+                                this.addMessage(`你身无分文，一路风餐露宿，损失了 ${cost} 点气血。`, 'danger');
+                            }
+                            this.updateStatsBar();
+                            this.enterLocation(escapeDest.id);
+                        } }]);
+                    } else {
+                        this.showChoices([{ text: '睡到明天', action: () => this.sleepToTomorrow(true) }]);
+                    }
                 } else {
                     this.addMessage('你奋力抵抗，但护卫的实力远在你之上！', 'danger');
                     this.addMessage('三招之内，你便被制服在地。', 'danger');
@@ -581,8 +633,8 @@ class Game {
                     this.addMessage(`声望 -3（当前 ${this.player.reputation}）`, 'system');
                     this.addMessage(`村民们将遍体鳞伤的你扔出了村子。`, 'narrator');
                     this.updateStatsBar();
-                    if (this.player.reputation < 0) { this.gameOver('你声名狼藉，江湖再无容身之处……'); return; }
-                    setTimeout(() => this.sleepToTomorrow(true), 800);
+                    if (this.player.reputation < 0) { this.gameOver(`你在${loc.name}犯下的事已经传遍四方，江湖再无容身之处……`); return; }
+                    this.showChoices([{ text: '昏睡过去', action: () => this.sleepToTomorrow(true) }]);
                 }
             } },
             { text: '逃跑', action: () => {
@@ -594,10 +646,40 @@ class Game {
                 this.addMessage(`声望 -2（当前 ${this.player.reputation}）`, 'system');
                 this.addMessage('你一口气跑出数里地，回头确认无人追来才停下。', 'narrator');
                 this.updateStatsBar();
-                if (this.player.reputation < 0) { this.gameOver('你声名狼藉，江湖再无容身之处……'); return; }
-                setTimeout(() => this.sleepToTomorrow(true), 600);
+                if (this.player.reputation < 0) { this.gameOver(`你在${loc.name}犯下的事已经传遍四方，江湖再无容身之处……`); return; }
+                this.player.villageBlacklist[loc.id] = this.player.day + 30;
+                const escapeDest2 = this.findRegionEscape(loc.id);
+                if (escapeDest2) {
+                    this.addMessage(`你不敢停留，一路逃到了附近的${escapeDest2.name}。`, 'narrator');
+                    this.showChoices([{ text: '继续旅程', action: () => {
+                        const days = getTravelDays(loc.id, escapeDest2.id);
+                        const cost = days * 2;
+                        if (this.player.gold >= cost) {
+                            this.player.gold -= cost;
+                            this.addMessage(`路途花费了 ${cost} 两银子。`, 'system');
+                        } else {
+                            this.player.hp = Math.max(1, this.player.hp - cost);
+                            this.addMessage(`你身无分文，一路风餐露宿，损失了 ${cost} 点气血。`, 'danger');
+                        }
+                        this.updateStatsBar();
+                        this.enterLocation(escapeDest2.id);
+                    } }]);
+                } else {
+                    this.showChoices([{ text: '睡到明天', action: () => this.sleepToTomorrow(true) }]);
+                }
             } },
         ]);
+    }
+
+    findRegionEscape(fromId) {
+        const region = getRegion(fromId);
+        if (!region) return null;
+        const regionLocs = getAllLocations().filter(l => l.id !== fromId && getRegion(l.id) === region);
+        if (regionLocs.length === 0) return null;
+        // prefer cities over villages
+        const cities = regionLocs.filter(l => !l.nearestCity);
+        if (cities.length > 0) return cities[Math.floor(Math.random() * cities.length)];
+        return regionLocs[Math.floor(Math.random() * regionLocs.length)];
     }
 
     duelWithNpc(venue, npc, options = {}) {
@@ -609,7 +691,7 @@ class Game {
             this.addMessage(`声望 -${initRepCost}（当前 ${this.player.reputation}）`, 'system');
             if (this.player.reputation < 0) {
                 this.updateStatsBar();
-                this.gameOver('你声名狼藉，江湖再无容身之处……');
+                this.gameOver(`你名声已臭，连对${npc.npcName}下黑手的资格都没有了……`);
                 return;
             }
         }
@@ -627,7 +709,7 @@ class Game {
             this.addMessage('天地倒转，你重重摔在地上……', 'danger');
             this.player.hp = 0;
             this.updateStatsBar();
-            this.gameOver(`${npc.npcName}的实力远在你之上，你……死了。`);
+            this.gameOver(`你被${npc.npcName}杀死了……`, npc);
             return;
         }
 
@@ -640,7 +722,7 @@ class Game {
             npc._defeated = true;
             if (this.player.hp <= 0) {
                 this.updateStatsBar();
-                this.gameOver('你伤重不治……');
+                this.gameOver(`你被${npc.npcName}重创，伤重不治……`, npc);
                 return;
             }
             if (!noCombatRepChange) {
@@ -656,18 +738,14 @@ class Game {
             const winChance = 1 / (1 + ratio);
             if (Math.random() < winChance) {
                 this.addMessage(`你与${npc.npcName}缠斗数十回合，终占上风！`, 'event');
-                npc._defeated = true;
+                this.awardDuelRep(venue, npc);
+                this.tryLearnMartialArt(npc);
                 if (label === '暗杀') { npc._killed = true; this.killedNpcs.add(this.currentLocation.id + ':' + venue.name + ':' + npc.npcName); this.addMessage(`${npc.npcName}缓缓倒下，再无声息……`, 'danger'); }
                 if (winGetAllItems) {
                     const loot = [...npc.items];
                     loot.forEach(it => { const cloned = { ...it }; if (!this.autoEquip(cloned)) this.player.items.push(cloned); });
                     npc.items = [];
                     this.addMessage(`你从${npc.npcName}身上搜刮了所有物品！`, 'event');
-                } else if (!noCombatRepChange) {
-                    this.player.reputation += 1;
-                    this.player.exp += 10;
-                    this.addMessage(`声望 +1，经验 +10`, 'system');
-                    this.checkLevelUp();
                 }
             } else {
                 const rawDmg = Math.max(1, nPower - defense);
@@ -678,7 +756,7 @@ class Game {
                 npc._defeated = true;
                 if (this.player.hp <= 0) {
                     this.updateStatsBar();
-                    this.gameOver('你伤重不治……');
+                    this.gameOver(`你被${npc.npcName}所伤，伤重不治……`, npc);
                     return;
                 }
                 if (!noCombatRepChange) {
@@ -692,21 +770,67 @@ class Game {
         }
 
         this.addMessage(`${npc.npcName}在你面前毫无还手之力，瞬间落败！`, 'event');
-        npc._defeated = true;
+        this.awardDuelRep(venue, npc);
+        this.tryLearnMartialArt(npc);
         if (label === '暗杀') { npc._killed = true; this.killedNpcs.add(this.currentLocation.id + ':' + venue.name + ':' + npc.npcName); this.addMessage(`${npc.npcName}缓缓倒下，再无声息……`, 'danger'); }
         if (winGetAllItems) {
             const loot = [...npc.items];
             loot.forEach(it => { const cloned = { ...it }; if (!this.autoEquip(cloned)) this.player.items.push(cloned); });
             npc.items = [];
             this.addMessage(`你从${npc.npcName}身上搜刮了所有物品！`, 'event');
-        } else if (!noCombatRepChange) {
-            this.player.reputation += 2;
-            this.player.exp += 15;
-            this.addMessage(`声望 +2，经验 +15`, 'system');
-            this.checkLevelUp();
         }
         this.updateStatsBar();
         setTimeout(() => npc._killed ? this.enterVenue(venue) : this.interactNpc(venue, npc), 500);
+    }
+
+    awardDuelRep(venue, npc) {
+        if (this.killedNpcs.has(npc.npcName)) return;
+        npc._timesDefeated = (npc._timesDefeated || 0) + 1;
+        const d = npc._timesDefeated;
+        const mult = venue.name.includes('道场') ? 3 : venue.name.includes('武馆') ? 2 : 1;
+        const gain = Math.max(0, mult - Math.floor((d - 1) / 3) * mult);
+        if (gain > 0) {
+            this.player.reputation += gain;
+            this.player.exp += 10 * mult;
+            this.addMessage(`声望 +${gain}，经验 +${10 * mult}`, 'system');
+            this.checkLevelUp();
+        } else {
+            this.addMessage(`你已熟悉${npc.npcName}的路数，再无可学之处。`, 'info');
+            this.player.exp += 2;
+            this.addMessage(`经验 +2`, 'system');
+        }
+        if (venue.name.includes('武馆') || venue.name.includes('道场')) {
+            // repeatable: don't set _defeated
+        } else {
+            npc._defeated = true;
+        }
+    }
+
+    tryLearnMartialArt(npc) {
+        if (!npc.martialArt) return;
+        const art = getMartialArt(npc.martialArt);
+        if (!art) return;
+        if (this.player.externalSkills.some(s => s.id === npc.martialArt)) {
+            this.addMessage(`${npc.npcName}欲将${art.name}传授于你，但你早已习得此功。`, 'info');
+            return;
+        }
+        const luck = this.player.attrs.luck;
+        const baseChance = 80;
+        let chance;
+        if (luck >= art.luckReq) {
+            chance = Math.min(100, baseChance + (luck - art.luckReq) * 2);
+        } else {
+            chance = baseChance * (luck / art.luckReq);
+        }
+        chance = Math.max(0, Math.min(100, chance));
+        if (Math.random() * 100 < chance) {
+            this.player.externalSkills.push({ id: npc.martialArt, name: art.name, desc: art.desc, level: 1 });
+            this.addMessage(`${npc.npcName}将${art.name}倾囊相授！你领悟了「${art.name}」的奥义！`, 'event');
+            this.player.exp += 20;
+            this.checkLevelUp();
+        } else {
+            this.addMessage(`${npc.npcName}本想将${art.name}传授于你，可惜你福缘不够，未能领悟。`, 'info');
+        }
     }
 
     /* ─── 购买 ─── */
@@ -723,7 +847,7 @@ class Game {
         const choices = avail.map((item, idx) => {
             const price = item.value * 3;
             return {
-                text: `${item.name}（${price}两 · 余${item.stock}）—— ${item.desc}`,
+                text: `${item.name}（${price}两）—— ${item.desc}`,
                 action: () => this.buyItem(venue, npc, item),
             };
         });
@@ -799,7 +923,7 @@ class Game {
             const diff = item.stealDiff;
             const pct = Math.min(99, Math.floor(dex / (dex + diff * 1.5) * 100));
             return {
-                text: `［偷］${item.name}（余${item.stock} · 价值 ${item.value}两 · 难度 ${diff} · ~${pct}%）`,
+                text: `［偷］${item.name}（价值 ${item.value}两 · 难度 ${diff} · ~${pct}%）`,
                 action: () => this.doSteal(venue, npc, item),
             };
         });
@@ -925,14 +1049,26 @@ class Game {
 
     exercise() {
         this.clearChoices();
-        this.player.attrs.root += 1;
-        this.player.maxHp += 1;
-        this.player.hp = this.player.maxHp;
-        this.player.exp += 3;
-        this.player.day += 1;
-        this.addMessage('你扎稳马步，一趟拳法打完，浑身大汗淋漓。', 'narrator');
-        this.addMessage('虽然动作笨拙，但感觉筋骨舒展开了不少。', 'event');
-        this.addMessage(`根骨 +1（${this.player.attrs.root}），气血 +1（${this.player.maxHp}），经验 +3`, 'system');
+        const maxed = (this.player._exerciseCount || 0) >= 5;
+        if (maxed) {
+            this.addMessage('你扎稳马步，一趟拳法打完，浑身大汗淋漓。', 'narrator');
+            this.addMessage('你的根基已固，再练也无进展了。', 'event');
+            this.player.exp += 1;
+            this.player.day += 1;
+            this.addMessage('经验 +1', 'system');
+            this.addMessage('折腾了半天，你昏昏沉沉地睡了过去。', 'narrator');
+        } else {
+            this.player._exerciseCount = (this.player._exerciseCount || 0) + 1;
+            this.player.attrs.root += 1;
+            this.player.maxHp += 1;
+            this.player.hp = this.player.maxHp;
+            this.player.exp += 3;
+            this.player.day += 1;
+            this.addMessage('你扎稳马步，一趟拳法打完，浑身大汗淋漓。', 'narrator');
+            this.addMessage('虽然动作笨拙，但感觉筋骨舒展开了不少。', 'event');
+            this.addMessage(`根骨 +1（${this.player.attrs.root}），气血 +1（${this.player.maxHp}），经验 +3`, 'system');
+            this.addMessage('练完后，你浑身酸痛，倒头便睡了过去。', 'narrator');
+        }
         this.checkLevelUp();
         this.updateStatsBar();
         setTimeout(() => this.showLocationChoices(), 400);
@@ -945,6 +1081,7 @@ class Game {
         this.player.exp += 10;
         this.player.day += 1;
         this.addMessage('获得 10 点经验', 'system');
+        this.addMessage('练完后，你精疲力竭，倒头便睡了过去。', 'narrator');
         this.checkLevelUp();
         this.updateStatsBar();
         setTimeout(() => this.showLocationChoices(), 400);
@@ -968,6 +1105,7 @@ class Game {
         this.player.exp += 5;
         this.player.day += 1;
         this.addMessage(`精力上限 +1（${this.player.maxEnergy}），经验 +5`, 'system');
+        this.addMessage('运功完毕，你收功归元，沉沉睡去。', 'narrator');
         this.checkLevelUp();
         this.updateStatsBar();
         setTimeout(() => this.showLocationChoices(), 400);
@@ -979,10 +1117,19 @@ class Game {
             this.addMessage('你回到住处，吹灭油灯，倒在床上沉沉睡去……', 'narrator');
             this.addMessage('一夜无梦。', 'narrator');
         }
-        this.player.hp = this.player.maxHp;
-        this.player.energy = this.player.maxEnergy;
+        if (this.player._sleptWithBeauty) {
+            this.player.hp = this.player.maxHp;
+            this.player.energy = this.player.maxEnergy;
+            delete this.player._sleptWithBeauty;
+            if (!silent) this.addMessage('你从温柔乡中醒来，昨夜风流如梦，气血充盈。', 'narrator');
+        } else {
+            if (this.player.energy < this.player.maxEnergy) {
+                const recover = Math.floor(this.player.maxEnergy / 4);
+                this.player.energy = Math.min(this.player.maxEnergy, this.player.energy + recover);
+                if (!silent) this.addMessage(`精力恢复了 ${recover} 点。`, 'system');
+            }
+        }
         this.player.day += 1;
-        if (!silent) this.addMessage('一觉醒来，神清气爽。气血和精力已完全恢复。', 'system');
         if (this.player.locationVenues) {
             let restored = 0;
             this.player.locationVenues.forEach(v => v.npcs.forEach(n => {
@@ -1027,8 +1174,10 @@ class Game {
     showTravelOptions() {
         this.clearChoices();
         const current = this.player.locationId;
+        const currentRegion = getRegion(current);
         const allLocs = getAllLocations().filter(l => l.id !== current);
-        const reachable = allLocs.filter(l => canTravel(current, l.id));
+        // only show locations in the same region
+        const reachable = allLocs.filter(l => getRegion(l.id) === currentRegion);
         const others = reachable.sort(() => Math.random() - 0.5).slice(0, 4);
         const choices = others.map(loc => ({ text: `【${getRegionLabel(loc.id)}】${getLocationTypeLabel(loc.id).label} · ${loc.name}`, action: () => this.travelTo(loc.id) }));
         choices.push({ text: '算了', action: () => this.showOutdoorChoices() });
@@ -1038,27 +1187,137 @@ class Game {
 
     travelTo(locationId) {
         this.clearChoices();
+        // Check blacklist before traveling
+        if (this.player.villageBlacklist && this.player.villageBlacklist[locationId]) {
+            const loc = getAllLocations().find(l => l.id === locationId);
+            const daysLeft = this.player.villageBlacklist[locationId] - this.player.day;
+            this.addMessage(`${loc ? loc.name : '该地'}的村民还在气头上，你还是避避风头再说。`, 'narrator');
+            this.addMessage(`大概还需要${daysLeft}天才能回去。`, 'info');
+            this.showChoices([{ text: '换个别处', action: () => this.showTravelOptions() }]);
+            return;
+        }
+        const fromId = this.player.locationId;
+        const days = fromId === locationId ? 0 : getTravelDays(fromId, locationId);
+        const cost = days * 2;
         this.addMessage('你收拾好行囊踏上了旅程……', 'narrator');
+        this.addMessage(`此去大约${days}天脚程。`, 'info');
+        if (this.player.gold >= cost) {
+            this.player.gold -= cost;
+            this.addMessage(`路途花费了 ${cost} 两银子。`, 'system');
+        } else {
+            this.player.hp = Math.max(1, this.player.hp - cost);
+            this.addMessage(`你盘缠不够，只能一路风餐露宿，损失了 ${cost} 点气血。`, 'danger');
+        }
         this.player.energy -= 10;
-        const luck = Math.random() < this.player.attrs.luck / 200;
-        const danger = Math.random() < 0.15;
+        this.player.day += days;
         setTimeout(() => {
-            if (danger && this.player.attrs.root < 25) {
-                this.addMessage('路上遇到毛贼！你被打了一顿抢走几两银子。', 'danger');
-                this.player.gold = Math.max(0, this.player.gold - 5);
-                this.player.hp -= 15;
-            } else if (danger) {
-                this.addMessage('路上遇到毛贼劫道，你打发了他们，缴获了些银两。', 'event');
-                this.player.gold += 3; this.player.exp += 5;
-            } else if (luck) {
-                this.addMessage('运气不错！路边发现一株百年灵芝。', 'event');
-                this.player.items.push({ ...getItem('ginseng_100'), name: '百年灵芝' });
+            if (Math.random() < 1/3) {
+                this.triggerTravelEvent(locationId);
             } else {
                 this.addMessage('一路风平浪静。', 'narrator');
+                this.updateStatsBar();
+                setTimeout(() => this.enterLocation(locationId), 400);
             }
-            this.updateStatsBar();
-            setTimeout(() => this.enterLocation(locationId), 400);
         }, 600);
+    }
+
+    triggerTravelEvent(locationId) {
+        const EVENTS = [
+            { label: '一只老虎', power: 30, count: 1, desc: '路旁蹿出一只猛虎，正对一名路人虎视眈眈！' },
+            { label: '两只老虎', power: 30, count: 2, desc: '两只猛虎拦住了去路，路人在角落瑟瑟发抖！' },
+            { label: '一个强盗', power: 15, count: 1, desc: '一个手持砍刀的强盗正在抢劫路人！' },
+            { label: '两个强盗', power: 15, count: 2, desc: '两个强盗围住了路人，抢走了他的包袱！' },
+            { label: '一群强盗', power: 15, count: 6, desc: '一伙强盗正在洗劫一支商队，喊杀声震天！' },
+            { label: '一个山贼', power: 20, count: 1, desc: '一个山贼正在欺负一个过路的老人！' },
+            { label: '两个山贼', power: 20, count: 2, desc: '两个山贼拦路抢劫，路人吓得跪地求饶！' },
+            { label: '一群山贼', power: 20, count: 6, desc: '一群山贼正在围攻一辆马车！' },
+            { label: '一只野狗', power: 8, count: 1, desc: '一只野狗在路边狂吠，吓住了路人！' },
+            { label: '一群野狗', power: 8, count: 5, desc: '一群野狗围住了路人，情况危急！' },
+        ];
+        const evt = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+        const totalPower = evt.power * evt.count;
+        this.addMessage(`前方一阵骚动！${evt.desc}`, 'danger');
+        this.addMessage('路人看见你，投来求助的目光。', 'narrator');
+        this.showChoices([
+            { text: '挺身而出', action: () => this.resolveTravelFight(locationId, evt, totalPower) },
+            { text: '袖手旁观', action: () => this.resolveTravelStandby(locationId, evt) },
+        ]);
+    }
+
+    resolveTravelFight(locationId, evt, totalPower) {
+        this.clearChoices();
+        const pPower = this.getPlayerCombatPower();
+        this.addMessage(`你大喝一声，挡在路人身前，直面${evt.label}！`, 'event');
+        const ratio = totalPower / Math.max(1, pPower);
+        if (ratio >= 3) {
+            this.addMessage(`${evt.label}的实力远超你的想象！你瞬间被击倒！`, 'danger');
+            this.gameOver(`你在路途中遭遇${evt.label}，不敌身亡……`);
+            return;
+        }
+        if (ratio >= 1.5) {
+            const dmg = Math.floor(totalPower * 0.5);
+            this.player.hp -= dmg;
+            this.addMessage(`你奋力抵抗，但${evt.label}太过凶猛，你受了重伤！`, 'danger');
+            this.addMessage(`损失了 ${dmg} 点气血。`, 'system');
+            this.updateStatsBar();
+            if (this.player.hp <= 0) {
+                this.gameOver(`你在路途中遭遇${evt.label}，伤重不治……`);
+                return;
+            }
+            this.addMessage('你用尽最后的力气，侥幸逃脱。', 'narrator');
+            setTimeout(() => this.enterLocation(locationId), 600);
+            return;
+        }
+        const winChance = ratio >= 0.67 ? 1 / (1 + ratio) : 1;
+        const isEasy = ratio < 0.67;
+        if (Math.random() < winChance) {
+            const goldReward = totalPower + Math.floor(Math.random() * 20);
+            this.player.gold += goldReward;
+            this.player.exp += totalPower;
+            if (isEasy) {
+                this.player.reputation += 1;
+                this.addMessage(`你三招两式便将${evt.label}击退！路人纷纷喝彩。`, 'event');
+                this.addMessage(`获得 ${goldReward} 两银子、${totalPower} 点经验，声望 +1`, 'system');
+            } else {
+                const repGain = Math.min(10, 3 + Math.floor(ratio * 2));
+                this.player.reputation += repGain;
+                this.addMessage(`你一番苦战，终于将${evt.label}击退！路人千恩万谢。`, 'event');
+                this.addMessage(`获得 ${goldReward} 两银子、${totalPower} 点经验，声望 +${repGain}`, 'system');
+            }
+            this.checkLevelUp();
+            this.updateStatsBar();
+            setTimeout(() => this.enterLocation(locationId), 600);
+        } else {
+            const dmg = Math.floor(totalPower * 0.2);
+            this.player.hp -= dmg;
+            this.addMessage(`你未能取胜，被${evt.label}所伤，损失了 ${dmg} 点气血。`, 'danger');
+            this.updateStatsBar();
+            if (this.player.hp <= 0) {
+                this.gameOver(`你在路途中遭遇${evt.label}，伤重不治……`);
+                return;
+            }
+            this.addMessage('你且战且退，终于脱身。', 'narrator');
+            setTimeout(() => this.enterLocation(locationId), 600);
+        }
+    }
+
+    resolveTravelStandby(locationId, evt) {
+        this.clearChoices();
+        this.addMessage('你冷漠地站在一旁，没有出手。', 'narrator');
+        const rep = this.player.reputation;
+        const ratingIdx = getRatingIndex(rep);
+        if (ratingIdx <= 2) {
+            this.addMessage('你名声不显，路人也不敢指望你什么。', 'info');
+        } else {
+            const tierMin = RATINGS[ratingIdx].min;
+            const penalty = Math.max(1, Math.floor(tierMin / 10));
+            this.player.reputation = Math.max(0, this.player.reputation - penalty);
+            this.addMessage(`路人失望地看着你：「见死不救，算什么江湖中人！」`, 'danger');
+            this.addMessage(`声望 -${penalty}（当前 ${this.player.reputation}）`, 'system');
+            if (this.player.reputation < 0) { this.gameOver('你声名狼藉，江湖再无容身之处……'); return; }
+        }
+        this.updateStatsBar();
+        setTimeout(() => this.enterLocation(locationId), 600);
     }
 
     /* ─── 美女系统 ─── */
@@ -1551,10 +1810,10 @@ class Game {
             delete bd._flirtPoemIdx;
             delete bd._flirtIntroShown;
             this.updateStatsBar();
+            this.player._sleptWithBeauty = true;
             setTimeout(() => {
                 this.sleepToTomorrow(true);
-                this.addMessage(`你从${bd.name}的闺房中醒来，昨夜风流如梦。`, 'narrator');
-                this.addMessage('一觉醒来，神清气爽。气血和精力已完全恢复。', 'system');
+                this.addMessage(`你从${bd.name}的闺房中醒来，昨夜风流如梦，神清气爽。`, 'narrator');
             }, 800);
         }
     }
@@ -1691,7 +1950,7 @@ class Game {
         bd.favorability = Math.max(0, bd.favorability - 30);
         if (this.player.reputation < 0) {
             this.updateStatsBar();
-            this.gameOver('你恶贯满盈，江湖再无容身之处……');
+            this.gameOver(`你对${bd.name}犯下的罪行天理不容，你恶贯满盈，江湖再无容身之处……`);
             return;
         }
         this.updateStatsBar();
@@ -1707,7 +1966,7 @@ class Game {
         this.addMessage(`声望 -6（当前 ${this.player.reputation}）`, 'system');
         if (this.player.reputation < 0) {
             this.updateStatsBar();
-            this.gameOver('你恶贯满盈，江湖再无容身之处……');
+            this.gameOver(`你杀害${bd.name}的恶行令人发指，你恶贯满盈，江湖再无容身之处……`);
             return;
         }
         const key = 'beauty_' + bd.id;
@@ -1767,9 +2026,12 @@ class Game {
 
     /* ─── 游戏结束 ─── */
 
-    gameOver(reason) {
-        document.getElementById('gameover-reason').textContent = reason;
-        document.getElementById('gameover-overlay').classList.remove('hidden');
+    gameOver(reason, npc = null) {
+        this.addMessage(`━━━ Game Over ━━━`, 'system');
+        setTimeout(() => {
+            document.getElementById('gameover-reason').textContent = reason;
+            document.getElementById('gameover-overlay').classList.remove('hidden');
+        }, 3000);
     }
 }
 
