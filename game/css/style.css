@@ -133,6 +133,14 @@ body {
     color: #a0d0e0;
 }
 
+.msg-poem {
+    background: rgba(80, 40, 60, 0.3);
+    border-left: 3px solid #d4a0c0;
+    color: #e8c8d8;
+    font-style: italic;
+    padding: 6px 16px;
+}
+
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }

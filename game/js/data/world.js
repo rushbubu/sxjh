@@ -183,6 +183,7 @@ const WORLD = {
                 venues[3].npcs[0].civilian = false;
                 venues[3].npcs[0].combatPower = baseCp + 8;
             }
+            venues[3].npcs[0].isChief = true;
             if (richNpc && richNpc !== chiefNpc) {
                 venues.push(v(`${richNpc}府`, richNpc, `村里的富户，宅子比别家气派不少。`, ['silk_robe', 'silk_scarf', 'silver_ingot']));
                 if (warriorNames.some(w => richNpc.includes(w))) {
@@ -190,8 +191,15 @@ const WORLD = {
                     venues[venues.length - 1].npcs[0].combatPower = baseCp + 5;
                 }
             }
-            return { id, name, desc, population:pop, area, areaUnit:'km²', economy, nearestCity, distanceToCity:distance, venues,
-                npcs: venues.flatMap(v => v.npcs.map(n => ({ name: n.npcName, desc: n.npcDesc, civilian: n.civilian, combatPower: n.combatPower, items: [...n.items] }))) };
+            venues.push({ name: '断桥', npcs: [] });
+            venues.push({ name: '小溪', npcs: [] });
+            venues.push({ name: '田埂', npcs: [] });
+            venues.push({ name: '小树林', npcs: [] });
+            const ecoBonus = { destitute:0, poor:2, subsistence:5, moderate:10, wealthy:15, very_wealthy:20, lavish:30 };
+            const b = ecoBonus[economy] || 5;
+            return { id, name, desc, population:pop, area, areaUnit:'km²', economy, nearestCity, distanceToCity:distance,
+                repThreshold: 5 + b, guardianPower: 15 + b * 3 + Math.floor(pop / 100), venues,
+                npcs: venues.flatMap(v => v.npcs.map(n => ({ name: n.npcName, desc: n.npcDesc, civilian: n.civilian, combatPower: n.combatPower, items: [...n.items], isChief: n.isChief || false }))) };
         }),
     ],
 };
@@ -199,6 +207,16 @@ const WORLD = {
 // Generate flat npcs from venues (for backward compatibility / steal system)
 for (const loc of [...WORLD.big_cities, ...WORLD.small_cities]) {
     loc.npcs = loc.venues.flatMap(v => v.npcs.map(n => ({ name: n.npcName, desc: n.npcDesc, civilian: n.civilian, combatPower: n.combatPower, items: [...n.items] })));
+}
+
+// Add reputation thresholds and guardian power to all locations
+const ecoBonusMap = { destitute:0, poor:2, subsistence:5, moderate:10, wealthy:15, very_wealthy:20, lavish:30 };
+for (const loc of getAllLocations()) {
+    const b = ecoBonusMap[loc.economy] || 5;
+    const t = loc.repThreshold !== undefined ? loc.repThreshold : (loc.population >= 1000000 ? 60 + b : loc.population >= 200000 ? 30 + b : 5 + b);
+    const g = loc.guardianPower !== undefined ? loc.guardianPower : (loc.population >= 1000000 ? 200 + b * 5 : loc.population >= 200000 ? 60 + b * 4 : 15 + b * 3 + Math.floor(loc.population / 100));
+    loc.repThreshold = t;
+    loc.guardianPower = g;
 }
 
 function getEconomyLabel(key) {
@@ -214,4 +232,46 @@ function getLocationTypeLabel(id) {
 
 function getAllLocations() {
     return [...WORLD.big_cities, ...WORLD.small_cities, ...WORLD.villages];
+}
+
+/* ─── 区域系统 ─── */
+
+const REGIONS = {
+    xibei: { name: '西北', color: '#d4a050' },
+    dongbei: { name: '东北', color: '#50a0d4' },
+    xinan: { name: '西南', color: '#50d480' },
+    dongnan: { name: '东南', color: '#d48050' },
+    zhongbu: { name: '中部', color: '#c0c050' },
+};
+
+const LOCATION_REGION = {
+    // 西北
+    changan: 'xibei', liuyun: 'xibei', xikou: 'xibei',
+    // 东北
+    jingcheng: 'dongbei', luoyang: 'dongbei', longmen: 'dongbei', dahuang: 'dongbei', shanshen: 'dongbei',
+    // 西南
+    chengdu: 'xinan', dali: 'xinan', yanxia: 'xinan', miaojiang: 'xinan', moyuan: 'xinan',
+    // 东南
+    suzhou: 'dongnan', yangzhou: 'dongnan', suzhou_city: 'dongnan',
+    fenglin: 'dongnan', qingxi: 'dongnan', shuangyue: 'dongnan', jinchuan: 'dongnan', luhua: 'dongnan', songtao: 'dongnan', dongpo: 'dongnan',
+    // 中部
+    xiangyang: 'zhongbu', taoyuan: 'zhongbu', baiyun: 'zhongbu', heishui: 'zhongbu', hutou: 'zhongbu', cuiwei: 'zhongbu',
+};
+
+const REGION_TRAVEL = {
+    xibei: ['zhongbu', 'xinan', 'dongbei'],
+    dongbei: ['zhongbu', 'xibei', 'dongnan'],
+    xinan: ['zhongbu', 'xibei', 'dongnan'],
+    dongnan: ['zhongbu', 'dongbei', 'xinan'],
+    zhongbu: ['xibei', 'dongbei', 'xinan', 'dongnan'],
+};
+
+function getRegion(id) { return LOCATION_REGION[id]; }
+function getRegionLabel(id) { const r = REGIONS[LOCATION_REGION[id]]; return r ? r.name : '未知'; }
+function canTravel(fromId, toId) {
+    const from = getRegion(fromId);
+    const to = getRegion(toId);
+    if (!from || !to) return true;
+    if (from === to) return true;
+    return REGION_TRAVEL[from] && REGION_TRAVEL[from].includes(to);
 }
