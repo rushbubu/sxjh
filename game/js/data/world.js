@@ -65,7 +65,7 @@ const WORLD = {
             venues: [
                 v('古玩店', '司徒明', '留着山羊胡的古董商人，店内古物琳琅满目。', ['qin_bamboo', 'peony_painting', 'writing_brush', 'ink_stick']),
                 v('铁匠铺', '雷炎', '肌肉虬结的铁匠，炉火烧得比别家旺三分。', ['blue_sword', 'gold_silk_armor', 'steel_blade', 'chest_mirror'], false, 55),
-                v('药材行', '孙思邈', '白发苍苍的老郎中，药柜里有不少珍稀药材。', ['ginseng_100', 'powder_clear', 'herb_bandage', 'herb_ginseng_small']),
+                v('药店', '孙思邈', '白发苍苍的老郎中，药柜里摆满了各种丹药瓶罐。', ['jinchuang', 'huisheng', 'neili_dan', 'jiedu_san', 'qingxin_wan', 'ginseng_100', 'powder_clear', 'herb_bandage']),
                 v('珠宝斋', '胡商', '西域来的珠宝商人，兜售各种奇珍异宝。', ['jade_ring', 'bangle_jade', 'necklace_gold', 'jade_fish']),
                 v('大光明寺', '了尘大师', '白眉垂肩的得道高僧，目光深邃如古井。', ['incense', 'buddha_relic', 'herb_bandage'], false, 80),
                 v('长安武馆', '秦仲', '虎背熊腰的西北硬汉，拳法刚猛霸道，门下弟子数百。', ['steel_blade', 'chest_mirror'], false, 75),
@@ -98,7 +98,7 @@ const WORLD = {
                 v('酒馆', '杜康', '酿酒世家的传人，店中酒香飘十里。', ['wine_daughter', 'wine_bamboo', 'wine_rice', 'pastry']),
                 v('首饰铺', '金巧手', '正在打磨银器的工匠，手艺精湛。', ['ring_silver', 'bangle_jade', 'jade_fish']),
                 v('茶馆', '竹叶青', '清雅的茶楼老板，泡得一手好茶。', ['dragon_tea', 'tea_cake', 'incense']),
-                v('药材铺', '白药仙', '背着药箱的郎中，专治疑难杂症。', ['ginseng_100', 'powder_clear', 'herb_bandage', 'herb_ginseng_small']),
+                v('药店', '白药仙', '背着药箱的郎中，专治疑难杂症，柜中丹药齐全。', ['jinchuang', 'huisheng', 'neili_dan', 'jiedu_san', 'qingxin_wan', 'ginseng_100', 'powder_clear', 'herb_bandage']),
                 v('蜀中武馆', '铁罗汉', '蜀中唐门的外门弟子，一手铁砂掌威震巴蜀。', ['chest_mirror', 'steel_blade'], false, 45),
             ],
         },

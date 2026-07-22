@@ -20,6 +20,8 @@ const ITEMS = {
     cloud_manual:    { id: 'cloud_manual',    name: '云纹秘籍残页', desc: '泛黄的纸页，记载着某种轻功心法，可惜只有残篇。', value: 25,  stealDiff: 55, category: 'skill', special: true },
     iron_command:    { id: 'iron_command',    name: '玄铁令',    desc: '刻着古怪符文的铁牌，似乎与某个秘密有关。',             value: 18,  stealDiff: 45, category: 'token', special: true },
 
+    herb_ginseng_small:{ id: 'herb_ginseng_small', name: '小参',      desc: '山中采来的小野参，虽年份不足但也有补气之效。',          value: 5,   stealDiff: 15, category: 'medicine' },
+
     // ═══ 小城通用物品 ═══
     silk_robe:       { id: 'silk_robe',       name: '绸缎衣',    desc: '上等丝绸制成的衣衫，穿在身上轻软舒适。',               value: 10,  stealDiff: 25, category: 'clothing', slot: 'upperBody', tier: 'green' },
     pastry:          { id: 'pastry',          name: '精致糕点',  desc: '用上等糯米和蜜糖制成的糕点，香甜可口。',               value: 3,   stealDiff: 10, category: 'food' },
@@ -55,6 +57,13 @@ const ITEMS = {
     // ═══ 其他 ═══
     silver_ingot:    { id: 'silver_ingot',    name: '银锭',      desc: '官铸十两银锭，成色十足。',                              value: 10,  stealDiff: 25, category: 'currency' },
     dagger:          { id: 'dagger',          name: '匕首',      desc: '短小锋利的匕首，可防身也可作为副手武器。',             value: 5,   stealDiff: 12, category: 'weapon', slot: 'leftHand', tier: 'white' },
+
+    // ═══ 药品 ═══
+    jinchuang:       { id: 'jinchuang',      name: '金疮药',    desc: '上好的金疮药，敷于伤口可止血生肌，恢复30点气血。',       value: 8,   stealDiff: 20, category: 'medicine', use: { healHp: 30 } },
+    huisheng:         { id: 'huisheng',       name: '回魂丹',    desc: '珍品丹药，有起死回生之效，恢复50点气血。',               value: 15,  stealDiff: 30, category: 'medicine', use: { healHp: 50 } },
+    neili_dan:        { id: 'neili_dan',      name: '养气丹',    desc: '培元固本的丹药，可恢复20点内力。',                       value: 10,  stealDiff: 25, category: 'medicine', use: { healNeili: 20 } },
+    jiedu_san:        { id: 'jiedu_san',      name: '解毒散',    desc: '专解百毒的药散，可解除中毒状态。',                       value: 6,   stealDiff: 18, category: 'medicine', use: { cure: 'poison' } },
+    qingxin_wan:      { id: 'qingxin_wan',    name: '清心丸',    desc: '宁神静气的药丸，可解除混乱状态。',                       value: 6,   stealDiff: 18, category: 'medicine', use: { cure: 'confusion' } },
 };
 
 function getItem(id) {

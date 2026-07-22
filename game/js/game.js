@@ -115,7 +115,7 @@ class Game {
         this.player = {
             attrs,
             hp: 10, maxHp: 10,
-            energy: 0, maxEnergy: 0,
+            neili: 0, maxNeili: 0,
             day: 1, level: 1, exp: 0,
             gold: 0, reputation: 10,
             items: [],
@@ -145,13 +145,15 @@ class Game {
         this.clearChoices();
         const segs = [
             '你猛地睁开双眼。',
-            '最后的记忆，是华山之巅。那一剑从背后刺入，穿胸而过——你的师弟，你最信任的师弟，在你全力激战之时，递出了致命一剑。',
+            '最后的记忆，是华山之巅。',
+            '那一剑从背后刺入，穿胸而过——你的师弟沈清寒，你最信任的师弟，在你全力激战之时，递出了致命一剑。',
             '你——华山派大弟子，江湖上赫赫有名的剑客——坠入了万劫深渊。',
             '耳边还回响着他冷冰冰的声音：「师兄，掌门之位，你让也得让，不让也得让。」',
-            '万劫深渊，深不见底，自古无人能生还。但你没死。',
-            '深渊之底竟别有洞天。你拖着残破的身躯，在一处古墓中发现了一部残缺的经文。',
-            '唯一剩下的，只有脑海中那半部《天之经》残本。那是上古流传的无上心法，可惜你记忆不全，只记得上半卷。',
-            '但，够了。这一世，你要从零开始，一步一步——让那些背叛你的人，付出代价。',
+            '万劫深渊，深不见底，自古无人能生还。但你竟没有死。',
+            '坠落途中，你伸手乱抓，指尖触碰到了崖壁上的一卷古老竹简——那一刹那，无数文字如洪流般涌入你的脑海。',
+            '那是《天之经》残本，上古无上心法。经文虽不全，却已深深刻入你的魂魄。',
+            '你，重生了。',
+            '这一世，你要从零开始，一步一步——让那些背叛你的人，付出代价。',
         ];
         let i = 0;
         const next = () => {
@@ -164,8 +166,6 @@ class Game {
     }
 
     afterIntro() {
-        this.addMessage('你缓缓睁开双眼，幽暗的洞穴中只有岩缝透下的微光。', 'narrator');
-        this.addMessage('你坐起身来，身上那道穿胸剑伤竟已结痂——也不知在这谷底躺了多久。', 'narrator');
         this.addMessage('你，活下来了。', 'system');
         this.enterLocation(this.player.locationId, false);
     }
@@ -186,14 +186,90 @@ class Game {
         return { label: '名动江湖', color: '#ff6040' };
     }
 
-    getPlayerCombatPower() {
+    getPlayerCombatPower(mode = 'full', useSkill = null) {
         const p = this.player;
-        const weaponSlots = ['rightHand', 'leftHand'];
-        let weaponBonus = 0;
-        for (const s of weaponSlots) {
-            if (p.equipment[s]) weaponBonus += p.equipment[s].value;
+        const basePower = Math.floor(p.attrs.root * 0.5 + p.attrs.dexterity * 0.5);
+        let weaponPower = 0;
+        let skillPower = 0;
+        let coefficient = 1.0;
+        let skillName = null;
+
+        if (mode === 'light') {
+            return basePower;
         }
-        return Math.floor(p.attrs.root * 0.5 + p.attrs.dexterity * 0.5 + weaponBonus + p.externalSkills.length * 2 + p.internalSkills.length * 3);
+
+        // Weapon power
+        const weaponSlots = ['rightHand', 'leftHand'];
+        for (const s of weaponSlots) {
+            if (p.equipment[s]) weaponPower += p.equipment[s].value;
+        }
+
+        // Pick best external skill for 全力以赴
+        if (mode === 'full') {
+            const usableSkills = p.externalSkills.filter(sk => {
+                if (!sk.type) return false;
+                if (sk.type === 'fist' || sk.type === 'kick') return true; // no weapon needed
+                if (sk.type === 'sword') return this.hasWeaponType('sword');
+                if (sk.type === 'blade') return this.hasWeaponType('blade');
+                return true;
+            });
+            let bestSkill = null;
+            let bestPower = -1;
+            for (const sk of usableSkills) {
+                const fp = getSkillFixedPower(sk.quality, sk.level);
+                const coeff = getSkillCoefficient(sk.quality, sk.level);
+                const skWeaponPower = (sk.type === 'fist' || sk.type === 'kick') ? 0 : weaponPower;
+                const total = getSkillPowerTotal(basePower, skWeaponPower, fp, coeff);
+                if (total > bestPower) {
+                    bestPower = total;
+                    bestSkill = sk;
+                }
+            }
+            if (bestSkill) {
+                const fp = getSkillFixedPower(bestSkill.quality, bestSkill.level);
+                coefficient = getSkillCoefficient(bestSkill.quality, bestSkill.level);
+                skillPower = fp;
+                skillName = bestSkill.name;
+                if (bestSkill.type === 'fist' || bestSkill.type === 'kick') weaponPower = 0;
+            }
+        } else if (mode === 'serious') {
+            // serious: weapon + base, no external skill
+        }
+
+        return getSkillPowerTotal(basePower, weaponPower, skillPower, coefficient);
+    }
+
+    getPlayerBestSkillName() {
+        const p = this.player;
+        const usableSkills = p.externalSkills.filter(sk => {
+            if (!sk.type) return false;
+            if (sk.type === 'fist' || sk.type === 'kick') return true;
+            if (sk.type === 'sword') return this.hasWeaponType('sword');
+            if (sk.type === 'blade') return this.hasWeaponType('blade');
+            return true;
+        });
+        let bestSkill = null;
+        let bestPower = -1;
+        const basePower = Math.floor(p.attrs.root * 0.5 + p.attrs.dexterity * 0.5);
+        for (const sk of usableSkills) {
+            const fp = getSkillFixedPower(sk.quality, sk.level);
+            const coeff = getSkillCoefficient(sk.quality, sk.level);
+            const total = getSkillPowerTotal(basePower, 0, fp, coeff);
+            if (total > bestPower) {
+                bestPower = total;
+                bestSkill = sk;
+            }
+        }
+        return bestSkill ? bestSkill.name : null;
+    }
+
+    hasWeaponType(type) {
+        const p = this.player;
+        const rh = p.equipment.rightHand;
+        if (!rh) return false;
+        if (type === 'sword') return rh.name.includes('剑') || rh.id === 'blue_sword';
+        if (type === 'blade') return rh.name.includes('刀') || rh.id === 'steel_blade' || rh.id === 'knife_wood';
+        return false;
     }
 
     getPlayerDefense() {
@@ -241,22 +317,23 @@ class Game {
         const p = this.player;
         if (!p) return;
         const hpPct = p.maxHp > 0 ? Math.floor(p.hp / p.maxHp * 100) : 0;
-        const mpPct = p.maxEnergy > 0 ? Math.floor(p.energy / p.maxEnergy * 100) : 0;
+        const mpPct = p.maxNeili > 0 ? Math.floor(p.neili / p.maxNeili * 100) : 0;
         document.getElementById('hp-fill').style.width = Math.max(0, hpPct) + '%';
         document.getElementById('hp-text').textContent = `${p.hp}/${p.maxHp}`;
         document.getElementById('mp-fill').style.width = Math.max(0, mpPct) + '%';
-        document.getElementById('mp-text').textContent = `${p.energy}/${p.maxEnergy}`;
+        document.getElementById('mp-text').textContent = `${p.neili}/${p.maxNeili}`;
         const st = document.getElementById('hp-status');
         if (hpPct < 30) { st.textContent = '致命伤'; st.style.color = '#ff4040'; }
         else if (hpPct < 50) { st.textContent = '重伤'; st.style.color = '#ff8040'; }
         else if (hpPct < 70) { st.textContent = '轻伤'; st.style.color = '#ffc040'; }
         else st.textContent = '';
-        p.hp = Math.max(0, p.hp); p.energy = Math.max(0, p.energy);
+        p.hp = Math.max(0, p.hp); p.neili = Math.max(0, p.neili);
         const ri = this.getRepInfo(p.reputation);
         document.getElementById('gold-text').textContent = p.gold + ' 两';
         document.getElementById('rep-text').textContent = ri.label;
         document.getElementById('rep-text').style.color = ri.color;
         document.getElementById('day-text').textContent = p.day;
+        document.getElementById('level-text').textContent = p.level;
     }
 
     getItemStock(item) {
@@ -280,13 +357,20 @@ class Game {
             `<div class="stat-line"><span>${a.name}</span><span style="color:${getRating(p.attrs[a.key]).color}">${p.attrs[a.key]}（${getRatingLabel(p.attrs[a.key])}）</span></div>`
         ).join('');
         const il = p.items.length ? p.items.map(i => i.name).join('、') : '（空）';
+        const extSkills = p.externalSkills.length ? p.externalSkills.map(s => {
+            const q = SKILL_QUALITIES[s.quality] || SKILL_QUALITIES.white;
+            return `${s.name} Lv.${s.level}/${s.maxLevel}（${q.name}）`;
+        }).join('、') : '无';
+        const intSkills = p.internalSkills.length ? p.internalSkills.join('、') : '无';
         document.getElementById('menu-stats').innerHTML = `
             ${rl}
             <div class="stat-line"><span>等级</span><span>Lv.${p.level}</span></div>
-            <div class="stat-line"><span>经验</span><span>${p.exp}/100</span></div>
+            <div class="stat-line"><span>经验</span><span>${p.exp}/${this.getExpToNextLevel(p.level)}</span></div>
             <div class="stat-line"><span>气血</span><span>${p.hp}/${p.maxHp}</span></div>
-            <div class="stat-line"><span>精力</span><span>${p.energy}/${p.maxEnergy}</span></div>
+            <div class="stat-line"><span>内力</span><span>${p.neili}/${p.maxNeili}</span></div>
             <div class="stat-line"><span>银两</span><span>${p.gold} 两</span></div>
+            <div class="stat-line" style="margin-top:6px;"><span>心法</span><span>${intSkills}</span></div>
+            <div class="stat-line"><span>外功</span><span>${extSkills}</span></div>
         `;
         document.getElementById('menu-rep').textContent = `声望：${p.reputation}`;
         let extra = `<div style="margin-top:8px;">行囊：${il}</div>`;
@@ -364,16 +448,30 @@ class Game {
         const tl = getLocationTypeLabel(loc.id);
         if (clear) this.clearLog();
         this.clearChoices();
-        this.addMessage(`━━━ ${tl.label} · ${loc.name} ━━━`, 'system');
-        this.addMessage(`「${loc.desc}」`, 'info');
-        this.addMessage(`人口 ${loc.population.toLocaleString()}  |  面积 ${loc.area}${loc.areaUnit}  |  经济 ${getEconomyLabel(loc.economy)}`, 'info');
-        if (loc.factions && loc.factions.length) this.addMessage(`本地势力：${loc.factions.map(f => f.name).join('、')}`, 'system');
+        const locSegs = [
+            { text: `━━━ ${tl.label} · ${loc.name} ━━━`, type: 'system' },
+            { text: `「${loc.desc}」`, type: 'info' },
+            { text: `人口 ${loc.population.toLocaleString()}  |  面积 ${loc.area}${loc.areaUnit}  |  经济 ${getEconomyLabel(loc.economy)}`, type: 'info' },
+        ];
+        if (loc.factions && loc.factions.length) {
+            locSegs.push({ text: `本地势力：${loc.factions.map(f => f.name).join('、')}`, type: 'system' });
+        }
         if (loc.nearestCity) {
             const city = getAllLocations().find(l => l.id === loc.nearestCity);
-            if (city) this.addMessage(`最近城镇：${getLocationTypeLabel(city.id).label} · ${city.name}（${loc.distanceToCity}）`, 'info');
+            if (city) locSegs.push({ text: `最近城镇：${getLocationTypeLabel(city.id).label} · ${city.name}（${loc.distanceToCity}）`, type: 'info' });
         }
-        this.addMessage('你打算怎么做？', 'narrator');
-        this.showLocationChoices();
+        locSegs.push({ text: '你打算怎么做？', type: 'narrator' });
+        let li = 0;
+        const nextLoc = () => {
+            if (li < locSegs.length) {
+                this.addMessage(locSegs[li].text, locSegs[li].type);
+                li++;
+                this.showChoices([{ text: '继续……', action: nextLoc }]);
+            } else {
+                this.showLocationChoices();
+            }
+        };
+        nextLoc();
         this.updateStatsBar();
     }
 
@@ -421,8 +519,9 @@ class Game {
 
     showGroupVenues(label, venues) {
         this.clearChoices();
+        this._groupContext = { label, venues };
         const choices = venues.map(v => ({ text: v.name, action: () => this.enterVenue(v) }));
-        choices.push({ text: '回去', action: () => this.showOutdoorChoices() });
+        choices.push({ text: '回去', action: () => { this._groupContext = null; this.showOutdoorChoices(); } });
         this.addMessage(`—— ${label} ——`, 'system');
         this.showChoices(choices);
     }
@@ -433,14 +532,14 @@ class Game {
         const alive = venue.npcs.filter(n => !n._killed && !(n.isBeauty && n._beautyData && n._beautyData._chattedToday));
         if (alive.length === 0) {
             this.addMessage('里面空无一人……', 'narrator');
-            setTimeout(() => this.showOutdoorChoices(), 400);
+            setTimeout(() => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()), 400);
             return;
         }
         const choices = alive.map(npc => ({
             text: npc.npcName,
             action: () => this.interactNpc(venue, npc),
         }));
-        choices.push({ text: `离开${venue.name}`, action: () => this.showOutdoorChoices() });
+        choices.push({ text: `离开${venue.name}`, action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) });
         this.showChoices(choices);
     }
 
@@ -491,7 +590,7 @@ class Game {
         const key = Object.keys(chats).find(k => venue.name.includes(k));
         const lines = chats[key] || ['今天天气不错。', '你好啊，有什么事吗？', '这日子一天天过，平淡是福。'];
         this.addMessage(npc.npcName + '：「' + lines[Math.floor(Math.random() * lines.length)] + '」', 'narrator');
-        this.player.energy -= 2;
+        this.player.neili -= 2;
         this.updateStatsBar();
         setTimeout(() => this.interactNpc(venue, npc), 400);
     }
@@ -510,8 +609,18 @@ class Game {
     chiefAction(venue, npc) {
         this.clearChoices();
         const loc = this.currentLocation;
-        const tier = this.getLocRepTier(loc.id);
+        const tier = npc._sonBeaten ? 'mid' : this.getLocRepTier(loc.id);
         if (tier === 'low') {
+            const repNeed = (loc.repThreshold || 0) - this.player.reputation;
+            const hints = [
+                `你不过是个初出茅庐的小辈，${npc.npcName}根本懒得正眼看你。`,
+                `以你现在的江湖地位，${npc.npcName}连话都懒得跟你说半句。`,
+                `${npc.npcName}见你资历尚浅，根本没把你放在眼里。`,
+            ];
+            if (repNeed > 0) {
+                hints.push(`你的名声还不够响亮，想在${loc.name}说话，至少还需要${repNeed}点声望。`);
+            }
+            this.addMessage(hints[Math.floor(Math.random() * hints.length)], 'info');
             const insults = [
                 `「哪来的野狗，也敢进我${npc.npcName}家的门？滚！」`,
                 `「呵呵，我当是谁呢，原来是个无名小卒。趁我没发火，自己滚出去。」`,
@@ -549,12 +658,22 @@ class Game {
 
     chiefIntel(venue, npc) {
         this.clearChoices();
+        this.addMessage(`你向${npc.npcName}打听消息。`, 'narrator');
+        this.showChoices([
+            { text: '打听师弟沈清寒', action: () => this.askAboutDisciple(venue, npc) },
+            { text: '打听女人', action: () => this.chiefIntelBeauties(venue, npc) },
+            { text: '算了', action: () => this.chiefAction(venue, npc) },
+        ]);
+    }
+
+    chiefIntelBeauties(venue, npc) {
+        this.clearChoices();
         const loc = this.currentLocation;
         const beauties = this.beautyMap[loc.id] || [];
         const available = beauties.filter(b => !this.killedNpcs.has('beauty_' + b.id));
         if (available.length === 0) {
             this.addMessage(`${npc.npcName}想了想：「咱们村……还真没什么值得一提的女子。」`, 'narrator');
-            this.showChoices([{ text: '返回', action: () => this.chiefAction(venue, npc) }]);
+            this.showChoices([{ text: '返回', action: () => this.chiefIntel(venue, npc) }]);
             return;
         }
         this.addMessage(`你向${npc.npcName}打听村中女子的消息。`, 'narrator');
@@ -567,22 +686,112 @@ class Game {
                 const who = ['有人说', '听隔壁大妈讲', '据说', '好像是', '前两日还见她在'][Math.floor(Math.random() * 5)];
                 const action = ['散步', '采花', '洗衣', '闲坐', '纳凉', '赏景', '等人'][Math.floor(Math.random() * 7)];
                 this.addMessage(`${npc.npcName}凑近了些，压低声音：「${who}，她这会儿在${where}${action}呢。」`, 'narrator');
-                this.showChoices([{ text: '再问别的', action: () => this.chiefIntel(venue, npc) }, { text: '多谢', action: () => this.chiefAction(venue, npc) }]);
+                this.showChoices([{ text: '再问别的', action: () => this.chiefIntelBeauties(venue, npc) }, { text: '多谢', action: () => this.chiefAction(venue, npc) }]);
             },
         }));
         choices.push({ text: '算了', action: () => this.chiefAction(venue, npc) });
         this.showChoices(choices);
     }
 
+    askAboutDisciple(venue, npc) {
+        this.clearChoices();
+        const loc = this.currentLocation;
+        const region = getRegion(loc.id);
+        const cityLocs = getAllLocations().filter(l => l.id !== loc.id && getRegion(l.id) === region && !l.nearestCity);
+        const target = cityLocs.length > 0 ? cityLocs[Math.floor(Math.random() * cityLocs.length)] : null;
+        if (target) {
+            this.addMessage(`你提起「沈清寒」这个名字，${npc.npcName}皱眉思索了片刻。`, 'narrator');
+            this.addMessage(`${npc.npcName}：「沈清寒……这个名字好像在哪听过，但老夫孤陋寡闻，实在记不起来了。」`, 'narrator');
+            this.addMessage(`${npc.npcName}：「少侠不妨去${target.name}看看，城里人多口杂，兴许能打听到什么。」`, 'narrator');
+        } else {
+            this.addMessage(`你提起「沈清寒」这个名字，${npc.npcName}摇了摇头。`, 'narrator');
+            this.addMessage(`${npc.npcName}：「没听说过这个人，少侠去别处打听打听吧。」`, 'narrator');
+        }
+        this.showChoices([{ text: '多谢', action: () => this.chiefAction(venue, npc) }]);
+    }
+
     confrontChief(venue, npc, type) {
         this.clearChoices();
-        const isKill = type === 'kill';
-        const repCost = isKill ? 10 : 5;
+        if (type === 'beat') {
+            this.confrontChiefSon(venue, npc);
+            return;
+        }
+        const repCost = 10;
         this.player.reputation -= repCost;
         this.addMessage(`声望 -${repCost}（当前 ${this.player.reputation}）`, 'system');
-        this.addMessage(`你勃然大怒，${isKill ? '拔出兵器直取' : '一拳砸向'}${npc.npcName}！`, 'danger');
-        this.addMessage(`${npc.npcName}大声呼救：「来人啊！有人行凶！」`, 'narrator');
-        setTimeout(() => this.arrestScene(venue, npc, type), 500);
+        this.addMessage(`你拔出兵器，眼中杀机毕露，直取${npc.npcName}！`, 'danger');
+        this.addMessage(`${npc.npcName}大声呼救：「来人啊！杀人啦！」`, 'narrator');
+        setTimeout(() => this.arrestScene(venue, npc, 'kill'), 500);
+    }
+
+    confrontChiefSon(venue, chief) {
+        const loc = this.currentLocation;
+        if (!chief._sonName) {
+            const familyName = chief.npcName.charAt(0);
+            const sonNames = ['大牛', '二虎', '铁柱', '石头', '大壮'];
+            chief._sonName = familyName + sonNames[Math.floor(Math.random() * sonNames.length)];
+        }
+        const sonName = chief._sonName;
+        const sonPower = Math.max(20, Math.floor(this.getPlayerCombatPower('full') * 0.8 + 10));
+
+        this.addMessage(`你一拳砸向${chief.npcName}，${chief.npcName}身子一缩，大吼一声：「儿子！有人捣乱！」`, 'narrator');
+        this.addMessage(`只听一声怒吼，一个壮硕的年轻人从里屋冲了出来——正是${chief.npcName}的儿子${sonName}！`, 'narrator');
+        this.addMessage(`${sonName}挡在父亲面前，怒目圆睁：「敢动我爹？先过我这一关！」`, 'event');
+
+        const son = { npcName: sonName, combatPower: sonPower, civilian: false };
+        const pPower = this.getPlayerCombatPower('full');
+        const ratio = sonPower / Math.max(1, pPower);
+
+        if (ratio >= 3) {
+            this.addMessage(`${sonName}的实力远超你的想象！一拳便将你打飞出去！`, 'danger');
+            this.player.hp = 0;
+            this.updateStatsBar();
+            this.gameOver(`你被${sonName}打得不成人形……`);
+            return;
+        }
+        if (ratio >= 1.5) {
+            const dmg = Math.floor(sonPower * 0.5);
+            this.player.hp -= dmg;
+            this.addMessage(`你奋力抵抗，但${sonName}天生神力，你完全不是对手！`, 'danger');
+            this.addMessage(`你受了 ${dmg} 点伤，狼狈不堪地逃了出去。`, 'system');
+            this.updateStatsBar();
+            if (this.player.hp <= 0) { this.gameOver(`你被${sonName}打成重伤……`); return; }
+            this.showChoices([{ text: '灰溜溜离开', action: () => { this.addMessage('你捂着脸逃离了村子。', 'narrator'); this.enterVenue(venue); } }]);
+            return;
+        }
+
+        const winChance = ratio >= 0.67 ? 1 / (1 + ratio) : 1;
+        if (Math.random() < winChance) {
+            this.addMessage(`你与${sonName}拳来脚往，缠斗了数十回合！`, 'narrator');
+            const winSegs = [
+                { text: `最终你一记漂亮的扫堂腿将${sonName}摔倒在地！`, type: 'event' },
+                { text: `${sonName}趴在地上，喘着粗气：「好……好汉饶命！」`, type: 'narrator' },
+                { text: `${chief.npcName}在一旁看得目瞪口呆，连忙上前拱手：「少侠好身手！老夫有眼不识泰山！请进请进！」`, type: 'narrator' },
+                { text: `声望 +1（当前 ${this.player.reputation + 1}）`, type: 'system' },
+            ];
+            chief._sonBeaten = true;
+            this.player.reputation += 1;
+            this.updateStatsBar();
+            let wi = 0;
+            const nextWin = () => {
+                if (wi < winSegs.length) {
+                    this.addMessage(winSegs[wi].text, winSegs[wi].type);
+                    wi++;
+                    this.showChoices([{ text: '继续……', action: nextWin }]);
+                } else {
+                    setTimeout(() => this.chiefAction(venue, chief), 300);
+                }
+            };
+            nextWin();
+        } else {
+            const dmg = Math.floor(sonPower * 0.2);
+            this.player.hp -= dmg;
+            this.addMessage(`你未能取胜，被${sonName}一拳打在胸口！`, 'danger');
+            this.addMessage(`你受了 ${dmg} 点伤，见势不妙，转身就逃。`, 'system');
+            this.updateStatsBar();
+            if (this.player.hp <= 0) { this.gameOver(`你被${sonName}打成重伤……`); return; }
+            this.showChoices([{ text: '逃离此地', action: () => { this.addMessage('你跌跌撞撞逃出了村子。', 'narrator'); this.enterVenue(venue); } }]);
+        }
     }
 
     arrestScene(venue, npc, crimeType) {
@@ -696,8 +905,32 @@ class Game {
             }
         }
 
+        // 偷袭/暗杀 always go all out
+        if (label === '偷袭' || label === '暗杀') {
+            this.resolveDuel(venue, npc, 'full', options);
+            return;
+        }
+
+        this.addMessage(`你面对${npc.npcName}，深吸一口气，摆开架势……`, 'narrator');
+        this.addMessage('你打算如何应对？', 'narrator');
+        const choices = [
+            { text: '全力以赴', action: () => {
+                const skName = this.getPlayerBestSkillName();
+                if (skName) this.addMessage(`你沉肩坠肘，使出「${skName}」！`, 'event');
+                this.resolveDuel(venue, npc, 'full', options);
+            } },
+            { text: '认真对待', action: () => this.resolveDuel(venue, npc, 'serious', options) },
+            { text: '小试身手', action: () => this.resolveDuel(venue, npc, 'light', options) },
+        ];
+        this.showChoices(choices);
+    }
+
+    resolveDuel(venue, npc, mode, options = {}) {
+        const { powerMult = 1, noCombatRepChange = false, winGetAllItems = false, label = '对决' } = options;
+        this.clearChoices();
+
         const effectivePower = Math.floor(npc.combatPower * powerMult);
-        const pPower = this.getPlayerCombatPower();
+        const pPower = this.getPlayerCombatPower(mode);
         const nPower = effectivePower;
         const ratio = nPower / Math.max(1, pPower);
         const defense = this.getPlayerDefense();
@@ -824,7 +1057,10 @@ class Game {
         }
         chance = Math.max(0, Math.min(100, chance));
         if (Math.random() * 100 < chance) {
-            this.player.externalSkills.push({ id: npc.martialArt, name: art.name, desc: art.desc, level: 1 });
+            const luckLabel = this.player.attrs.luck >= art.luckReq ? '福缘深厚' : '勉强够格';
+            this.addMessage(`你${luckLabel}（福缘 ${this.player.attrs.luck}），${npc.npcName}对你另眼相看！`, 'event');
+            const qData = SKILL_QUALITIES[art.quality] || SKILL_QUALITIES.white;
+            this.player.externalSkills.push({ id: npc.martialArt, name: art.name, desc: art.desc, type: art.type, quality: art.quality, level: 1, maxLevel: qData.maxLevel });
             this.addMessage(`${npc.npcName}将${art.name}倾囊相授！你领悟了「${art.name}」的奥义！`, 'event');
             this.player.exp += 20;
             this.checkLevelUp();
@@ -950,7 +1186,7 @@ class Game {
         } else if (roll < chance + 0.12) {
             this.addMessage(`${npc.npcName}似乎察觉到了什么，回头看了一眼。你赶紧缩回手。`, 'narrator');
             this.addMessage('好险！差点被发现……', 'system');
-            this.player.energy -= 5;
+            this.player.neili -= 5;
             this.updateStatsBar();
             setTimeout(() => this.interactNpc(venue, npc), 500);
         } else {
@@ -963,7 +1199,7 @@ class Game {
                 this.gameOver('你偷盗失手被当场拿获，被扭送官府。江湖之路，到此为止……');
                 return;
             }
-            this.player.energy -= 10;
+            this.player.neili -= 10;
             this.updateStatsBar();
             setTimeout(() => this.enterVenue(venue), 500);
         }
@@ -1000,7 +1236,9 @@ class Game {
         this.addMessage(`身高：${height}cm`, 'info');
         this.addMessage('', 'narrator');
         this.addMessage('—— 装备 ——', 'system');
-        let combatStr = `战斗力：${this.getPlayerCombatPower()}`;
+        let combatStr = `战力（全力以赴）：${this.getPlayerCombatPower('full')}`;
+        const lightPower = this.getPlayerCombatPower('light');
+        if (lightPower > 0) combatStr += ` | 基础：${lightPower}`;
         this.addMessage(combatStr, 'info');
         let defStr = `防御力：${this.getPlayerDefense()}`;
         this.addMessage(defStr, 'info');
@@ -1041,7 +1279,10 @@ class Game {
             ]);
         } else {
             this.addMessage('你回顾所学的武学招式，开始练习：', 'narrator');
-            const choices = skills.map(s => ({ text: s.name, action: () => this.practiceExternalSkill(s) }));
+            const choices = skills.map(s => {
+                const qData = SKILL_QUALITIES[s.quality] || SKILL_QUALITIES.white;
+                return { text: `${s.name} Lv.${s.level}/${s.maxLevel}（${qData.name}）`, action: () => this.practiceExternalSkill(s) };
+            });
             choices.push({ text: '算了', action: () => this.showHomeChoices() });
             this.showChoices(choices);
         }
@@ -1076,11 +1317,35 @@ class Game {
 
     practiceExternalSkill(skill) {
         this.clearChoices();
-        this.addMessage(`你开始练习${skill.name}……`, 'narrator');
-        this.addMessage('你反复演练招式，武艺更加精纯了。', 'event');
-        this.player.exp += 10;
+        if (skill.level >= skill.maxLevel) {
+            this.addMessage(`你反复演练${skill.name}，招式已臻化境，再练也无寸进了。`, 'narrator');
+            this.player.exp += 5;
+            this.player.day += 1;
+            this.addMessage('经验 +5', 'system');
+            this.addMessage('练完后，你精疲力竭，倒头便睡了过去。', 'narrator');
+            this.checkLevelUp();
+            this.updateStatsBar();
+            setTimeout(() => this.showLocationChoices(), 400);
+            return;
+        }
+        const oldFixed = getSkillFixedPower(skill.quality, skill.level);
+        const oldCoeff = getSkillCoefficient(skill.quality, skill.level);
+        skill.level++;
+        const newFixed = getSkillFixedPower(skill.quality, skill.level);
+        const newCoeff = getSkillCoefficient(skill.quality, skill.level);
+        const fixedGain = newFixed - oldFixed;
+        const qData = SKILL_QUALITIES[skill.quality];
+        const isMaxed = skill.level >= skill.maxLevel;
+
+        this.addMessage(`你凝神静气，一遍又一遍地演练${skill.name}……`, 'narrator');
+        this.addMessage('不知练了多久，你感觉招式愈发纯熟，心有所悟。', 'event');
+        let msg = `${skill.name} 提升至 Lv.${skill.level}`;
+        if (fixedGain > 0) msg += `，威力 +${fixedGain}`;
+        if (newCoeff > oldCoeff) msg += `，战意系数 ${oldCoeff.toFixed(2)} → ${newCoeff.toFixed(2)}`;
+        this.addMessage(msg, 'system');
+        this.player.exp += 5;
         this.player.day += 1;
-        this.addMessage('获得 10 点经验', 'system');
+        this.addMessage('经验 +5', 'system');
         this.addMessage('练完后，你精疲力竭，倒头便睡了过去。', 'narrator');
         this.checkLevelUp();
         this.updateStatsBar();
@@ -1100,11 +1365,11 @@ class Game {
         this.clearChoices();
         this.addMessage(`你盘膝坐下，五心朝天，默运「${name}」心法口诀……`, 'narrator');
         this.addMessage('一缕微弱的真气在经脉中缓缓流转，虽然渺小，却真实存在。', 'event');
-        this.player.maxEnergy += 1;
-        this.player.energy = this.player.maxEnergy;
+        this.player.maxNeili += 1;
+        this.player.neili = this.player.maxNeili;
         this.player.exp += 5;
         this.player.day += 1;
-        this.addMessage(`精力上限 +1（${this.player.maxEnergy}），经验 +5`, 'system');
+        this.addMessage(`内力上限 +1（${this.player.maxNeili}），经验 +5`, 'system');
         this.addMessage('运功完毕，你收功归元，沉沉睡去。', 'narrator');
         this.checkLevelUp();
         this.updateStatsBar();
@@ -1119,14 +1384,14 @@ class Game {
         }
         if (this.player._sleptWithBeauty) {
             this.player.hp = this.player.maxHp;
-            this.player.energy = this.player.maxEnergy;
+            this.player.neili = this.player.maxNeili;
             delete this.player._sleptWithBeauty;
             if (!silent) this.addMessage('你从温柔乡中醒来，昨夜风流如梦，气血充盈。', 'narrator');
         } else {
-            if (this.player.energy < this.player.maxEnergy) {
-                const recover = Math.floor(this.player.maxEnergy / 4);
-                this.player.energy = Math.min(this.player.maxEnergy, this.player.energy + recover);
-                if (!silent) this.addMessage(`精力恢复了 ${recover} 点。`, 'system');
+            if (this.player.neili < this.player.maxNeili) {
+                const recover = Math.floor(this.player.maxNeili / 4);
+                this.player.neili = Math.min(this.player.maxNeili, this.player.neili + recover);
+                this.addMessage(`内力恢复了 ${recover} 点。`, 'system');
             }
         }
         this.player.day += 1;
@@ -1157,15 +1422,21 @@ class Game {
         setTimeout(() => this.showLocationChoices(), 400);
     }
 
+    getExpToNextLevel(level) {
+        return Math.floor(80 + level * 20 + level * level * 3);
+    }
+
     checkLevelUp() {
-        if (this.player.exp >= 100) {
-            this.player.exp = 0;
+        let needed = this.getExpToNextLevel(this.player.level);
+        while (this.player.exp >= needed) {
+            this.player.exp -= needed;
             this.player.level++;
             this.player.maxHp += 5;
-            this.player.maxEnergy += 3;
+            this.player.maxNeili += 3;
             this.player.hp = this.player.maxHp;
-            this.player.energy = this.player.maxEnergy;
-            this.addMessage(`━━━ 恭喜！升至 Lv.${this.player.level}！气血 +5，精力 +3 ━━━`, 'system');
+            this.player.neili = this.player.maxNeili;
+            this.addMessage(`━━━ 恭喜！升至 Lv.${this.player.level}！气血 +5，内力 +3 ━━━`, 'system');
+            needed = this.getExpToNextLevel(this.player.level);
         }
     }
 
@@ -1208,7 +1479,7 @@ class Game {
             this.player.hp = Math.max(1, this.player.hp - cost);
             this.addMessage(`你盘缠不够，只能一路风餐露宿，损失了 ${cost} 点气血。`, 'danger');
         }
-        this.player.energy -= 10;
+        this.player.neili -= 10;
         this.player.day += days;
         setTimeout(() => {
             if (Math.random() < 1/3) {
@@ -1796,7 +2067,7 @@ class Game {
             this.addMessage(scene.end, 'narrator');
             bd._hadSex = true;
             bd.favorability = Math.min(100, bd.favorability + 8);
-            this.player.energy -= 20;
+            this.player.neili -= 20;
             if (!this.redRecord[bd.id]) {
                 this.redRecord[bd.id] = {
                     id: bd.id, name: bd.name, age: bd.age, surface: bd.surface, inner: bd.inner,
