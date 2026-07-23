@@ -32,6 +32,7 @@ class Game {
         this.currentLocation = null;
         this.killedNpcs = new Set();
         this.redRecord = {};
+        this.brothelProstitutes = {};
         this.init();
     }
 
@@ -128,10 +129,20 @@ class Game {
 
         const sv = WORLD.villages[Math.floor(Math.random() * WORLD.villages.length)];
         this.player.locationId = sv.id;
+        this.player.startingVillage = sv.id;
+        this.player.mainQuest = 0;
+        this.player._questFirstEntry = true;
+        const usedNames = new Set();
         this.beautyMap = {};
         for (const loc of getAllLocations()) {
             const type = loc.nearestCity ? 'village' : WORLD.big_cities.find(c => c.id === loc.id) ? 'big_city' : 'small_city';
-            this.beautyMap[loc.id] = generateBeauties(loc.id, type);
+            this.beautyMap[loc.id] = generateBeauties(loc.id, type, usedNames);
+        }
+        this.brothelProstitutes = {};
+        for (const loc of getAllLocations()) {
+            if (loc.id === 'dali') continue;
+            const type = loc.nearestCity ? null : WORLD.big_cities.find(c => c.id === loc.id) ? 'big_city' : 'small_city';
+            if (type) this.brothelProstitutes[loc.id] = generateProstitutes(loc.id, type, usedNames);
         }
         document.getElementById('create-overlay').classList.add('hidden');
         this.updateStatsBar();
@@ -413,6 +424,20 @@ class Game {
         document.getElementById('main-area').scrollTop = document.getElementById('main-area').scrollHeight;
     }
 
+    showMessageSequence(messages, onDone) {
+        let i = 0;
+        const next = () => {
+            if (i < messages.length) {
+                this.addMessage(messages[i].text, messages[i].type || 'narrator');
+                i++;
+                this.showChoices([{ text: '……', action: next }]);
+            } else if (onDone) {
+                onDone();
+            }
+        };
+        next();
+    }
+
     /* ─── 地点系统 ─── */
 
     enterLocation(locationId, clear = true) {
@@ -426,9 +451,10 @@ class Game {
         if (this.player.villageBlacklist && this.player.villageBlacklist[locationId]) {
             const daysLeft = this.player.villageBlacklist[locationId] - this.player.day;
             this.clearChoices();
-            this.addMessage(`${loc.name}的村民对你怒目而视，你根本进不去。`, 'danger');
-            this.addMessage(`你决定还是避避风头，等${daysLeft}天后再回来。`, 'narrator');
-            this.showChoices([{ text: '去别处走走', action: () => this.showTravelOptions() }]);
+            this.showMessageSequence([
+                { text: `${loc.name}的村民对你怒目而视，你根本进不去。`, type: 'danger' },
+                { text: `你决定还是避避风头，等${daysLeft}天后再回来。`, type: 'narrator' },
+            ], () => this.showChoices([{ text: '去别处走走', action: () => this.showTravelOptions() }]));
             return;
         }
         this.player.locationId = locationId;
@@ -450,9 +476,14 @@ class Game {
         this.clearChoices();
         const locSegs = [
             { text: `━━━ ${tl.label} · ${loc.name} ━━━`, type: 'system' },
-            { text: `「${loc.desc}」`, type: 'info' },
-            { text: `人口 ${loc.population.toLocaleString()}  |  面积 ${loc.area}${loc.areaUnit}  |  经济 ${getEconomyLabel(loc.economy)}`, type: 'info' },
         ];
+        if (this.player._questFirstEntry && locationId === this.player.startingVillage) {
+            locSegs.push({ text: '你找了一处荒废之所安顿下来。这里虽然破败，但遮风挡雨总算够了。', type: 'narrator' });
+            locSegs.push({ text: '你盘算着下一步——该从哪里打探师弟沈清寒的消息呢……村长的家或许是个合适的去处。', type: 'narrator' });
+            this.player._questFirstEntry = false;
+        }
+        locSegs.push({ text: `「${loc.desc}」`, type: 'info' });
+        locSegs.push({ text: `人口 ${loc.population.toLocaleString()}  |  面积 ${loc.area}${loc.areaUnit}  |  经济 ${getEconomyLabel(loc.economy)}`, type: 'info' });
         if (loc.factions && loc.factions.length) {
             locSegs.push({ text: `本地势力：${loc.factions.map(f => f.name).join('、')}`, type: 'system' });
         }
@@ -460,7 +491,16 @@ class Game {
             const city = getAllLocations().find(l => l.id === loc.nearestCity);
             if (city) locSegs.push({ text: `最近城镇：${getLocationTypeLabel(city.id).label} · ${city.name}（${loc.distanceToCity}）`, type: 'info' });
         }
-        locSegs.push({ text: '你打算怎么做？', type: 'narrator' });
+        if (this.player.mainQuest === 2 || locationId !== this.player.startingVillage) {
+            locSegs.push({ text: '你打算怎么做？', type: 'narrator' });
+        } else {
+            const hints = [
+                '你打算怎么做？',
+                '当务之急是打探师弟沈清寒的下落……',
+                '或许该先去村长家问问情况。',
+            ];
+            locSegs.push({ text: hints[Math.floor(Math.random() * hints.length)], type: 'narrator' });
+        }
         let li = 0;
         const nextLoc = () => {
             if (li < locSegs.length) {
@@ -507,8 +547,19 @@ class Game {
                 choices.push({ text: v.name, action: () => this.enterVenue(v) });
             }
         } else {
-            for (const v of this.player.locationVenues) {
-                choices.push({ text: v.name, action: () => this.enterVenue(v) });
+            const shopKeys = ['铺', '店', '行', '斋', '庄', '坊', '肆', '堂', '阁'];
+            const specialShops = ['酒馆', '茶馆', '集市'];
+            const specialResidences = ['醉花楼'];
+            const isCityShop = v =>
+                specialResidences.includes(v.name) ? false :
+                specialShops.includes(v.name) ? true :
+                shopKeys.some(s => v.name.includes(s)) || v.name.includes('楼');
+            const groups = {
+                '街市': this.player.locationVenues.filter(v => isCityShop(v)),
+                '居民区': this.player.locationVenues.filter(v => !isCityShop(v)),
+            };
+            for (const [label, list] of Object.entries(groups)) {
+                if (list.length > 0) choices.push({ text: label, action: () => this.showGroupVenues(label, list) });
             }
         }
         choices.push({ text: '前往其他地方', action: () => this.showTravelOptions() });
@@ -528,6 +579,42 @@ class Game {
 
     enterVenue(venue) {
         this.clearChoices();
+        // Landlord gate check for starting village quest
+        if (this.player.mainQuest === 1 && this.player.startingVillage === this.player.locationId && venue.name.endsWith('府')) {
+            this.addMessage(`你来到${venue.name}门前，只见朱门紧闭，门口站着两个虎背熊腰的家丁。`, 'narrator');
+            this.addMessage(`其中一个家丁上前一步，横臂拦住去路：「站住！你是何人？我家老爷岂是你想见就见的？」`, 'narrator');
+            const loc = this.currentLocation;
+            const repNeed = Math.max(5, (loc.repThreshold || 10) - 2);
+            const goldNeed = Math.max(50, 80 + (loc.economy === 'moderate' ? 50 : 0));
+            this.showChoices([
+                { text: `报上名号（需要${repNeed}点声望）`, action: () => {
+                    if (this.player.reputation >= repNeed) {
+                        this.addMessage(`你朗声道：「在下华山${this.player.attrs.name || '无名'}，有事求见你家老爷。」`, 'narrator');
+                        this.addMessage(`家丁上下打量了你一番，态度缓和了些：「原来是江湖上的朋友，失敬失敬！快请进！」`, 'narrator');
+                        this.landlordQuestGrant(venue);
+                    } else {
+                        this.addMessage(`家丁嗤笑一声：「就你这无名小卒，也配提我家老爷的名号？滚！」`, 'narrator');
+                        this.addMessage(`你咬了咬牙，只得转身离开。`, 'narrator');
+                        setTimeout(() => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()), 400);
+                    }
+                }},
+                { text: `塞银子（需要${goldNeed}两）`, action: () => {
+                    if (this.player.gold >= goldNeed) {
+                        this.player.gold -= goldNeed;
+                        this.addMessage(`你掏出${goldNeed}两银子塞到家丁手里。家丁掂了掂，眉开眼笑。`, 'narrator');
+                        this.addMessage(`「原来是贵客！里面请里面请！」`, 'narrator');
+                        this.landlordQuestGrant(venue);
+                    } else {
+                const short = goldNeed - this.player.gold;
+                this.addMessage(`你摸了摸钱袋，还差${short}两。家丁冷笑一声：「没钱还想见我家老爷？打发叫花子呢！」`, 'narrator');
+                        setTimeout(() => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()), 400);
+                    }
+                }},
+                { text: '硬闯', action: () => this.landlordFightGuards(venue) },
+                { text: '算了，改日再来', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
+            ]);
+            return;
+        }
         this.addMessage(`你走进${venue.name}。`, 'narrator');
         const alive = venue.npcs.filter(n => !n._killed && !(n.isBeauty && n._beautyData && n._beautyData._chattedToday));
         if (alive.length === 0) {
@@ -543,9 +630,57 @@ class Game {
         this.showChoices(choices);
     }
 
+    landlordQuestGrant(venue) {
+        this.clearChoices();
+        const landlord = venue.npcs[0];
+        const loc = this.currentLocation;
+        const gift = Math.max(30, 50 + (loc.economy === 'moderate' ? 30 : 0));
+        this.player.gold += gift;
+        this.player.mainQuest = 2;
+        this.showMessageSequence([
+            { text: `你走进${venue.name}，${landlord.npcName}正端坐在太师椅上喝茶。`, type: 'narrator' },
+            { text: `${landlord.npcName}见你进来，放下茶盏：「你就是他们说的那位少侠？不知找老夫有何贵干？」`, type: 'narrator' },
+            { text: `你拱手道：「晚辈想打听一个人——沈清寒。」`, type: 'narrator' },
+            { text: `${landlord.npcName}沉吟片刻：「沈清寒……这个名字老夫倒是在一次商旅中听人提过。」`, type: 'narrator' },
+            { text: `${landlord.npcName}：「此人似乎与中原武林的一些大人物有来往，具体的老夫也不甚清楚。」`, type: 'narrator' },
+            { text: `${landlord.npcName}：「老夫建议你去城里打听打听，那些酒楼茶肆里三教九流的人多，消息比我这小地方灵通得多。」`, type: 'narrator' },
+            { text: `${landlord.npcName}：「这点盘缠你拿着，就当老夫结个善缘。」`, type: 'narrator' },
+            { text: `获得了 ${gift} 两银子。`, type: 'system' },
+            { text: `你现在可以离开村庄，前往其他地方打探消息了。`, type: 'info' },
+        ], () => {
+            this.showChoices([
+                { text: '多谢老员外', action: () => { this.addMessage('你辞别了员外，走出了大门。', 'narrator'); setTimeout(() => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()), 400); } },
+            ]);
+        });
+    }
+
+    landlordFightGuards(venue) {
+        this.clearChoices();
+        this.addMessage(`你大喝一声：「让开！」挥拳朝家丁冲了过去。`, 'narrator');
+        const loc = this.currentLocation;
+        const guardPower = loc.guardianPower || 20;
+        const playerPower = this.player.attrs.root * 2 + 5;
+        if (playerPower >= guardPower) {
+            this.showMessageSequence([
+                { text: `三拳两脚，两个家丁便躺在地上哀嚎不止。`, type: 'narrator' },
+                { text: `大门「吱呀」一声开了，${venue.npcs[0].npcName}站在门口，面色不悦。`, type: 'narrator' },
+                { text: `${venue.npcs[0].npcName}：「少侠好身手，既然能打到这来，那就进来说话吧。」`, type: 'narrator' },
+            ], () => this.landlordQuestGrant(venue));
+        } else {
+            this.addMessage(`你虽然勇猛，但两个家丁显然练过几年把式，几招下来便把你架住扔了出去。`, 'danger');
+            this.addMessage(`你摔了个灰头土脸，只得狼狈离去。`, 'narrator');
+            setTimeout(() => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()), 400);
+        }
+    }
+
+    isBrothelVenue(venue) {
+        return ['怡红院','醉花楼','潇湘阁','春风楼','牡丹院','锦官阁','汉水楼','烟雨阁'].includes(venue.name);
+    }
+
     interactNpc(venue, npc) {
         if (npc.isBeauty) { this.interactBeauty(venue, npc); return; }
         if (npc.isChief) { this.chiefAction(venue, npc); return; }
+        if (this.isBrothelVenue(venue)) { this.interactBrothel(venue, npc); return; }
         this.clearChoices();
         this.addMessage(`${npc.npcName}：「${npc.npcDesc}」`, 'info');
         const choices = [
@@ -620,27 +755,34 @@ class Game {
             if (repNeed > 0) {
                 hints.push(`你的名声还不够响亮，想在${loc.name}说话，至少还需要${repNeed}点声望。`);
             }
-            this.addMessage(hints[Math.floor(Math.random() * hints.length)], 'info');
-            const insults = [
+            const hint = hints[Math.floor(Math.random() * hints.length)];
+            const insult = [
                 `「哪来的野狗，也敢进我${npc.npcName}家的门？滚！」`,
                 `「呵呵，我当是谁呢，原来是个无名小卒。趁我没发火，自己滚出去。」`,
                 `「你算什么东西？也配跟我说话？滚远点！」`,
                 `「不知天高地厚的小子，这地方不欢迎你，滚！」`,
                 `「我呸！什么阿猫阿狗都敢来敲门了。滚！」`,
-            ];
-            this.addMessage(`${npc.npcName}满脸不屑地打量着你。`, 'narrator');
-            this.addMessage(npc.npcName + '：' + insults[Math.floor(Math.random() * insults.length)], 'html');
-            this.showChoices([
-                { text: '忍气吞声', action: () => { this.addMessage('你咬了咬牙，转身离开。', 'narrator'); setTimeout(() => this.enterVenue(venue), 300); } },
-                { text: '一顿毒打', action: () => this.confrontChief(venue, npc, 'beat') },
-                { text: '痛下杀手', action: () => this.confrontChief(venue, npc, 'kill') },
-                { text: '离开', action: () => this.enterVenue(venue) },
-            ]);
+            ][Math.floor(Math.random() * 5)];
+            this.showMessageSequence([
+                { text: hint, type: 'info' },
+                { text: `${npc.npcName}满脸不屑地打量着你。`, type: 'narrator' },
+                { text: npc.npcName + '：' + insult, type: 'html' },
+            ], () => {
+                this.showChoices([
+                    { text: '忍气吞声', action: () => { this.addMessage('你咬了咬牙，转身离开。', 'narrator'); setTimeout(() => this.enterVenue(venue), 300); } },
+                    { text: '一顿毒打', action: () => this.confrontChief(venue, npc, 'beat') },
+                    { text: '痛下杀手', action: () => this.confrontChief(venue, npc, 'kill') },
+                    { text: '离开', action: () => this.enterVenue(venue) },
+                ]);
+            });
         } else {
-            const greeting = tier === 'high'
-                ? [`「哎呀呀，什么风把您吹来了？快请进快请进！」`, `「您能来我们这小地方，真是蓬荜生辉啊！」`, `「您的大名如雷贯耳，快请上座！」`]
-                : [`「原来是远道而来的客人，请坐请坐。」`, `「不知驾临寒舍，有何贵干？」`, `「稀客稀客，请进来说话。」`];
-            this.addMessage(npc.npcName + '：' + greeting[Math.floor(Math.random() * greeting.length)], 'narrator');
+            if (!npc._greeted) {
+                const greeting = tier === 'high'
+                    ? [`「哎呀呀，什么风把您吹来了？快请进快请进！」`, `「您能来我们这小地方，真是蓬荜生辉啊！」`, `「您的大名如雷贯耳，快请上座！」`]
+                    : [`「原来是远道而来的客人，请坐请坐。」`, `「不知驾临寒舍，有何贵干？」`, `「稀客稀客，请进来说话。」`];
+                this.addMessage(npc.npcName + '：' + greeting[Math.floor(Math.random() * greeting.length)], 'narrator');
+                npc._greeted = true;
+            }
             const choices = [
                 { text: '闲谈', action: () => this.chatWithNpc(venue, npc) },
                 { text: '购买', action: () => this.buyFromNpc(venue, npc) },
@@ -676,8 +818,10 @@ class Game {
             this.showChoices([{ text: '返回', action: () => this.chiefIntel(venue, npc) }]);
             return;
         }
-        this.addMessage(`你向${npc.npcName}打听村中女子的消息。`, 'narrator');
-        this.addMessage(`${npc.npcName}捋了捋胡须：「咱们村共有${available.length}位待字闺中的姑娘，你问的是哪一位？」`, 'narrator');
+        this.showMessageSequence([
+            { text: `你向${npc.npcName}打听村中女子的消息。`, type: 'narrator' },
+            { text: `${npc.npcName}捋了捋胡须：「咱们村共有${available.length}位待字闺中的姑娘，你问的是哪一位？」`, type: 'narrator' },
+        ], () => {
         const choices = available.map(b => ({
             text: b.name,
             action: () => {
@@ -691,23 +835,51 @@ class Game {
         }));
         choices.push({ text: '算了', action: () => this.chiefAction(venue, npc) });
         this.showChoices(choices);
+        });
     }
 
     askAboutDisciple(venue, npc) {
         this.clearChoices();
         const loc = this.currentLocation;
+        if (this.player.mainQuest === 0 && loc.id === this.player.startingVillage) {
+            const hasLandlord = loc.venues.some(v => v.name.endsWith('府'));
+            if (hasLandlord) {
+                this.player.mainQuest = 1;
+                this.showMessageSequence([
+                    { text: `你提起「沈清寒」这个名字，${npc.npcName}皱眉思索了片刻。`, type: 'narrator' },
+                    { text: `${npc.npcName}：「沈清寒……这个名字有点耳熟，但老头子我记性不好，实在想不起来了。」`, type: 'narrator' },
+                    { text: `${npc.npcName}：「你去村东头的${loc.venues.find(v => v.name.endsWith('府')).name}问问吧，那老东西见多识广，兴许知道些什么。」`, type: 'narrator' },
+                ], () => this.showChoices([{ text: '多谢', action: () => this.chiefAction(venue, npc) }]));
+            } else {
+                const region = getRegion(loc.id);
+                const cityLocs = getAllLocations().filter(l => l.id !== loc.id && getRegion(l.id) === region && !l.nearestCity);
+                const target = cityLocs.length > 0 ? cityLocs[Math.floor(Math.random() * cityLocs.length)] : null;
+                this.player.gold += 50;
+                this.player.mainQuest = 2;
+                this.showMessageSequence([
+                    { text: `你提起「沈清寒」这个名字，${npc.npcName}叹了口气。`, type: 'narrator' },
+                    { text: `${npc.npcName}：「沈清寒……老夫知道一些，但此中干系重大，不是你能掺和的。」`, type: 'narrator' },
+                    { text: `${npc.npcName}：「这样吧，你拿些盘缠，去${target ? target.name : '城里'}碰碰运气。记住，别跟任何人提起是我说的。」`, type: 'narrator' },
+                    { text: `获得了 50 两银子。`, type: 'system' },
+                ], () => this.showChoices([{ text: '多谢', action: () => this.chiefAction(venue, npc) }]));
+            }
+            return;
+        }
         const region = getRegion(loc.id);
         const cityLocs = getAllLocations().filter(l => l.id !== loc.id && getRegion(l.id) === region && !l.nearestCity);
         const target = cityLocs.length > 0 ? cityLocs[Math.floor(Math.random() * cityLocs.length)] : null;
         if (target) {
-            this.addMessage(`你提起「沈清寒」这个名字，${npc.npcName}皱眉思索了片刻。`, 'narrator');
-            this.addMessage(`${npc.npcName}：「沈清寒……这个名字好像在哪听过，但老夫孤陋寡闻，实在记不起来了。」`, 'narrator');
-            this.addMessage(`${npc.npcName}：「少侠不妨去${target.name}看看，城里人多口杂，兴许能打听到什么。」`, 'narrator');
+            this.showMessageSequence([
+                { text: `你提起「沈清寒」这个名字，${npc.npcName}皱眉思索了片刻。`, type: 'narrator' },
+                { text: `${npc.npcName}：「沈清寒……这个名字好像在哪听过，但老夫孤陋寡闻，实在记不起来了。」`, type: 'narrator' },
+                { text: `${npc.npcName}：「少侠不妨去${target.name}看看，城里人多口杂，兴许能打听到什么。」`, type: 'narrator' },
+            ], () => this.showChoices([{ text: '多谢', action: () => this.chiefAction(venue, npc) }]));
         } else {
-            this.addMessage(`你提起「沈清寒」这个名字，${npc.npcName}摇了摇头。`, 'narrator');
-            this.addMessage(`${npc.npcName}：「没听说过这个人，少侠去别处打听打听吧。」`, 'narrator');
+            this.showMessageSequence([
+                { text: `你提起「沈清寒」这个名字，${npc.npcName}摇了摇头。`, type: 'narrator' },
+                { text: `${npc.npcName}：「没听说过这个人，少侠去别处打听打听吧。」`, type: 'narrator' },
+            ], () => this.showChoices([{ text: '多谢', action: () => this.chiefAction(venue, npc) }]));
         }
-        this.showChoices([{ text: '多谢', action: () => this.chiefAction(venue, npc) }]);
     }
 
     confrontChief(venue, npc, type) {
@@ -718,10 +890,11 @@ class Game {
         }
         const repCost = 10;
         this.player.reputation -= repCost;
-        this.addMessage(`声望 -${repCost}（当前 ${this.player.reputation}）`, 'system');
-        this.addMessage(`你拔出兵器，眼中杀机毕露，直取${npc.npcName}！`, 'danger');
-        this.addMessage(`${npc.npcName}大声呼救：「来人啊！杀人啦！」`, 'narrator');
-        setTimeout(() => this.arrestScene(venue, npc, 'kill'), 500);
+        this.showMessageSequence([
+            { text: `声望 -${repCost}（当前 ${this.player.reputation}）`, type: 'system' },
+            { text: `你拔出兵器，眼中杀机毕露，直取${npc.npcName}！`, type: 'danger' },
+            { text: `${npc.npcName}大声呼救：「来人啊！杀人啦！」`, type: 'narrator' },
+        ], () => setTimeout(() => this.arrestScene(venue, npc, 'kill'), 500));
     }
 
     confrontChiefSon(venue, chief) {
@@ -734,63 +907,69 @@ class Game {
         const sonName = chief._sonName;
         const sonPower = Math.max(20, Math.floor(this.getPlayerCombatPower('full') * 0.8 + 10));
 
-        this.addMessage(`你一拳砸向${chief.npcName}，${chief.npcName}身子一缩，大吼一声：「儿子！有人捣乱！」`, 'narrator');
-        this.addMessage(`只听一声怒吼，一个壮硕的年轻人从里屋冲了出来——正是${chief.npcName}的儿子${sonName}！`, 'narrator');
-        this.addMessage(`${sonName}挡在父亲面前，怒目圆睁：「敢动我爹？先过我这一关！」`, 'event');
+        const fightIntro = [
+            { text: `你一拳砸向${chief.npcName}，${chief.npcName}身子一缩，大吼一声：「儿子！有人捣乱！」`, type: 'narrator' },
+            { text: `只听一声怒吼，一个壮硕的年轻人从里屋冲了出来——正是${chief.npcName}的儿子${sonName}！`, type: 'narrator' },
+            { text: `${sonName}挡在父亲面前，怒目圆睁：「敢动我爹？先过我这一关！」`, type: 'event' },
+        ];
+        this.showMessageSequence(fightIntro, () => this.confrontChiefSonAfterIntro(venue, chief, sonName, sonPower, loc));
+    }
+
+    confrontChiefSonAfterIntro(venue, chief, sonName, sonPower, loc) {
 
         const son = { npcName: sonName, combatPower: sonPower, civilian: false };
         const pPower = this.getPlayerCombatPower('full');
         const ratio = sonPower / Math.max(1, pPower);
 
         if (ratio >= 3) {
-            this.addMessage(`${sonName}的实力远超你的想象！一拳便将你打飞出去！`, 'danger');
-            this.player.hp = 0;
-            this.updateStatsBar();
-            this.gameOver(`你被${sonName}打得不成人形……`);
+            this.showMessageSequence([
+                { text: `${sonName}的实力远超你的想象！一拳便将你打飞出去！`, type: 'danger' },
+            ], () => {
+                this.player.hp = 0;
+                this.updateStatsBar();
+                this.gameOver(`你被${sonName}打得不成人形……`);
+            });
             return;
         }
         if (ratio >= 1.5) {
             const dmg = Math.floor(sonPower * 0.5);
             this.player.hp -= dmg;
-            this.addMessage(`你奋力抵抗，但${sonName}天生神力，你完全不是对手！`, 'danger');
-            this.addMessage(`你受了 ${dmg} 点伤，狼狈不堪地逃了出去。`, 'system');
-            this.updateStatsBar();
-            if (this.player.hp <= 0) { this.gameOver(`你被${sonName}打成重伤……`); return; }
-            this.showChoices([{ text: '灰溜溜离开', action: () => { this.addMessage('你捂着脸逃离了村子。', 'narrator'); this.enterVenue(venue); } }]);
+            this.showMessageSequence([
+                { text: `你奋力抵抗，但${sonName}天生神力，你完全不是对手！`, type: 'danger' },
+                { text: `你受了 ${dmg} 点伤，狼狈不堪地逃了出去。`, type: 'system' },
+            ], () => {
+                this.updateStatsBar();
+                if (this.player.hp <= 0) { this.gameOver(`你被${sonName}打成重伤……`); return; }
+                this.showChoices([{ text: '灰溜溜离开', action: () => { this.addMessage('你捂着脸逃离了村子。', 'narrator'); this.enterVenue(venue); } }]);
+            });
             return;
         }
 
         const winChance = ratio >= 0.67 ? 1 / (1 + ratio) : 1;
         if (Math.random() < winChance) {
-            this.addMessage(`你与${sonName}拳来脚往，缠斗了数十回合！`, 'narrator');
-            const winSegs = [
-                { text: `最终你一记漂亮的扫堂腿将${sonName}摔倒在地！`, type: 'event' },
-                { text: `${sonName}趴在地上，喘着粗气：「好……好汉饶命！」`, type: 'narrator' },
-                { text: `${chief.npcName}在一旁看得目瞪口呆，连忙上前拱手：「少侠好身手！老夫有眼不识泰山！请进请进！」`, type: 'narrator' },
-                { text: `声望 +1（当前 ${this.player.reputation + 1}）`, type: 'system' },
-            ];
             chief._sonBeaten = true;
             this.player.reputation += 1;
             this.updateStatsBar();
-            let wi = 0;
-            const nextWin = () => {
-                if (wi < winSegs.length) {
-                    this.addMessage(winSegs[wi].text, winSegs[wi].type);
-                    wi++;
-                    this.showChoices([{ text: '继续……', action: nextWin }]);
-                } else {
-                    setTimeout(() => this.chiefAction(venue, chief), 300);
-                }
-            };
-            nextWin();
+            this.showMessageSequence([
+                { text: `你与${sonName}拳来脚往，缠斗了数十回合！`, type: 'narrator' },
+                { text: `最终你一记漂亮的扫堂腿将${sonName}摔倒在地！`, type: 'event' },
+                { text: `${sonName}趴在地上，喘着粗气：「好……好汉饶命！」`, type: 'narrator' },
+                { text: `${chief.npcName}在一旁看得目瞪口呆，连忙上前拱手：「少侠好身手！老夫有眼不识泰山！请进请进！」`, type: 'narrator' },
+                { text: `声望 +1（当前 ${this.player.reputation}）`, type: 'system' },
+            ], () => {
+                setTimeout(() => this.chiefAction(venue, chief), 300);
+            });
         } else {
             const dmg = Math.floor(sonPower * 0.2);
             this.player.hp -= dmg;
-            this.addMessage(`你未能取胜，被${sonName}一拳打在胸口！`, 'danger');
-            this.addMessage(`你受了 ${dmg} 点伤，见势不妙，转身就逃。`, 'system');
-            this.updateStatsBar();
-            if (this.player.hp <= 0) { this.gameOver(`你被${sonName}打成重伤……`); return; }
-            this.showChoices([{ text: '逃离此地', action: () => { this.addMessage('你跌跌撞撞逃出了村子。', 'narrator'); this.enterVenue(venue); } }]);
+            this.showMessageSequence([
+                { text: `你未能取胜，被${sonName}一拳打在胸口！`, type: 'danger' },
+                { text: `你受了 ${dmg} 点伤，见势不妙，转身就逃。`, type: 'system' },
+            ], () => {
+                this.updateStatsBar();
+                if (this.player.hp <= 0) { this.gameOver(`你被${sonName}打成重伤……`); return; }
+                this.showChoices([{ text: '逃离此地', action: () => { this.addMessage('你跌跌撞撞逃出了村子。', 'narrator'); this.enterVenue(venue); } }]);
+            });
         }
     }
 
@@ -799,85 +978,95 @@ class Game {
         const loc = this.currentLocation;
         const guardPower = loc.guardianPower || 50;
         const pPower = this.getPlayerCombatPower();
-        this.addMessage(`门外传来一阵急促的脚步声——村中的护卫闻讯赶来！`, 'narrator');
-        this.addMessage(`为首的大汉挡在你面前，怒目圆睁：「大胆狂徒，敢在${loc.name}撒野！」`, 'narrator');
-        this.showChoices([
-            { text: '硬刚', action: () => {
-                this.clearChoices();
-                if (pPower >= guardPower) {
-                    this.addMessage('你一声长啸，掌风呼啸而出，将护卫击退数步！', 'event');
-                    this.addMessage('趁众人惊愕之际，你纵身一跃，逃出了村子。', 'narrator');
-                    this.player.reputation -= 2;
-                    this.addMessage(`声望 -2（当前 ${this.player.reputation}）`, 'system');
-                    this.updateStatsBar();
-                    if (this.player.reputation < 0) { this.gameOver(`你在${loc.name}恶行败露，声名狼藉，再无容身之处……`); return; }
-                    this.player.villageBlacklist[loc.id] = this.player.day + 30;
-                    const escapeDest = this.findRegionEscape(loc.id);
-                    if (escapeDest) {
-                        this.addMessage(`你不敢停留，一口气逃到了附近的${escapeDest.name}。`, 'narrator');
-                        this.showChoices([{ text: '继续旅程', action: () => {
-                            const days = getTravelDays(loc.id, escapeDest.id);
-                            const cost = days * 2;
-                            if (this.player.gold >= cost) {
-                                this.player.gold -= cost;
-                                this.addMessage(`路途花费了 ${cost} 两银子。`, 'system');
+        this.showMessageSequence([
+            { text: `门外传来一阵急促的脚步声——村中的护卫闻讯赶来！`, type: 'narrator' },
+            { text: `为首的大汉挡在你面前，怒目圆睁：「大胆狂徒，敢在${loc.name}撒野！」`, type: 'narrator' },
+        ], () => {
+            this.showChoices([
+                { text: '硬刚', action: () => {
+                    this.clearChoices();
+                    if (pPower >= guardPower) {
+                        this.player.reputation -= 2;
+                        this.player.villageBlacklist[loc.id] = this.player.day + 30;
+                        this.updateStatsBar();
+                        if (this.player.reputation < 0) { this.gameOver(`你在${loc.name}恶行败露，声名狼藉，再无容身之处……`); return; }
+                        const escapeDest = this.findRegionEscape(loc.id);
+                        this.showMessageSequence([
+                            { text: '你一声长啸，掌风呼啸而出，将护卫击退数步！', type: 'event' },
+                            { text: '趁众人惊愕之际，你纵身一跃，逃出了村子。', type: 'narrator' },
+                            { text: `声望 -2（当前 ${this.player.reputation}）`, type: 'system' },
+                            ...(escapeDest ? [{ text: `你不敢停留，一口气逃到了附近的${escapeDest.name}。`, type: 'narrator' }] : []),
+                        ], () => {
+                            if (escapeDest) {
+                                this.showChoices([{ text: '继续旅程', action: () => {
+                                    const days = getTravelDays(loc.id, escapeDest.id);
+                                    const cost = days * 2;
+                                    if (this.player.gold >= cost) {
+                                        this.player.gold -= cost;
+                                        this.addMessage(`路途花费了 ${cost} 两银子。`, 'system');
+                                    } else {
+                                        this.player.hp = Math.max(1, this.player.hp - cost);
+                                        this.addMessage(`你身无分文，一路风餐露宿，损失了 ${cost} 点气血。`, 'danger');
+                                    }
+                                    this.updateStatsBar();
+                                    this.enterLocation(escapeDest.id);
+                                } }]);
                             } else {
-                                this.player.hp = Math.max(1, this.player.hp - cost);
-                                this.addMessage(`你身无分文，一路风餐露宿，损失了 ${cost} 点气血。`, 'danger');
+                                this.showChoices([{ text: '睡到明天', action: () => this.sleepToTomorrow(true) }]);
                             }
-                            this.updateStatsBar();
-                            this.enterLocation(escapeDest.id);
-                        } }]);
+                        });
                     } else {
-                        this.showChoices([{ text: '睡到明天', action: () => this.sleepToTomorrow(true) }]);
+                        const goldLoss = Math.min(this.player.gold, 20 + Math.floor(Math.random() * 30));
+                        this.player.gold = Math.max(0, this.player.gold - goldLoss);
+                        this.player.hp = Math.max(1, this.player.hp - 30);
+                        this.player.reputation -= 3;
+                        this.updateStatsBar();
+                        if (this.player.reputation < 0) { this.gameOver(`你在${loc.name}犯下的事已经传遍四方，江湖再无容身之处……`); return; }
+                        this.showMessageSequence([
+                            { text: '你奋力抵抗，但护卫的实力远在你之上！', type: 'danger' },
+                            { text: '三招之内，你便被制服在地。', type: 'danger' },
+                            { text: `你被痛打一顿，丢了 ${goldLoss} 两银子。`, type: 'system' },
+                            { text: `声望 -3（当前 ${this.player.reputation}）`, type: 'system' },
+                            { text: `村民们将遍体鳞伤的你扔出了村子。`, type: 'narrator' },
+                        ], () => this.showChoices([{ text: '昏睡过去', action: () => this.sleepToTomorrow(true) }]));
                     }
-                } else {
-                    this.addMessage('你奋力抵抗，但护卫的实力远在你之上！', 'danger');
-                    this.addMessage('三招之内，你便被制服在地。', 'danger');
-                    const goldLoss = Math.min(this.player.gold, 20 + Math.floor(Math.random() * 30));
+                } },
+                { text: '逃跑', action: () => {
+                    this.clearChoices();
+                    const goldLoss = Math.min(this.player.gold, 5 + Math.floor(Math.random() * 15));
                     this.player.gold = Math.max(0, this.player.gold - goldLoss);
-                    this.player.hp = Math.max(1, this.player.hp - 30);
-                    this.player.reputation -= 3;
-                    this.addMessage(`你被痛打一顿，丢了 ${goldLoss} 两银子。`, 'system');
-                    this.addMessage(`声望 -3（当前 ${this.player.reputation}）`, 'system');
-                    this.addMessage(`村民们将遍体鳞伤的你扔出了村子。`, 'narrator');
+                    this.player.reputation -= 2;
+                    this.player.villageBlacklist[loc.id] = this.player.day + 30;
                     this.updateStatsBar();
                     if (this.player.reputation < 0) { this.gameOver(`你在${loc.name}犯下的事已经传遍四方，江湖再无容身之处……`); return; }
-                    this.showChoices([{ text: '昏睡过去', action: () => this.sleepToTomorrow(true) }]);
-                }
-            } },
-            { text: '逃跑', action: () => {
-                this.clearChoices();
-                const goldLoss = Math.min(this.player.gold, 5 + Math.floor(Math.random() * 15));
-                this.player.gold = Math.max(0, this.player.gold - goldLoss);
-                this.player.reputation -= 2;
-                this.addMessage(`你趁乱夺门而出，但慌乱中丢了 ${goldLoss} 两银子。`, 'narrator');
-                this.addMessage(`声望 -2（当前 ${this.player.reputation}）`, 'system');
-                this.addMessage('你一口气跑出数里地，回头确认无人追来才停下。', 'narrator');
-                this.updateStatsBar();
-                if (this.player.reputation < 0) { this.gameOver(`你在${loc.name}犯下的事已经传遍四方，江湖再无容身之处……`); return; }
-                this.player.villageBlacklist[loc.id] = this.player.day + 30;
-                const escapeDest2 = this.findRegionEscape(loc.id);
-                if (escapeDest2) {
-                    this.addMessage(`你不敢停留，一路逃到了附近的${escapeDest2.name}。`, 'narrator');
-                    this.showChoices([{ text: '继续旅程', action: () => {
-                        const days = getTravelDays(loc.id, escapeDest2.id);
-                        const cost = days * 2;
-                        if (this.player.gold >= cost) {
-                            this.player.gold -= cost;
-                            this.addMessage(`路途花费了 ${cost} 两银子。`, 'system');
+                    const escapeDest2 = this.findRegionEscape(loc.id);
+                    this.showMessageSequence([
+                        { text: `你趁乱夺门而出，但慌乱中丢了 ${goldLoss} 两银子。`, type: 'narrator' },
+                        { text: `声望 -2（当前 ${this.player.reputation}）`, type: 'system' },
+                        { text: '你一口气跑出数里地，回头确认无人追来才停下。', type: 'narrator' },
+                        ...(escapeDest2 ? [{ text: `你不敢停留，一路逃到了附近的${escapeDest2.name}。`, type: 'narrator' }] : []),
+                    ], () => {
+                        if (escapeDest2) {
+                            this.showChoices([{ text: '继续旅程', action: () => {
+                                const days = getTravelDays(loc.id, escapeDest2.id);
+                                const cost = days * 2;
+                                if (this.player.gold >= cost) {
+                                    this.player.gold -= cost;
+                                    this.addMessage(`路途花费了 ${cost} 两银子。`, 'system');
+                                } else {
+                                    this.player.hp = Math.max(1, this.player.hp - cost);
+                                    this.addMessage(`你身无分文，一路风餐露宿，损失了 ${cost} 点气血。`, 'danger');
+                                }
+                                this.updateStatsBar();
+                                this.enterLocation(escapeDest2.id);
+                            } }]);
                         } else {
-                            this.player.hp = Math.max(1, this.player.hp - cost);
-                            this.addMessage(`你身无分文，一路风餐露宿，损失了 ${cost} 点气血。`, 'danger');
+                            this.showChoices([{ text: '睡到明天', action: () => this.sleepToTomorrow(true) }]);
                         }
-                        this.updateStatsBar();
-                        this.enterLocation(escapeDest2.id);
-                    } }]);
-                } else {
-                    this.showChoices([{ text: '睡到明天', action: () => this.sleepToTomorrow(true) }]);
-                }
-            } },
-        ]);
+                    });
+                } },
+            ]);
+        });
     }
 
     findRegionEscape(fromId) {
@@ -1418,6 +1607,11 @@ class Game {
             this.player.locationVenues.forEach(v => v.npcs = v.npcs.filter(n => !n.isBeauty));
             this.assignBeauties(this.currentLocation);
         }
+        if (this.currentLocation && this.brothelProstitutes[this.currentLocation.id]) {
+            this.brothelProstitutes[this.currentLocation.id].forEach(p => {
+                delete p._hadSexToday;
+            });
+        }
         this.updateStatsBar();
         setTimeout(() => this.showLocationChoices(), 400);
     }
@@ -1445,6 +1639,15 @@ class Game {
     showTravelOptions() {
         this.clearChoices();
         const current = this.player.locationId;
+        // Block travel if main quest not complete in starting village
+        if (this.player.mainQuest < 2 && current === this.player.startingVillage) {
+            this.showMessageSequence([
+                { text: `你收拾好行囊走到村口，却停下了脚步。`, type: 'narrator' },
+                { text: `师弟沈清寒的下落还毫无头绪，现在离开村庄，无异于大海捞针。`, type: 'narrator' },
+                { text: `还是先在村里把消息打听清楚再说吧……`, type: 'narrator' },
+            ], () => this.showChoices([{ text: '回去', action: () => this.showOutdoorChoices() }]));
+            return;
+        }
         const currentRegion = getRegion(current);
         const allLocs = getAllLocations().filter(l => l.id !== current);
         // only show locations in the same region
@@ -1458,13 +1661,20 @@ class Game {
 
     travelTo(locationId) {
         this.clearChoices();
+        // Block travel if main quest not complete in starting village
+        if (this.player.mainQuest < 2 && this.player.locationId === this.player.startingVillage) {
+            this.addMessage(`现在还不是离开的时候，你还需要在村里打探消息。`, 'narrator');
+            this.showChoices([{ text: '回去', action: () => this.showOutdoorChoices() }]);
+            return;
+        }
         // Check blacklist before traveling
         if (this.player.villageBlacklist && this.player.villageBlacklist[locationId]) {
             const loc = getAllLocations().find(l => l.id === locationId);
             const daysLeft = this.player.villageBlacklist[locationId] - this.player.day;
-            this.addMessage(`${loc ? loc.name : '该地'}的村民还在气头上，你还是避避风头再说。`, 'narrator');
-            this.addMessage(`大概还需要${daysLeft}天才能回去。`, 'info');
-            this.showChoices([{ text: '换个别处', action: () => this.showTravelOptions() }]);
+            this.showMessageSequence([
+                { text: `${loc ? loc.name : '该地'}的村民还在气头上，你还是避避风头再说。`, type: 'narrator' },
+                { text: `大概还需要${daysLeft}天才能回去。`, type: 'info' },
+            ], () => this.showChoices([{ text: '换个别处', action: () => this.showTravelOptions() }]));
             return;
         }
         const fromId = this.player.locationId;
@@ -1507,12 +1717,13 @@ class Game {
         ];
         const evt = EVENTS[Math.floor(Math.random() * EVENTS.length)];
         const totalPower = evt.power * evt.count;
-        this.addMessage(`前方一阵骚动！${evt.desc}`, 'danger');
-        this.addMessage('路人看见你，投来求助的目光。', 'narrator');
-        this.showChoices([
+        this.showMessageSequence([
+            { text: `前方一阵骚动！${evt.desc}`, type: 'danger' },
+            { text: '路人看见你，投来求助的目光。', type: 'narrator' },
+        ], () => this.showChoices([
             { text: '挺身而出', action: () => this.resolveTravelFight(locationId, evt, totalPower) },
             { text: '袖手旁观', action: () => this.resolveTravelStandby(locationId, evt) },
-        ]);
+        ]));
     }
 
     resolveTravelFight(locationId, evt, totalPower) {
@@ -1639,19 +1850,22 @@ class Game {
     appreciateBeauty(venue, beauty) {
         this.clearChoices();
         const bd = beauty._beautyData;
-        this.addMessage(`你细细打量着${bd.name}……`, 'narrator');
-        this.addMessage(`容貌：${bd.faceDesc}`, 'html');
-        if (bd._revealed.body) this.addMessage(`身材：${bd.bodyDesc}`, 'html');
-        if (bd._revealed.clothing) this.addMessage(`穿着：${bd.clothing}`, 'html');
-        if (bd._revealed.age) this.addMessage(`年龄：约${bd.age}岁`, 'info');
-        if (bd._revealed.height) this.addMessage(`身高：${bd.height}cm`, 'info');
-        if (bd._revealed.measurements) this.addMessage(`三围：${bd.bust}-${bd.waist}-${bd.hips}`, 'info');
+        const msgs = [
+            { text: `你细细打量着${bd.name}……`, type: 'narrator' },
+            { text: `<span style="color:${bd.beautyTierColor}">【${bd.beautyTierLabel}】</span> 颜值 ${bd.faceScore||'?'}  身材 ${bd.bodyScore||'?'}  评分 ${bd.beautyScore}`, type: 'html' },
+            { text: `容貌：${bd.faceDesc}`, type: 'html' },
+        ];
+        if (bd._revealed.body) msgs.push({ text: `身材：${bd.bodyDesc}`, type: 'html' });
+        if (bd._revealed.clothing) msgs.push({ text: `穿着：${bd.clothing}`, type: 'html' });
+        if (bd._revealed.age) msgs.push({ text: `年龄：约${bd.age}岁`, type: 'info' });
+        if (bd._revealed.height) msgs.push({ text: `身高：${bd.height}cm`, type: 'info' });
+        if (bd._revealed.measurements) msgs.push({ text: `三围：${bd.bust}-${bd.waist}-${bd.hips}`, type: 'info' });
         if (bd._revealed.marital) {
             const fam = bd.married ? '已婚' : '未婚';
             const kid = bd.hasChildren ? '，有子女' : '';
-            this.addMessage(`婚育：${fam}${kid}`, 'info');
+            msgs.push({ text: `婚育：${fam}${kid}`, type: 'info' });
         }
-        this.showChoices([{ text: '返回', action: () => this.interactBeauty(venue, beauty) }]);
+        this.showMessageSequence(msgs, () => this.showChoices([{ text: '返回', action: () => this.interactBeauty(venue, beauty) }]));
     }
 
     chatBeauty(venue, beauty) {
@@ -2072,7 +2286,7 @@ class Game {
                 this.redRecord[bd.id] = {
                     id: bd.id, name: bd.name, age: bd.age, surface: bd.surface, inner: bd.inner,
                     height: bd.height, bust: bd.bust, waist: bd.waist, hips: bd.hips,
-                    faceDesc: bd.faceDesc, bodyDesc: bd.bodyDesc,
+                    faceDesc: bd.faceDesc, bodyDesc: bd.bodyDesc, faceScore: bd.faceScore, bodyScore: bd.bodyScore,
                     beautyScore: bd.beautyScore, chastity: bd.chastity, beautyTierLabel: bd.beautyTierLabel, beautyTierColor: bd.beautyTierColor,
                     firstMet: new Date().toLocaleDateString(),
                 };
@@ -2082,10 +2296,11 @@ class Game {
             delete bd._flirtIntroShown;
             this.updateStatsBar();
             this.player._sleptWithBeauty = true;
-            setTimeout(() => {
+            this.showChoices([{ text: '沉沉睡去……', action: () => {
+                this.clearChoices();
                 this.sleepToTomorrow(true);
                 this.addMessage(`你从${bd.name}的闺房中醒来，昨夜风流如梦，神清气爽。`, 'narrator');
-            }, 800);
+            } }]);
         }
     }
 
@@ -2250,15 +2465,85 @@ class Game {
         setTimeout(() => this.enterVenue(venue), 500);
     }
 
+    /* ─── 青楼 ─── */
+
+    interactBrothel(venue, npc) {
+        this.clearChoices();
+        const locId = this.currentLocation.id;
+        this.showMessageSequence([
+            { text: `你走进${venue.name}，${npc.npcName}迎了上来。`, type: 'narrator' },
+            { text: `${npc.npcName}：「${npc.npcDesc}」`, type: 'html' },
+        ], () => this.showChoices([
+            { text: '看看货物', action: () => {
+                this.clearChoices();
+                this.addMessage(`${npc.npcName}：「要点什么？」`, 'narrator');
+                this.showChoices([
+                    { text: '购买', action: () => this.buyFromNpc(venue, npc) },
+                    { text: '出售', action: () => this.sellToNpc(venue, npc) },
+                    { text: '返回', action: () => this.interactBrothel(venue, npc) },
+                ]);
+            }},
+            { text: '找姑娘', action: () => this.brothelShowGirls(venue, npc) },
+            { text: '算了', action: () => this.enterVenue(venue) },
+        ]));
+    }
+
+    brothelShowGirls(venue, npc) {
+        this.clearChoices();
+        const locId = this.currentLocation.id;
+        const allProstitutes = this.brothelProstitutes[locId] || [];
+        const pick = allProstitutes.sort(() => Math.random() - 0.5).slice(0, 2);
+        this.addMessage(`${npc.npcName}笑着说：「今儿个有两位姑娘得空，您瞧瞧？」`, 'narrator');
+        const choices = pick.map(p => ({
+            text: `${p.name}【${p.beautyTierLabel}】${p.price}两/次`,
+            action: () => this.brothelInteractProstitute(venue, npc, p),
+        }));
+        choices.push({ text: '不看了', action: () => this.interactBrothel(venue, npc) });
+        this.showChoices(choices);
+    }
+
+    brothelInteractProstitute(venue, npc, prostitute) {
+        this.clearChoices();
+        this.showMessageSequence([
+            { text: `${prostitute.name}「${prostitute.faceDesc}」`, type: 'html' },
+            { text: `<span style="color:${prostitute.beautyTierColor}">【${prostitute.beautyTierLabel}】</span> 颜值 ${prostitute.faceScore} 身材 ${prostitute.bodyScore} 评分 ${prostitute.beautyScore}`, type: 'html' },
+        ], () => this.showChoices([
+            { text: '聊天', action: () => {
+                this.clearChoices();
+                this.addMessage(`你和${prostitute.name}闲聊了几句，她笑语盈盈。`, 'narrator');
+                this.showChoices([{ text: '返回', action: () => this.brothelInteractProstitute(venue, npc, prostitute) }]);
+            }},
+            { text: `共度春宵（${prostitute.price}两）`, action: () => {
+                if (this.player.gold < prostitute.price) {
+                    this.addMessage(`你囊中羞涩，${prostitute.price}两银子都拿不出来。`, 'narrator');
+                    this.showChoices([{ text: '讪讪离开', action: () => this.brothelInteractProstitute(venue, npc, prostitute) }]);
+                    return;
+                }
+                this.player.gold -= prostitute.price;
+                this.addMessage(`你付了${prostitute.price}两银子，${prostitute.name}微微一笑，牵起你的手走向闺房……`, 'narrator');
+                this.brothelSexProstitute(prostitute);
+            }},
+            { text: '离开', action: () => this.brothelShowGirls(venue, npc) },
+        ]));
+    }
+
+    brothelSexProstitute(prostitute) {
+        this.clearChoices();
+        prostitute._flirtPoem = POEMS[Math.floor(Math.random() * POEMS.length)];
+        prostitute._flirtPoemIdx = 0;
+        this.flirtEventStep2(this.currentLocation, { _beautyData: prostitute });
+    }
+
     /* ─── 红颜录 ─── */
 
     showRedRecord() {
         this.clearChoices();
         const entries = Object.values(this.redRecord);
         if (entries.length === 0) {
-            this.addMessage('—— 红颜录 ——', 'system');
-            this.addMessage('你尚未与任何女子结下情缘。', 'narrator');
-            this.showChoices([{ text: '收起', action: () => this.showLocationChoices() }]);
+            this.showMessageSequence([
+                { text: '—— 红颜录 ——', type: 'system' },
+                { text: '你尚未与任何女子结下情缘。', type: 'narrator' },
+            ], () => this.showChoices([{ text: '收起', action: () => this.showLocationChoices() }]));
             return;
         }
         this.addMessage('—— 红颜录 ——', 'system');
@@ -2283,16 +2568,29 @@ class Game {
                 break;
             }
         }
+        if (locStr === '未知') {
+            for (const locId in this.brothelProstitutes) {
+                const pros = this.brothelProstitutes[locId];
+                const found = pros.find(p => p.id === r.id);
+                if (found) {
+                    const loc = getAllLocations().find(l => l.id === locId);
+                    const region = getRegionLabel(locId);
+                    locStr = `【${region}】${loc ? loc.name : locId} · 青楼`;
+                    break;
+                }
+            }
+        }
         const ms = r.surface === 'unmarried' ? '未婚' : r.surface === 'married' ? '已婚' : r.surface === 'married_child' ? '已婚已育' : '寡妇';
-        this.addMessage(`${r.name}  ${ms}  ${r.age}岁  ${r.height}cm  ${r.bust}-${r.waist}-${r.hips}`, 'info');
-        this.addMessage(`<span style="color:${r.beautyTierColor}">【${r.beautyTierLabel}】</span>评分 ${r.beautyScore}  忠贞 ${r.chastity}`, 'html');
-        this.addMessage(`容貌：${r.faceDesc}`, 'info');
-        this.addMessage(`身材：${r.bodyDesc}`, 'info');
-        this.addMessage(`今日位置：${locStr}`, 'narrator');
-        this.showChoices([
+        this.showMessageSequence([
+            { text: `${r.name}  ${ms}  ${r.age}岁  ${r.height}cm  ${r.bust}-${r.waist}-${r.hips}`, type: 'info' },
+            { text: `<span style="color:${r.beautyTierColor}">【${r.beautyTierLabel}】</span>颜值 ${r.faceScore||'?'}  身材 ${r.bodyScore||'?'}  评分 ${r.beautyScore}  忠贞 ${r.chastity}`, type: 'html' },
+            { text: `容貌：${r.faceDesc}`, type: 'info' },
+            { text: `身材：${r.bodyDesc}`, type: 'info' },
+            { text: `今日位置：${locStr}`, type: 'narrator' },
+        ], () => this.showChoices([
             { text: '返回列表', action: () => this.showRedRecord() },
             { text: '收起', action: () => this.showLocationChoices() },
-        ]);
+        ]));
     }
 
     /* ─── 游戏结束 ─── */
