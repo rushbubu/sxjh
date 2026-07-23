@@ -584,7 +584,7 @@ class Game {
             this.addMessage(`你来到${venue.name}门前，只见朱门紧闭，门口站着两个虎背熊腰的家丁。`, 'narrator');
             this.addMessage(`其中一个家丁上前一步，横臂拦住去路：「站住！你是何人？我家老爷岂是你想见就见的？」`, 'narrator');
             const loc = this.currentLocation;
-            const repNeed = Math.max(5, (loc.repThreshold || 10) - 2);
+            const repNeed = 20 + Math.floor(Math.random() * 6);
             const goldNeed = Math.max(50, 80 + (loc.economy === 'moderate' ? 50 : 0));
             this.showChoices([
                 { text: `报上名号（需要${repNeed}点声望）`, action: () => {
@@ -847,7 +847,7 @@ class Game {
                 this.player.mainQuest = 1;
                 this.showMessageSequence([
                     { text: `你提起「沈清寒」这个名字，${npc.npcName}皱眉思索了片刻。`, type: 'narrator' },
-                    { text: `${npc.npcName}：「沈清寒……这个名字有点耳熟，但老头子我记性不好，实在想不起来了。」`, type: 'narrator' },
+                    { text: `${npc.npcName}：「沈清寒……恕老夫孤陋寡闻，不曾听过这个名字。」`, type: 'narrator' },
                     { text: `${npc.npcName}：「你去村东头的${loc.venues.find(v => v.name.endsWith('府')).name}问问吧，那老东西见多识广，兴许知道些什么。」`, type: 'narrator' },
                 ], () => this.showChoices([{ text: '多谢', action: () => this.chiefAction(venue, npc) }]));
             } else {
