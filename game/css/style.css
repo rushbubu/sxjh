@@ -209,21 +209,24 @@ body {
 .info-row {
     font-size: 12px;
     color: #8a9aba;
-    gap: 3px;
+    gap: 0;
+    flex-shrink: 0;
 }
 
 .info-label {
     color: #6a7a8a;
-    margin-right: 2px;
+    margin-right: 1px;
+    flex-shrink: 0;
 }
 
 .info-value {
-    min-width: 60px;
+    min-width: auto;
     font-weight: bold;
+    flex-shrink: 0;
 }
 
 .info-sep {
-    flex: 1;
+    flex: 0 0 8px;
 }
 
 #choice-area {
@@ -537,4 +540,100 @@ body {
 
 #gameover-panel button:active {
     transform: scale(0.97);
+}
+
+/* ─── 战斗界面 ─── */
+
+#battle-hud {
+    padding: 12px 14px 8px;
+    margin-bottom: 4px;
+    background: rgba(10, 10, 10, 0.92);
+    border-bottom: 1px solid #3a2020;
+}
+
+.battle-section + .battle-section {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #2a2a2a;
+}
+
+.battle-names {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.battle-name {
+    font-size: 15px;
+    font-weight: bold;
+    color: #e8d8b0;
+    text-shadow: 0 0 4px rgba(200, 160, 100, 0.3);
+}
+
+.battle-name-enemy {
+    color: #f0a0a0;
+}
+
+.battle-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 2px 0;
+}
+
+.battle-bar-label {
+    font-size: 12px;
+    color: #908070;
+    min-width: 28px;
+}
+
+.battle-bar-track {
+    flex: 1;
+    height: 12px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.battle-bar-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 5px;
+}
+
+.battle-hp-fill { background: linear-gradient(90deg, #c03030, #f05050); }
+.battle-hp-fill-low { background: linear-gradient(90deg, #c04000, #e06020); }
+.battle-mp-fill { background: linear-gradient(90deg, #2040c0, #4060f0); }
+.battle-enemy-hp-fill { background: linear-gradient(90deg, #b03030, #e04040); }
+
+.battle-bar-text {
+    font-size: 11px;
+    color: #a09080;
+    min-width: 50px;
+    text-align: right;
+}
+
+#battle-log {
+    padding: 6px 14px 8px;
+    min-height: 40px;
+    font-size: 13px;
+    color: #c0b898;
+    line-height: 1.6;
+    border-top: 1px solid #2a2a2a;
+}
+
+.battle-log-entry {
+    padding: 1px 0;
+    animation: battleFadeIn 0.3s ease;
+}
+
+.battle-log-hit  { color: #f0c040; }
+.battle-log-miss { color: #808080; }
+.battle-log-self { color: #f06060; }
+.battle-log-info { color: #80c080; }
+
+@keyframes battleFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
