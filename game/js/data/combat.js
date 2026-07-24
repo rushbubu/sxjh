@@ -30,6 +30,7 @@ const NPC_ART_MOVES = {
     tiesha:    { basic: '铁砂掌',     special: '黑砂手' },
     jingang:   { basic: '金刚掌',     special: '金刚伏魔' },
     nianhua:   { basic: '拈花指',     special: '迦叶拈花' },
+    caidao:    { basic: '砍柴式',     special: '樵夫问路' },
     yiyangzhi: { basic: '一阳指',     special: '六脉神剑' },
 };
 

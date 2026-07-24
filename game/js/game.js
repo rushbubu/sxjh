@@ -24,6 +24,8 @@ function getTierInfo(tier) {
     return TIERS[tier] || TIERS.white;
 }
 
+const ITEM_TIER_LABELS = { blue:'蓝色', purple:'紫色', orange:'橙色', gold:'金色' };
+
 class Game {
     constructor() {
         this.freePoints = 30;
@@ -119,6 +121,8 @@ class Game {
             neili: 0, maxNeili: 0,
             day: 1, level: 1, exp: 0,
             gold: 0, reputation: 10,
+            shadowRep: 0,
+            timePeriod: '清晨',
             items: [],
             equipment: { rightHand:null, leftHand:null, head:null, upperBody:null, lowerBody:null, boots:null, bracers:null, accessory1:null, accessory2:null },
             externalSkills: [],
@@ -159,9 +163,9 @@ class Game {
             '最后的记忆，是华山之巅。',
             '那一剑从背后刺入，穿胸而过——你的师弟沈清寒，你最信任的师弟，在你全力激战之时，递出了致命一剑。',
             '你——华山派大弟子，江湖上赫赫有名的剑客——坠入了万劫深渊。',
-            '耳边还回响着他冷冰冰的声音：「师兄，掌门之位，你让也得让，不让也得让。」',
+            '耳边还回响着他冷冰冰的声音：「师兄，这掌门之位就归我了。」',
             '万劫深渊，深不见底，自古无人能生还。但你竟没有死。',
-            '坠落途中，你伸手乱抓，指尖触碰到了崖壁上的一卷古老竹简——那一刹那，无数文字如洪流般涌入你的脑海。',
+            '坠落途中，怀里的古老竹简突然发光——是师父交给你的天之书残本。',
             '那是《天之经》残本，上古无上心法。经文虽不全，却已深深刻入你的魂魄。',
             '你，重生了。',
             '这一世，你要从零开始，一步一步——让那些背叛你的人，付出代价。',
@@ -357,6 +361,7 @@ class Game {
         document.getElementById('wealth-text').textContent = wi.label;
         document.getElementById('wealth-text').style.color = wi.color;
         document.getElementById('day-text').textContent = p.day;
+        document.getElementById('time-text').textContent = p.timePeriod;
         document.getElementById('level-text').textContent = p.level;
     }
 
@@ -366,6 +371,12 @@ class Game {
         if (item.value <= 10) return 3;
         if (item.value <= 20) return 2;
         return 1;
+    }
+
+    getItemDisplayName(item) {
+        const labels = { blue:'蓝色', purple:'紫色', orange:'橙色', gold:'金色' };
+        if (labels[item.tier]) return `${item.name} ［${labels[item.tier]}］`;
+        return item.name;
     }
 
     toggleMenu() {
@@ -479,7 +490,9 @@ class Game {
                 _defaultItems: n.items.map(i => ({ ...i })),
                 items: n.items.map(i => {
                     const stock = this.getItemStock(i);
-                    return { ...i, stock, maxStock: stock };
+                    const item = { ...i, stock, maxStock: stock };
+                    if (['blue','purple','orange','gold'].includes(item.tier)) item.name += ` ［${ITEM_TIER_LABELS[item.tier]}］`;
+                    return item;
                 }),
             })).filter(n => !this.killedNpcs.has(loc.id + ':' + v.name + ':' + n.npcName)),
         }));
@@ -548,7 +561,7 @@ class Game {
         if (isVillage) {
             const groups = {
                 '市集': this.player.locationVenues.filter(v => ['草药铺', '铁匠铺', '酒馆'].includes(v.name)),
-                '村外': this.player.locationVenues.filter(v => ['断桥', '小溪', '田埂', '小树林'].includes(v.name)),
+                '村外': this.player.locationVenues.filter(v => ['小树林', '断桥', '小溪', '田埂'].includes(v.name)),
             };
             const others = this.player.locationVenues.filter(v =>
                 !['草药铺', '铁匠铺', '酒馆', '断桥', '小溪', '田埂', '小树林'].includes(v.name)
@@ -590,8 +603,79 @@ class Game {
         this.showChoices(choices);
     }
 
+    /* ─── 时辰系统 ─── */
+
+    advanceTime() {
+        const order = ['清晨', '正午', '黄昏', '子时'];
+        const idx = order.indexOf(this.player.timePeriod);
+        this.player.timePeriod = order[(idx + 1) % order.length];
+        this.updateStatsBar();
+    }
+
+    isVenueClosed(venue) {
+        const t = this.player.timePeriod;
+        // 子时所有室内场所关闭
+        if (t === '子时') {
+            if (['街角', '断桥', '小溪', '田埂', '小树林'].includes(venue.name)) return false;
+            return true;
+        }
+        // 黄昏商店歇业，住宅/怡红院等仍营业
+        if (t === '黄昏') {
+            if (['街角', '断桥', '小溪', '田埂', '小树林'].includes(venue.name)) return false;
+            if (['草药铺', '铁匠铺', '酒馆'].includes(venue.name)) return true;
+            return false;
+        }
+        return false;
+    }
+
+    getVenueLockDifficulty(venue) {
+        // 根据场所物品总价值估算撬锁难度
+        const items = venue.npcs && venue.npcs.length > 0 ? venue.npcs[0].items : [];
+        const totalValue = items.reduce((s, id) => {
+            const item = getItem(id);
+            return s + (item ? item.value : 0);
+        }, 0);
+        if (totalValue >= 100) return 50;
+        if (totalValue >= 50) return 35;
+        if (totalValue >= 20) return 25;
+        return 15;
+    }
+
+    attemptPickLock(venue) {
+        this.clearChoices();
+        const dex = this.player.attrs.dexterity || 10;
+        const diff = this.getVenueLockDifficulty(venue);
+        const successChance = Math.min(0.9, dex / (diff + dex));
+        this.addMessage(`你屏住呼吸，摸到门前，掏出随身铁片试着撬锁……`, 'narrator');
+        if (Math.random() < successChance) {
+            this.addMessage('锁「咔」一声开了！你闪身溜了进去，没有惊动任何人。', 'system');
+            this.player.shadowRep += 1;
+            this.updateStatsBar();
+            this.enterVenueInner(venue);
+        } else {
+            this.addMessage('你正专心撬锁，突然远处传来一声大喝：「有贼！」', 'danger');
+            this.player.reputation = Math.max(0, this.player.reputation - 5);
+            this.updateStatsBar();
+            this.addMessage(`声望 -5（当前 ${this.player.reputation}）`, 'system');
+            setTimeout(() => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()), 400);
+        }
+    }
+
     enterVenue(venue) {
         this.clearChoices();
+        // 时间关闭检查
+        if (this.isVenueClosed(venue)) {
+            this.addMessage(`${venue.name}的大门紧闭，门上挂着一块「已打烊」的木牌。`, 'narrator');
+            this.showChoices([
+                { text: '撬锁', action: () => this.attemptPickLock(venue) },
+                { text: '离开', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
+            ]);
+            return;
+        }
+        this.enterVenueInner(venue);
+    }
+
+    enterVenueInner(venue) {
         // Landlord gate check for starting village quest
         if (this.player.mainQuest === 1 && this.player.startingVillage === this.player.locationId && venue.name.endsWith('府')) {
             this.addMessage(`你来到${venue.name}门前，只见朱门紧闭，门口站着两个虎背熊腰的家丁。`, 'narrator');
@@ -629,16 +713,78 @@ class Game {
             return;
         }
         this.addMessage(`你走进${venue.name}。`, 'narrator');
-        const alive = venue.npcs.filter(n => !n._killed && !(n.isBeauty && n._beautyData && n._beautyData._chattedToday));
+
+        // 小树林：每次进入随机刷新猎人或樵夫
+        if (venue.name === '小树林') {
+            const village = WORLD.villages.find(v => v.id === (this.currentLocation && this.currentLocation.id));
+            const isHunter = Math.random() < 0.5;
+            const forestItemIds = isHunter
+                ? ['dagger', 'herb_bandage', 'jinchuang']
+                : ['knife_wood', 'blue_blade', 'ration'];
+            venue.npcs = [{
+                npcName: isHunter
+                    ? (village ? village.hunterNpc : '老张猎户')
+                    : (village ? village.woodcutterNpc : '老王'),
+                npcDesc: isHunter ? '经验丰富的猎户，常年在山中打猎。' : '朴实憨厚的樵夫，每天上山砍柴。',
+                items: forestItemIds.map(id => {
+                    const item = getItem(id);
+                    if (!item) return null;
+                    const stock = this.getItemStock(item);
+                    const obj = { ...item, stock, maxStock: stock };
+                    if (id === 'blue_blade') obj._noBuy = true;
+                    if (['blue','purple','orange','gold'].includes(obj.tier)) obj.name += ` ［${ITEM_TIER_LABELS[obj.tier]}］`;
+                    return obj;
+                }).filter(Boolean),
+                civilian: true,
+                combatPower: (this.currentLocation.guardianPower || 10) + (isHunter ? 5 : 3),
+                _forestType: isHunter ? 'hunter' : 'woodcutter',
+            }];
+        }
+
+        const nightTime = this.player.timePeriod === '黄昏' || this.player.timePeriod === '子时';
+        const alive = venue.npcs.filter(n =>
+            !n._killed
+            && !(n.isBeauty && n._beautyData && n._beautyData._chattedToday)
+            && !(nightTime && n._forestType)
+        );
         if (alive.length === 0) {
             this.addMessage('里面空无一人……', 'narrator');
-            setTimeout(() => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()), 400);
+            if (venue.name === '小树林' && this.player.items.some(i => i.id === 'knife_wood')) {
+                this.showChoices([
+                    { text: '砍柴（根骨 +1）', action: () => {
+                        this.clearChoices();
+                        this.player.attrs.root += 1;
+                        this.player.exp += 2;
+                        this.addMessage('你抡起柴刀，劈了半个时辰的柴火。出了一身汗，但筋骨更结实了。', 'narrator');
+                        this.addMessage(`根骨 +1（当前 ${this.player.attrs.root}），经验 +2`, 'system');
+                        this.advanceTime();
+                        this.updateStatsBar();
+                        setTimeout(() => this.enterVenueInner(venue), 400);
+                    }},
+                    { text: '离开', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
+                ]);
+            } else {
+                setTimeout(() => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()), 400);
+            }
             return;
         }
         const choices = alive.map(npc => ({
             text: npc.isChief ? `村长 · ${npc.npcName}` : npc.npcName,
             action: () => this.interactNpc(venue, npc),
         }));
+        // 小树林：有柴刀可自行砍柴
+        if (venue.name === '小树林' && this.player.items.some(i => i.id === 'knife_wood')) {
+            choices.splice(choices.length, 0, { text: '砍柴（根骨 +1）', action: () => {
+                this.clearChoices();
+                this.player.attrs.root += 1;
+                this.player.exp += 2;
+                this.addMessage('你抡起柴刀，劈了半个时辰的柴火。出了一身汗，但筋骨更结实了。', 'narrator');
+                this.addMessage(`根骨 +1（当前 ${this.player.attrs.root}），经验 +2`, 'system');
+                this.advanceTime();
+                this.updateStatsBar();
+                setTimeout(() => this.enterVenueInner(venue), 400);
+            }});
+        }
         choices.push({ text: `离开${venue.name}`, action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) });
         this.showChoices(choices);
     }
@@ -696,13 +842,24 @@ class Game {
         if (npc.isBeauty) { this.interactBeauty(venue, npc); return; }
         if (npc.isChief) { this.chiefAction(venue, npc); return; }
         if (this.isBrothelVenue(venue)) { this.interactBrothel(venue, npc); return; }
+        if (venue.name === '街角') { this.beggarAction(venue, npc); return; }
         this.clearChoices();
-        this.addMessage(`${npc.npcName}：「${npc.npcDesc}」`, 'info');
+        if (!npc._introduced) {
+            this.addMessage(`${npc.npcName}：「${npc.npcDesc}」`, 'info');
+            npc._introduced = true;
+        }
         const choices = [
             { text: '闲谈', action: () => this.chatWithNpc(venue, npc) },
             { text: '购买', action: () => this.buyFromNpc(venue, npc) },
             { text: '出售', action: () => this.sellToNpc(venue, npc) },
         ];
+        // 小树林：猎人或樵夫专属
+        if (npc._forestType === 'hunter' && !npc._killed) {
+            choices.splice(choices.length, 0, { text: '帮助打猎', action: () => this.huntWithHunter(venue, npc) });
+        }
+        if (npc._forestType === 'woodcutter' && !npc._killed) {
+            choices.splice(choices.length, 0, { text: '帮助砍柴', action: () => this.chopWithWoodcutter(venue, npc) });
+        }
         if (!npc.civilian && npc.combatPower > 0 && !npc._defeated) {
             choices.push({ text: '对决', action: () => this.duelWithNpc(venue, npc, { label: '对决' }) });
         }
@@ -719,7 +876,11 @@ class Game {
             choices.push({ text: '偷窃', action: () => this.attemptSteal(venue, npc) });
         }
         if (!npc._defeated && !npc._killed) {
-            choices.push({ text: '偷袭', action: () => this.duelWithNpc(venue, npc, { powerMult: 0.5, initRepCost: 1, noCombatRepChange: true, label: '偷袭' }) });
+            if (npc._forestType) {
+                choices.push({ text: '偷袭', action: () => this.forestAmbush(venue, npc) });
+            } else {
+                choices.push({ text: '偷袭', action: () => this.duelWithNpc(venue, npc, { powerMult: 0.5, initRepCost: 1, noCombatRepChange: true, label: '偷袭' }) });
+            }
             choices.push({ text: '暗杀', action: () => this.duelWithNpc(venue, npc, { powerMult: 0.5, initRepCost: 3, noCombatRepChange: true, winGetAllItems: true, label: '暗杀' }) });
         }
         choices.push({ text: '算了', action: () => this.interactNpc(venue, npc) });
@@ -736,13 +897,198 @@ class Game {
             '酒馆': [ '客官来点什么？本店的招牌菜可是一绝。', '听说了吗？最近城外好像不太平。', '我这有坛十八年的女儿红，想不想尝尝？' ],
             '家': [ '村里最近倒是太平，没什么大事。', '你要是想找活干，可以去后山看看。', '唉，今年的收成不太好……' ],
             '府': [ '最近生意不太好做啊……', '你要是有什么好东西，可以卖给我。', '听说镇上来了个陌生人，你可要多加小心。' ],
+            '街角': [ '行行好，赏口饭吃吧……', '我已经三天没吃东西了……', '这年头，活着真难啊。', '大爷您行行好，我给你磕头了！' ],
+            '猎人': [ '后山的猎物越来越精了，不好打。', '你要是想试试身手，可以跟我进山。', '猎了一辈子，这山里的东西没人比我更熟。', '昨天打了个大家伙，够吃好几天了。' ],
+            '樵夫': [ '这柴劈起来也有门道，顺着纹路才省力。', '山上的木头硬得很，我这把刀都快卷刃了。', '每天砍柴，倒也自在。', '你要是有空，可以搭把手。' ],
         };
-        const key = Object.keys(chats).find(k => venue.name.includes(k));
+        const key = Object.keys(chats).find(k => venue.name.includes(k) || (npc._forestType && npc._forestType === k));
         const lines = chats[key] || ['今天天气不错。', '你好啊，有什么事吗？', '这日子一天天过，平淡是福。'];
         this.addMessage(npc.npcName + '：「' + lines[Math.floor(Math.random() * lines.length)] + '」', 'narrator');
         this.player.neili -= 2;
         this.updateStatsBar();
         setTimeout(() => this.interactNpc(venue, npc), 400);
+    }
+
+    /* ─── 乞丐系统 ─── */
+
+    beggarAction(venue, npc) {
+        this.clearChoices();
+        this.addMessage(`墙角的老乞丐缩了缩脖子，咧嘴露出一口黄牙：「爷，赏口饭吃吧……」`, 'narrator');
+        this.showChoices([
+            { text: '打听消息（1两）', action: () => this.beggarIntel(venue, npc) },
+            { text: '暴打一顿', action: () => this.beatBeggar(venue, npc) },
+            { text: '离开', action: () => this.enterVenue(venue) },
+        ]);
+    }
+
+    beggarIntel(venue, npc) {
+        this.clearChoices();
+        if (this.player.gold < 1) {
+            this.addMessage('你摸了摸口袋——一文不名。乞丐翻了个白眼，不理你了。', 'narrator');
+            setTimeout(() => this.enterVenue(venue), 400);
+            return;
+        }
+        this.player.gold -= 1;
+        this.updateStatsBar();
+        this.beggarIntelBeauties(venue, npc, false);
+    }
+
+    beatBeggar(venue, npc) {
+        this.clearChoices();
+        this.player.reputation = Math.max(0, this.player.reputation - 3);
+        this.addMessage(`你揪起乞丐的衣领，恶狠狠地瞪了他一眼。`, 'narrator');
+        this.addMessage(`乞丐吓得瑟瑟发抖：「大爷饶命！我说！我什么都说！」`, 'narrator');
+        this.addMessage(`声望 -3（当前 ${this.player.reputation}）`, 'system');
+        this.updateStatsBar();
+        this.beggarIntelBeauties(venue, npc, true);
+    }
+
+    beggarIntelBeauties(venue, npc, beat, skipIntro = false) {
+        this.clearChoices();
+        const loc = this.currentLocation;
+        const beauties = this.beautyMap[loc.id] || [];
+        const available = beauties.filter(b => !this.killedNpcs.has('beauty_' + b.id));
+        if (available.length === 0) {
+            this.addMessage(`乞丐挠了挠头：「这地方……哪有什么娘们儿啊。」`, 'narrator');
+            this.showChoices([{ text: '离开', action: () => this.enterVenue(venue) }]);
+            return;
+        }
+        const showList = () => {
+            const choices = available.map(b => ({
+                text: b.name,
+                action: () => {
+                    this.clearChoices();
+                    const where = b._currentVenueName || '街上';
+                    const who = ['我瞧见过', '听人说', '好像', '前两日还在'][Math.floor(Math.random() * 4)];
+                    const action = ['晃悠', '采花', '洗衣', '闲坐', '纳凉', '赏景', '等人'][Math.floor(Math.random() * 7)];
+                    this.addMessage(`乞丐压低声音：「${who}，她这会儿在${where}${action}呢。」`, 'narrator');
+                    this.showChoices([
+                        { text: '再问别的', action: () => this.beggarIntelBeauties(venue, npc, beat, true) },
+                        { text: '够了', action: () => this.enterVenue(venue) },
+                    ]);
+                },
+            }));
+            choices.push({ text: '算了', action: () => this.enterVenue(venue) });
+            this.showChoices(choices);
+        };
+        if (skipIntro) {
+            showList();
+        } else {
+            const intro = beat ? '「小的常在这一带混，哪家姑娘住在哪儿，门儿清！」' : '乞丐接过银子，眉开眼笑：「爷大方！您想打听谁？」';
+            this.showMessageSequence([
+                { text: beat ? `乞丐揉着被打的地方，讪笑着说。` : `乞丐掂了掂手里的碎银子，凑近了些。`, type: 'narrator' },
+                { text: `乞丐：${intro}`, type: 'html' },
+            ], showList);
+        }
+    }
+
+    /* ─── 猎人系统 ─── */
+
+    huntWithHunter(venue, npc) {
+        this.clearChoices();
+        const root = this.player.attrs.root || 10;
+        const dex = this.player.attrs.dexterity || 10;
+        const successChance = Math.min(0.9, (root + dex) / 100);
+
+        // 猎物表：{ name, dexGain, weight, isDangerous }
+        const preyTable = [
+            { name: '兔子', dexGain: 1, weight: 30, isDangerous: false },
+            { name: '蛇', dexGain: 1, weight: 25, isDangerous: false },
+            { name: '山羊', dexGain: 2, weight: 18, isDangerous: false },
+            { name: '鹿', dexGain: 2, weight: 12, isDangerous: false },
+            { name: '狐狸', dexGain: 3, weight: 7, isDangerous: false },
+            { name: '野狗', dexGain: 3, weight: 4, isDangerous: true },
+            { name: '野猪', dexGain: 4, weight: 2, isDangerous: true },
+            { name: '狼', dexGain: 4, weight: 1.5, isDangerous: true },
+            { name: '老虎', dexGain: 5, weight: 0.5, isDangerous: true },
+        ];
+
+        // 按权重随机选猎物
+        const totalWeight = preyTable.reduce((s, p) => s + p.weight, 0);
+        let roll = Math.random() * totalWeight;
+        let prey = preyTable[0];
+        for (const p of preyTable) {
+            roll -= p.weight;
+            if (roll <= 0) { prey = p; break; }
+        }
+
+        this.addMessage(`${npc.npcName}带你进山打猎。林中走了一阵，发现了一只${prey.name}！`, 'narrator');
+        this.advanceTime();
+
+        if (prey.isDangerous) {
+            // 危险猎物：判定成功则拿下，失败则逃跑
+            if (Math.random() < successChance) {
+                const gain = prey.dexGain;
+                this.player.attrs.dexterity += gain;
+                this.addMessage(`你张弓搭箭，一箭命中！${npc.npcName}竖起大拇指：「好箭法！」`, 'event');
+                this.addMessage(`灵巧 +${gain}（当前 ${this.player.attrs.dexterity}）`, 'system');
+                this.player._huntCount = (this.player._huntCount || 0) + 1;
+            } else {
+                this.addMessage(`那${prey.name}发现了你们，低吼着作势欲扑。你和${npc.npcName}对视一眼——「跑！」`, 'narrator');
+                this.addMessage('你们撒腿就跑，总算逃过一劫。打猎失败。', 'danger');
+            }
+        } else {
+            // 温顺猎物：判定成功则拿下，失败则脱靶
+            if (Math.random() < successChance) {
+                const gain = prey.dexGain;
+                this.player.attrs.dexterity += gain;
+                this.addMessage(`你屏息凝神，一箭射出——正中${prey.name}！`, 'event');
+                this.addMessage(`灵巧 +${gain}（当前 ${this.player.attrs.dexterity}）`, 'system');
+                this.player._huntCount = (this.player._huntCount || 0) + 1;
+            } else {
+                this.addMessage(`你张弓搭箭，谁知那${prey.name}突然警觉，一溜烟窜进了草丛。`, 'narrator');
+                this.addMessage('你叹了口气——好猎物不好打。打猎失败。', 'info');
+            }
+        }
+        this.updateStatsBar();
+        setTimeout(() => this.enterVenueInner(venue), 600);
+    }
+
+    /* ─── 樵夫系统 ─── */
+
+    chopWithWoodcutter(venue, npc) {
+        this.clearChoices();
+        this.player._chopCount = (this.player._chopCount || 0) + 1;
+
+        this.addMessage(`你接过${npc.npcName}的斧头，帮他劈柴。`, 'narrator');
+        this.addMessage('你一斧一斧地劈着，虽然累，但感觉筋骨舒展了不少。', 'narrator');
+        this.advanceTime();
+        this.player.attrs.root += 1;
+        this.player.exp += 3;
+        this.addMessage(`根骨 +1（当前 ${this.player.attrs.root}），经验 +3`, 'system');
+
+        const chopCount = this.player._chopCount;
+        const shadowRep = this.player.shadowRep || 0;
+
+        // 第3次且里声望为0：送柴刀
+        if (chopCount === 3 && shadowRep === 0) {
+            this.addMessage(`${npc.npcName}擦了把汗，看了看你：「你小子老实本分，我这有把柴刀你用得上，拿去吧。」`, 'narrator');
+            this.player.items.push({ ...getItem('knife_wood') });
+            this.addMessage('获得了柴刀！', 'event');
+        }
+
+        // 第5次且里声望为0：教蓝色刀法
+        if (chopCount === 5 && shadowRep === 0) {
+            if (!this.player.externalSkills.some(s => s.id === 'caidao')) {
+                this.addMessage(`${npc.npcName}满意地点点头：「你人不错，又肯下力气。我这几手砍柴的功夫，你想学吗？」`, 'narrator');
+                const art = getMartialArt('caidao');
+                if (art) {
+                    const skillObj = { id: 'caidao', name: art.name, desc: art.desc, type: art.type, quality: art.quality, level: 1, maxLevel: 4 };
+                    this.player.externalSkills.push(skillObj);
+                    this.addMessage(`你领悟了「${art.name}」！`, 'event');
+                }
+            } else {
+                this.addMessage(`你早已学会了${npc.npcName}的刀法，再无所获。`, 'info');
+            }
+        }
+
+        // 5次后无额外奖励
+        if (chopCount > 5) {
+            this.addMessage(`你早已帮了足够多的忙，${npc.npcName}拍了拍你的肩：「好小子，够意思！」`, 'narrator');
+        }
+
+        this.updateStatsBar();
+        setTimeout(() => this.enterVenueInner(venue), 600);
     }
 
     /* ─── 声望系统 ─── */
@@ -784,7 +1130,7 @@ class Game {
                 { text: npc.npcName + '：' + insult, type: 'html' },
             ], () => {
                 this.showChoices([
-                    { text: '忍气吞声', action: () => { this.addMessage('你咬了咬牙，转身离开。', 'narrator'); setTimeout(() => this.enterVenue(venue), 300); } },
+                    { text: '忍气吞声', action: () => { this.addMessage('你咬了咬牙，没有发作。', 'narrator'); setTimeout(() => this.enterVenue(venue), 300); } },
                     { text: '一顿毒打', action: () => this.confrontChief(venue, npc, 'beat') },
                     { text: '痛下杀手', action: () => this.confrontChief(venue, npc, 'kill') },
                     { text: '离开', action: () => this.enterVenue(venue) },
@@ -1142,6 +1488,78 @@ class Game {
         );
     }
 
+    /* ─── 小树林偷袭 ─── */
+
+    forestAmbush(venue, npc) {
+        this.clearChoices();
+        this.player.reputation -= 1;
+        this.player.shadowRep += 1;
+        this.addMessage(`你趁${npc.npcName}不备猛然出手！偷袭扣除了 1 点声望。`, 'system');
+        if (this.player.reputation < 0) {
+            this.updateStatsBar();
+            this.gameOver(`你名声已臭，连对${npc.npcName}下黑手的资格都没有了……`);
+            return;
+        }
+        this.updateStatsBar();
+
+        const enemy = generateNpcEnemy(npc);
+        enemy.hp = Math.max(5, Math.floor(enemy.hp * 0.8));
+        enemy.maxHp = enemy.hp;
+
+        this.startBattle(enemy,
+            () => {
+                this.addMessage(`你击倒了${npc.npcName}！`, 'event');
+                this.showLootChoices(venue, npc);
+            },
+            () => {
+                this.addMessage(`${npc.npcName}将你击倒在地。`, 'danger');
+                npc._defeated = true;
+                if (this.player.hp <= 0) {
+                    this.gameOver(`你被${npc.npcName}重创，伤重不治……`, npc);
+                    return;
+                }
+                this.updateStatsBar();
+                setTimeout(() => this.enterVenueInner(venue), 500);
+            }
+        );
+    }
+
+    showLootChoices(venue, npc) {
+        this.clearChoices();
+        const lootable = npc.items.filter(it => it.stock > 0);
+        if (lootable.length === 0) {
+            this.addMessage(`${npc.npcName}身上没什么可拿的。`, 'narrator');
+            setTimeout(() => this.enterVenueInner(venue), 400);
+            return;
+        }
+        this.addMessage(`你从${npc.npcName}身上搜出了一些东西：`, 'narrator');
+        const choices = lootable.map(item => {
+            const repCost = Math.max(1, Math.floor(item.value / 5));
+            return {
+                text: `拿走 ${item.name}（价值 ${item.value}两 · 扣声望 ${repCost}）`,
+                action: () => this.takeLoot(venue, npc, item),
+            };
+        });
+        choices.push({ text: '收手离开', action: () => {
+            this.addMessage('你拍了拍身上的灰，转身离开。', 'narrator');
+            setTimeout(() => this.enterVenueInner(venue), 400);
+        }});
+        this.showChoices(choices);
+    }
+
+    takeLoot(venue, npc, item) {
+        this.clearChoices();
+        const repCost = Math.max(1, Math.floor(item.value / 5));
+        this.player.reputation = Math.max(0, this.player.reputation - repCost);
+        this.player.shadowRep += 1;
+        this.addMessage(`你拿走了${item.name}，声望 -${repCost}（当前 ${this.player.reputation}）`, 'system');
+        const taken = { ...item };
+        if (!this.autoEquip(taken)) this.player.items.push(taken);
+        item.stock--;
+        this.updateStatsBar();
+        this.showLootChoices(venue, npc);
+    }
+
     awardDuelRep(venue, npc) {
         if (this.killedNpcs.has(npc.npcName)) return;
         npc._timesDefeated = (npc._timesDefeated || 0) + 1;
@@ -1429,7 +1847,7 @@ class Game {
 
     buyFromNpc(venue, npc) {
         this.clearChoices();
-        const avail = npc.items.filter(it => it.stock > 0);
+        const avail = npc.items.filter(it => it.stock > 0 && !it._noBuy);
         if (avail.length === 0) {
             this.addMessage(npc.npcName + '：「不好意思，货都卖完了。」', 'narrator');
             setTimeout(() => this.interactNpc(venue, npc), 400);
@@ -1533,6 +1951,7 @@ class Game {
         if (roll < chance) {
             this.addMessage(`你趁${npc.npcName}不注意，悄悄将${item.name}摸到手中！`, 'event');
             this.addMessage('得手了！你迅速将东西藏好。', 'event');
+            this.player.shadowRep += 1;
             const stolen = { ...item };
             if (!this.autoEquip(stolen)) this.player.items.push(stolen);
             item.stock--;
@@ -1751,6 +2170,7 @@ class Game {
             }
         }
         this.player.day += 1;
+        this.player.timePeriod = '清晨';
         if (this.player.locationVenues) {
             let restored = 0;
             this.player.locationVenues.forEach(v => v.npcs.forEach(n => {
@@ -1978,6 +2398,11 @@ class Game {
     interactBeauty(venue, beauty) {
         this.clearChoices();
         const bd = beauty._beautyData;
+        // 聊过天的女NPC不再显示，留在场所继续看其他NPC
+        if (bd._chattedToday) {
+            this.enterVenueInner(venue);
+            return;
+        }
         const effFav = computeFavorability(this.player, bd) >= 80 ? computeFavorability(this.player, bd) : bd.favorability;
         this.addMessage(`${bd.name}「${bd.faceDesc}」`, 'html');
         const choices = [
@@ -1998,7 +2423,6 @@ class Game {
             { text: `你细细打量着${bd.name}……`, type: 'narrator' },
             { text: (() => { const f = computeFavorability(this.player, bd) >= 80 ? computeFavorability(this.player, bd) : bd.favorability; return f >= 50 ? '她似乎已经倾心于你。' : f >= 30 ? '她看起来很喜欢你。' : f >= 20 ? '她似乎对你有些好感。' : f >= 10 ? '她对你还算客气。' : f >= 5 ? '她对你态度平淡。' : '她态度冷冷，不愿搭理你。'; })(), type: 'html' },
             { text: `<span style="color:${bd.beautyTierColor}">【${bd.beautyTierLabel}】</span> 颜值 ${bd.faceScore||'?'}  身材 ${bd.bodyScore||'?'}  评分 ${bd.beautyScore}`, type: 'html' },
-            { text: `容貌：${bd.faceDesc}`, type: 'html' },
         ];
         if (bd._revealed.body) msgs.push({ text: `身材：${bd.bodyDesc}`, type: 'html' });
         if (bd._revealed.clothing) msgs.push({ text: `穿着：${bd.clothing}`, type: 'html' });
@@ -2013,114 +2437,81 @@ class Game {
         this.showMessageSequence(msgs, () => this.showChoices([{ text: '返回', action: () => this.interactBeauty(venue, beauty) }]));
     }
 
-    chatBeauty(venue, beauty) {
-        this.clearChoices();
+    _ensureRedRecord(bd) {
+        if (!this.redRecord[bd.id]) {
+            this.redRecord[bd.id] = {
+                id: bd.id, name: bd.name, age: bd.age, surface: bd.surface, inner: bd.inner,
+                height: bd.height, bust: bd.bust, waist: bd.waist, hips: bd.hips,
+                beautyScore: bd.beautyScore, beautyTierLabel: bd.beautyTierLabel, beautyTierColor: bd.beautyTierColor,
+                faceScore: bd.faceScore, bodyScore: bd.bodyScore, faceDesc: bd.faceDesc, bodyDesc: bd.bodyDesc,
+                chastity: bd.chastity, _currentLocId: bd._currentLocId,
+                sexCount: 0, lastTime: this.player.day,
+            };
+        }
+    }
+
+    _getAttitudeText(fav) {
+        return fav >= 50 ? '她似乎已经倾心于你。' : fav >= 30 ? '她看起来很喜欢你。' : fav >= 20 ? '她似乎对你有些好感。' : fav >= 10 ? '她对你还算客气。' : fav >= 5 ? '她对你态度平淡。' : null;
+    }
+
+    _pickChatLine(bd, stage) {
+        const pool = window.CHAT_LINES[bd.inner] || window.CHAT_LINES.unmarried;
+        const c = randomEntry(pool['s' + stage]);
+        return { narrator: fmtLine(c.n, bd), line: c.l };
+    }
+
+    _pickFlirtScene(bd) {
+        const s = pickScene(window.FLIRT_SCENES, bd.inner);
+        return { step2: fmtLine(s.s2, bd), step3: fmtLine(s.s3, bd), step4: fmtLine(s.s4, bd), end: fmtLine(s.end, bd) };
+    }
+
+    _pickKissScene(bd) {
+        const s = pickScene(window.KISS_SCENES, bd.inner);
+        return { narrator: fmtLine(s.n, bd), line: fmtLine(s.l, bd) };
+    }
+
+    _pickGropeScene(bd) {
+        const s = pickScene(window.GROPE_SCENES, bd.inner);
+        return { narrator: fmtLine(s.n, bd), line: fmtLine(s.l, bd) };
+    }
+
+    _chatFirstMet(venue, beauty) {
         const bd = beauty._beautyData;
-        if (bd._chattedToday) {
-            this.addMessage(`${bd.name}今天已经来过了，改天再来吧。`, 'narrator');
-            this.showChoices([{ text: '离开', action: () => this.showOutdoorChoices() }]);
+        const fav = computeFavorability(this.player, bd) >= 80 ? computeFavorability(this.player, bd) : bd.favorability;
+        const attitudeText = this._getAttitudeText(fav);
+        if (!attitudeText) {
+            this.showMessageSequence([
+                { text: `你走向${bd.name}，她态度冷冷，似乎不愿与你交谈。`, type: 'narrator' },
+            ], () => this.enterVenue(venue));
             return;
         }
+        bd.chatLevel = 1;
+        const c = this._pickChatLine(bd, 0);
+        bd._revealed.body = true;
+        const msgs = [
+            { text: attitudeText, type: 'html' },
+            { text: c.narrator, type: 'narrator' },
+            { text: `${bd.name}：${c.line}`, type: 'narrator' },
+            { text: `一番闲谈之后，你得知她名叫${bd.name}。`, type: 'info' },
+        ];
+        this._ensureRedRecord(bd);
+        msgs.push({ text: `已将${bd.name}记入红颜录，可通过红颜录查询她的去向。`, type: 'system' });
+        const gift = pickRegionalGift(this.currentLocation.id);
+        if (gift) { bd._wantedGift = gift.id; msgs.push({ text: `${bd.name}提到她最近想要一件「${gift.name}」。`, type: 'event' }); }
+        bd._chattedToday = true;
+        msgs.push({ text: `${bd.name}离开了${venue.name}。`, type: 'narrator' });
+        this.showMessageSequence(msgs, () => this.showChoices([{ text: '离开', action: () => this.showOutdoorChoices() }]));
+    }
+
+    _chatProgressive(venue, beauty) {
+        const bd = beauty._beautyData;
         const stage = bd.chatLevel;
         const stageLabels = ['粗谈一番', '相谈甚欢', '卧心长谈', '深入交流'];
-        const threshold = [10, 30, 50, 70];
-        const fav = computeFavorability(this.player, bd) >= 80 ? computeFavorability(this.player, bd) : bd.favorability;
-
-        if (stage >= 4) {
-            if (bd._hadSex) {
-                if (bd.flirtDay !== this.player.day) { bd.flirtCount = 0; bd.flirtDay = this.player.day; }
-                bd.flirtCount++;
-                if (bd.flirtCount >= 4) {
-                    const mood = bd.inner === 'unmarried' ? '神色羞涩' : bd.inner === 'widow' ? '嘴角挂着玩味的笑意' : '眼中带着热切的期盼';
-                    this.addMessage(`夜色渐深，${bd.name}脸颊绯红，${mood}。`, 'narrator');
-                    bd._chattedToday = true;
-                    this.showChoices([{ text: '……', action: () => this.flirtEventStep2(venue, beauty) }]);
-                    return;
-                }
-                const line = FLIRT_LINES[Math.floor(Math.random() * FLIRT_LINES.length)];
-                const isMature = bd.inner === 'married' || bd.inner === 'married_child' || (bd.inner === 'unmarried' && bd.age >= 25);
-                const reactions = bd.inner === 'widow' ? WIDOW_REACTIONS : isMature ? MATURE_REACTIONS : SHY_REACTIONS;
-                const react = reactions[Math.floor(Math.random() * reactions.length)];
-                this.showMessageSequence([
-                    { text: `（调情）`, type: 'system' },
-                    { text: `你：${line}`, type: 'narrator' },
-                    { text: `${bd.name}：${react}`, type: 'html' },
-                ], () => {
-                    this.updateStatsBar();
-                    this.showChoices([
-                        { text: '继续调情', action: () => this.chatBeauty(venue, beauty) },
-                        { text: '让她离开', action: () => { bd._chattedToday = true; this.clearChoices(); this.addMessage(`${bd.name}离开了${venue.name}。`, 'narrator'); setTimeout(() => this.showOutdoorChoices(), 300); } },
-                    ]);
-                });
-                return;
-            }
-            this.addMessage(`你们已经无话不谈，但她似乎还不想更进一步……`, 'narrator');
-            const intChoices = [
-                { text: '接吻', action: () => this.kissBeauty(venue, beauty) },
-                { text: '揩油', action: () => this.gropeBeauty(venue, beauty) },
-            ];
-            if (bd.favorability >= bd.chastity || computeFavorability(this.player, bd) >= bd.chastity) {
-                intChoices.push({ text: '云雨', action: () => this.sexBeauty(venue, beauty) });
-            }
-            intChoices.push({ text: '离开', action: () => this.showOutdoorChoices() });
-            this.showChoices(intChoices);
-            return;
-        }
-
-        if (stage === 0) {
-            const attitudeText = fav >= 50 ? '她似乎已经倾心于你。' : fav >= 30 ? '她看起来很喜欢你。' : fav >= 20 ? '她似乎对你有些好感。' : fav >= 10 ? '她对你还算客气。' : fav >= 5 ? '她对你态度平淡。' : null;
-            if (!attitudeText) {
-                this.showMessageSequence([
-                    { text: `你走向${bd.name}，她态度冷冷，似乎不愿与你交谈。`, type: 'narrator' },
-                ], () => this.enterVenue(venue));
-                return;
-            }
-            bd.chatLevel = 1;
-            const chatLines = this.getChatLines(bd);
-            const c = chatLines.s0[Math.floor(Math.random() * chatLines.s0.length)];
-            bd._revealed.body = true;
-            const msgs = [
-                { text: attitudeText, type: 'html' },
-                { text: c.narrator, type: 'narrator' },
-                { text: `${bd.name}：${c.line}`, type: 'narrator' },
-                { text: `一番闲谈之后，你得知她名叫${bd.name}。`, type: 'info' },
-            ];
-            if (!this.redRecord[bd.id]) {
-                this.redRecord[bd.id] = {
-                    id: bd.id, name: bd.name, age: bd.age, surface: bd.surface, inner: bd.inner,
-                    height: bd.height, bust: bd.bust, waist: bd.waist, hips: bd.hips,
-                    beautyScore: bd.beautyScore, beautyTierLabel: bd.beautyTierLabel, beautyTierColor: bd.beautyTierColor,
-                    faceScore: bd.faceScore, bodyScore: bd.bodyScore, faceDesc: bd.faceDesc, bodyDesc: bd.bodyDesc,
-                    chastity: bd.chastity, _currentLocId: bd._currentLocId,
-                    sexCount: 0, lastTime: this.player.day,
-                };
-            }
-            msgs.push({ text: `已将${bd.name}记入红颜录，可通过红颜录查询她的去向。`, type: 'system' });
-            const gift = pickRegionalGift(venue.name ? this.currentLocation.id : this.currentLocation.id);
-            if (gift) { bd._wantedGift = gift.id; msgs.push({ text: `${bd.name}提到她最近想要一件「${gift.name}」。`, type: 'event' }); }
-            bd._chattedToday = true;
-            msgs.push({ text: `${bd.name}离开了${venue.name}。`, type: 'narrator' });
-            this.showMessageSequence(msgs, () => this.showChoices([{ text: '离开', action: () => this.showOutdoorChoices() }]));
-            return;
-        }
-
-        if (fav < threshold[stage]) {
-            this.showMessageSequence([
-                { text: `（${stageLabels[stage]}）`, type: 'system' },
-                { text: `${bd.name}对你还不够信任，不愿深谈。（需要好感度≥${threshold[stage]}）`, type: 'narrator' },
-                { text: `不妨送些礼物增进感情？`, type: 'narrator' },
-            ], () => this.showChoices([{ text: '返回', action: () => this.interactBeauty(venue, beauty) }]));
-            return;
-        }
-
         bd.chatLevel = stage + 1;
-
-        const chatLines = this.getChatLines(bd);
-        let c;
-        if (stage === 1) { c = chatLines.s1[Math.floor(Math.random() * chatLines.s1.length)]; bd._revealed.clothing = true; bd._revealed.height = true; }
-        else if (stage === 2) { c = chatLines.s2[Math.floor(Math.random() * chatLines.s2.length)]; bd._revealed.age = true; }
-        else if (stage === 3) { c = chatLines.s3[Math.floor(Math.random() * chatLines.s3.length)]; bd._revealed.measurements = true; bd._revealed.marital = true; }
-
+        const c = this._pickChatLine(bd, stage);
+        if (stage === 1) { bd._revealed.clothing = true; bd._revealed.height = true; }
+        else if (stage === 2) { bd._revealed.age = true; }
+        else if (stage === 3) { bd._revealed.measurements = true; bd._revealed.marital = true; }
         const msgs = [
             { text: `（${stageLabels[stage]}）`, type: 'system' },
             { text: c.narrator, type: 'narrator' },
@@ -2130,275 +2521,92 @@ class Game {
             msgs.push({ text: `她告诉你她今年${bd.age}岁，${bd.surface === 'unmarried' ? '尚未婚配' : bd.surface === 'widow' ? '夫家已故，守寡至今' : '已嫁人'}${bd.surface === 'married_child' ? '，育有子女' : ''}。`, type: 'info' });
             msgs.push({ text: `你偷偷记下了她的三围：${bd.bust}-${bd.waist}-${bd.hips}。`, type: 'info' });
         }
-
-        const gift = pickRegionalGift(venue.name ? this.currentLocation.id : this.currentLocation.id);
-        if (gift) {
-            bd._wantedGift = gift.id;
-            msgs.push({ text: `${bd.name}提到她最近想要一件「${gift.name}」。`, type: 'event' });
-        }
-
+        const gift = pickRegionalGift(this.currentLocation.id);
+        if (gift) { bd._wantedGift = gift.id; msgs.push({ text: `${bd.name}提到她最近想要一件「${gift.name}」。`, type: 'event' }); }
         bd._chattedToday = true;
         msgs.push({ text: `${bd.name}离开了${venue.name}。`, type: 'narrator' });
-
         this.showMessageSequence(msgs, () => this.showChoices([{ text: '离开', action: () => this.showOutdoorChoices() }]));
     }
 
-    getChatLines(bd) {
-        const s = bd.inner;
-        const pool = {
-            unmarried: {
-                s0: [
-                    { narrator: `你上前与${bd.name}搭话。她打量了你几眼，微微一笑。`, line: '「公子面生，是外地来的吧？」' },
-                    { narrator: `你走向${bd.name}，她好奇地抬起头看你。`, line: '「你是……新来的？以前没见过你呢。」' },
-                    { narrator: `${bd.name}正在窗前发呆，听见脚步声回过头来。`, line: '「啊，吓我一跳……你是？」' },
-                    { narrator: `你打了个招呼，${bd.name}抿嘴笑了笑。`, line: '「你好呀，我好像没见过你？」' },
-                    { narrator: `${bd.name}坐在树下乘凉，看见你走近便直起身子。`, line: '「你也是路过这里的吗？」' },
-                ],
-                s1: [
-                    { narrator: `你与${bd.name}聊得颇为投机，她的话渐渐多了起来。`, line: '「原来公子也是闯江湖的，见多识广呢。」' },
-                    { narrator: `${bd.name}听得入了神，眼睛里闪着光。`, line: '「外面的世界真的有那么多有趣的事吗？」' },
-                    { narrator: `她托着腮听你说话，不时轻笑出声。`, line: '「你说话真有意思，比村里那些人强多了。」' },
-                    { narrator: `${bd.name}拍了拍身边的凳子，示意你坐下说。`, line: '「再给我讲讲外面的故事吧？」' },
-                    { narrator: `她给你倒了杯茶，双手捧着递过来。`, line: '「你一定走过很多地方吧……真羡慕你。」' },
-                ],
-                s2: [
-                    { narrator: `${bd.name}对你已颇为信任，聊起了自己的心事。`, line: '「这些事情，我从未对旁人提起过……」' },
-                    { narrator: `她低下头，手指轻轻摩挲着杯沿。`, line: '「其实我有时候……也觉得挺孤单的。」' },
-                    { narrator: `${bd.name}叹了口气，目光望向远方。`, line: '「有时候想想，人这一辈子到底图什么呢……」' },
-                    { narrator: `她咬了咬嘴唇，像在下什么决心。`, line: '「这些话我从来没跟别人说过……你能帮我保密吗？」' },
-                    { narrator: `${bd.name}的声音低了下去，带着一丝落寞。`, line: '「你可能觉得我过得挺好……但其实不是这样的。」' },
-                ],
-                s3: [
-                    { narrator: `${bd.name}凝视着你，眼神温柔而深邃。`, line: '「公子是个值得托付的人……」' },
-                    { narrator: `她靠近了一些，声音轻轻的。`, line: '「不知道为什么，在你身边我觉得很安心。」' },
-                    { narrator: `${bd.name}看着你的眼睛，认真地说。`, line: '「你……你跟别人不一样。我说不上来哪里不一样。」' },
-                    { narrator: `她犹豫了一下，伸手轻轻碰了碰你的手背。`, line: '「如果……如果早些遇见你就好了。」' },
-                    { narrator: `${bd.name}的脸微微泛红，却没有移开目光。`, line: '「我好像……有点舍不得你走了。」' },
-                ],
-            },
-            married: {
-                s0: [
-                    { narrator: `${bd.name}正在忙手里的活计，抬头看了你一眼。`, line: '「这位客官面生得很，是路过还是找人？」' },
-                    { narrator: `她放下手里的东西，拍了拍身上的灰。`, line: '「哟，有日子没见过生面孔了。」' },
-                    { narrator: `${bd.name}打量了你一番，嘴角带着客气的笑。`, line: '「这位是……？恕我眼拙。」' },
-                    { narrator: `她一边擦手一边走过来，语气平淡。`, line: '「有事吗？还是走错了门？」' },
-                    { narrator: `${bd.name}倚在门框上，目光带着审视。`, line: '「你看起来不像本地人。」' },
-                ],
-                s1: [
-                    { narrator: `几句下来，${bd.name}的态度缓和了许多。`, line: '「看不出来，你还挺会说话的。」' },
-                    { narrator: `她忍不住笑了起来，戒备少了几分。`, line: '「你这人倒是有趣，比我家那个木头强。」' },
-                    { narrator: `${bd.name}放松了下来，给自己也倒了杯茶。`, line: '「好久没跟人这么聊过了，还挺痛快的。」' },
-                    { narrator: `她摇了摇头，嘴角带着一丝无奈的笑意。`, line: '「你这张嘴啊，怕是哄过不少人吧？」' },
-                    { narrator: `${bd.name}单手托腮，眼神中有了几分兴致。`, line: '「接着说，我爱听。」' },
-                ],
-                s2: [
-                    { narrator: `${bd.name}沉默了片刻，眼神黯了黯。`, line: '「你以为我现在过得很好吗？其实……」' },
-                    { narrator: `她低头看着自己的手，声音很轻。`, line: '「有时候我半夜醒来，会觉得这一辈子就这样了。」' },
-                    { narrator: `${bd.name}苦笑了一下，别过脸去。`, line: '「有些事……嫁了人才知道跟想的不一样。」' },
-                    { narrator: `她攥着衣角，指节都有些发白。`, line: '「你知道那种……每天都在熬日子的感觉吗？」' },
-                    { narrator: `${bd.name}深吸一口气，像是下了很大决心。`, line: '「这些话我从来没跟任何人说过……你是第一个。」' },
-                ],
-                s3: [
-                    { narrator: `${bd.name}看着你的眼神变得复杂起来。`, line: '「你知道……有些事不该做，可心里偏想去做。」' },
-                    { narrator: `她咬了咬嘴唇，目光闪烁。`, line: '「你……你让我有点害怕。不是因为你是坏人。」' },
-                    { narrator: `${bd.name}的声音有些发颤，却带着某种决心。`, line: '「我好久没有这种……活着的感觉了。」' },
-                    { narrator: `她靠近了一步，又退后半步，纠结着。`, line: '「你说……人这一辈子，能不能为自己活一次？」' },
-                    { narrator: `${bd.name}深深地看着你，像是要把你刻进眼里。`, line: '「别对我太好……我怕我会当真的。」' },
-                ],
-            },
-            widow: {
-                s0: [
-                    { narrator: `她叼着一根发簪正在挽头发，斜了你一眼。`, line: '「找谁？要是找隔壁老王，他不在。」' },
-                    { narrator: `${bd.name}放下手里的扫帚，拍了拍手。`, line: '「又是一个外乡人。这地方有什么好的，你们一个接一个来。」' },
-                    { narrator: `她靠在门边，双手抱胸看着你。`, line: '「看什么看？没见过寡妇？」' },
-                    { narrator: `${bd.name}正在剁菜，刀起刀落利落得很。`, line: '「有话快说，我忙着呢。」' },
-                ],
-                s1: [
-                    { narrator: `聊了几句，${bd.name}的态度松动了一些。`, line: '「哼，你这张嘴倒是不招人烦。」' },
-                    { narrator: `她放下刀，擦了擦手，终于正眼看了你。`, line: '「行吧，会说话也是本事。坐。」' },
-                    { narrator: `${bd.name}嗤笑一声，语气却没那么冲了。`, line: '「你这种人，怕是到哪儿都吃得开。」' },
-                    { narrator: `她给你倒了碗水，重重放在你面前。`, line: '「喝吧，没毒。我一个寡妇能把你怎么样？」' },
-                    { narrator: `${bd.name}拉了把椅子坐下，翘起二郎腿。`, line: '「说吧，你这种人主动搭话，肯定有所图。」' },
-                ],
-                s2: [
-                    { narrator: `${bd.name}沉默了一阵，眼神黯了下来。`, line: '「你知道一个人守着空房子的滋味吗？我知道。」' },
-                    { narrator: `她抬手将鬓边碎发别到耳后，目光幽幽地望向远处。`, line: '「男人都一个德性……活着的时候不珍惜，死了倒清净。」' },
-                    { narrator: `${bd.name}冷笑了一声，眼底却有一丝不易察觉的落寞。`, line: '「你以为寡妇好当？白天被人指指点点，晚上……」' },
-                    { narrator: `她垂下眼睫，指尖轻轻摩挲着腕上的银镯子。`, line: '「我有时候想，这辈子是不是就这么到头了。」' },
-                    { narrator: `${bd.name}把玩着手里的杯子，声音低了下去。`, line: '「别人都觉得寡妇可怜……其实自由得很，就是太自由了，有点冷清。」' },
-                ],
-                s3: [
-                    { narrator: `${bd.name}直直地看着你，目光像要把你看穿。`, line: '「你图什么？直说吧。我经得起。」' },
-                    { narrator: `她理了理散落的衣襟，站起身走到你面前。`, line: '「你知道寡妇的好处是什么吗？——不用对你负责。」' },
-                    { narrator: `${bd.name}伸手抬起你的下巴，打量着你。`, line: '「你胆子不小，敢来招惹寡妇。不过……我喜欢胆大的。」' },
-                    { narrator: `她凑近了一些，你能闻到她身上的皂角味。`, line: '「我这个人很直接的——你想要什么，我都能给。但你得想好了后果。」' },
-                    { narrator: `${bd.name}退开半步，解开领口一颗扣子又扣上。`, line: '「看着人模人样的……就是不知道中不中用。」' },
-                ],
-            },
-        };
-        return pool[s] || pool.unmarried;
+    _chatFlirtMode(venue, beauty) {
+        const bd = beauty._beautyData;
+        if (bd.flirtDay !== this.player.day) { bd.flirtCount = 0; bd.flirtDay = this.player.day; }
+        bd.flirtCount++;
+        if (bd.flirtCount >= 4) {
+            this.addMessage(`夜色渐深，${bd.name}脸颊绯红，${getFlirtMood(bd)}。`, 'narrator');
+            bd._chattedToday = true;
+            this.showChoices([{ text: '……', action: () => this.flirtEventStep2(venue, beauty) }]);
+            return;
+        }
+        const line = randomEntry(FLIRT_LINES);
+        const react = getReaction(bd);
+        this.showMessageSequence([
+            { text: '（调情）', type: 'system' },
+            { text: `你：${line}`, type: 'narrator' },
+            { text: `${bd.name}：${react}`, type: 'html' },
+        ], () => {
+            this.updateStatsBar();
+            this.showChoices([
+                { text: '继续调情', action: () => this.chatBeauty(venue, beauty) },
+                { text: '让她离开', action: () => { bd._chattedToday = true; this.clearChoices(); this.addMessage(`${bd.name}离开了${venue.name}。`, 'narrator'); setTimeout(() => this.showOutdoorChoices(), 300); } },
+            ]);
+        });
     }
 
+    _chatPostIntimate(venue, beauty) {
+        const bd = beauty._beautyData;
+        this.addMessage('你们已经无话不谈，但她似乎还不想更进一步……', 'narrator');
+        const intChoices = [
+            { text: '接吻', action: () => this.kissBeauty(venue, beauty) },
+            { text: '揩油', action: () => this.gropeBeauty(venue, beauty) },
+        ];
+        if (bd.favorability >= bd.chastity || computeFavorability(this.player, bd) >= bd.chastity) {
+            intChoices.push({ text: '云雨', action: () => this.sexBeauty(venue, beauty) });
+        }
+        intChoices.push({ text: '离开', action: () => this.showOutdoorChoices() });
+        this.showChoices(intChoices);
+    }
+
+    chatBeauty(venue, beauty) {
+        this.clearChoices();
+        const bd = beauty._beautyData;
+        if (bd._chattedToday) {
+            this.addMessage(`${bd.name}今天已经来过了，改天再来吧。`, 'narrator');
+            this.showChoices([{ text: '离开', action: () => this.showOutdoorChoices() }]);
+            return;
+        }
+        const stage = bd.chatLevel;
+        const threshold = [10, 30, 50, 70];
+        const fav = computeFavorability(this.player, bd) >= 80 ? computeFavorability(this.player, bd) : bd.favorability;
+
+        if (stage >= 4) {
+            if (bd._hadSex) return this._chatFlirtMode(venue, beauty);
+            return this._chatPostIntimate(venue, beauty);
+        }
+        if (stage === 0) return this._chatFirstMet(venue, beauty);
+        if (fav < threshold[stage]) {
+            const stageLabels = ['粗谈一番', '相谈甚欢', '卧心长谈', '深入交流'];
+            this.showMessageSequence([
+                { text: `（${stageLabels[stage]}）`, type: 'system' },
+                { text: `${bd.name}对你还不够信任，不愿深谈。（需要好感度≥${threshold[stage]}）`, type: 'narrator' },
+                { text: '不妨送些礼物增进感情？', type: 'narrator' },
+            ], () => this.showChoices([{ text: '返回', action: () => this.interactBeauty(venue, beauty) }]));
+            return;
+        }
+        this._chatProgressive(venue, beauty);
+    }
+
+
     getFlirtScene(bd) {
-        const s = bd.inner;
-        const scenes = {
-            unmarried: [
-                {
-                    step2: `${bd.name}脸颊绯红，声音细若蚊吟：「公子……今晚……留下来陪我可好？」说着低下了头，耳根红透。`,
-                    step3: `她羞怯地伸出小手，轻轻牵住你的衣角，带你走向她的闺房。脚步轻而慢，像一只受惊的小鹿。`,
-                    step4: `红烛摇曳，罗帐轻垂。她背对着你，手指紧张地绞着衣带，半天解不开一个结。「我……我是第一次……」`,
-                    end: `云收雨歇，她依偎在你怀中，像一只温顺的小猫，嘴角挂着甜蜜的笑意。`,
-                },
-                {
-                    step2: `${bd.name}偷偷看了你一眼，又飞快低下头去，声音轻得像怕被人听见：「你……你真的想好了？」`,
-                    step3: `她犹豫了一下，终究还是把手放进你的掌心。月色下她的侧脸美得像一幅画，睫毛上似乎沾着泪光。`,
-                    step4: `她并拢双腿坐在床沿，双手不知该往哪里放。你轻轻抬起她的脸，她闭上眼睛，睫毛不住地颤动。你再无多言，低头吻了下去。`,
-                    end: `她枕着你的手臂，小声呢喃：「以后……你会一直对我好吗？」说完害羞地把脸埋进你怀里。`,
-                },
-                {
-                    step2: `${bd.name}绞着手指，咬了咬嘴唇突然抬头：「我……我喜欢你！所以你……你不许负我！」说完自己先红了脸。`,
-                    step3: `她鼓起勇气主动牵起你的手，手心全是汗。走到房门口时她回头看你一眼，眼神中既有期待又有不安。`,
-                    step4: `她让你闭上眼睛，等睁开时她已经换了一身轻薄纱衣，双手抱着胸口，羞得不敢看你。「不……不许笑我……」`,
-                    end: `她蜷在你怀里，用手指在你胸口画着心形，轻声说：「今晚我做了一个梦……一个不想醒来的梦。」`,
-                },
-                {
-                    step2: `${bd.name}背对着你，声音闷闷的：「你……你要是敢负我，我就……我就……」说了半天也没说出个所以然。`,
-                    step3: `她转身一把抱住你，把头埋在你胸口不说话。过了一会你感觉胸口的衣襟湿了一片。她哭了，却是笑着哭的。`,
-                    step4: `她一边流泪一边吻你，吻到动情处在你耳边说：「我把最珍贵的东西给你……你要好好珍惜我。」`,
-                    end: `几番云雨后，她用手指缠着你的头发，似睡非睡地喃喃：「你是我的了……我也是你的了。」`,
-                },
-                {
-                    step2: `${bd.name}站在月光下，白衣胜雪。她对你微微一笑：「今晚月色真美，你想不想……看更美的风景？」`,
-                    step3: `她拉着你的手穿过回廊，裙摆拂过台阶上的落花。到了一扇门前，她停下脚步，回头对你俏皮地眨了眨眼。`,
-                    step4: `房中早已备好了酒菜。她为你斟了一杯酒，自己先饮了一口，然后红着脸凑上来渡进你口中。`,
-                    end: `她靠在窗前看着月亮，你也靠过去。她偏过头轻轻吻了你的脸颊：「今晚……我很开心。」`,
-                },
-            ],
-            married: [
-                {
-                    step2: `${bd.name}咬着嘴唇，眼神闪烁：「他……他今晚不在家。你……你进来吧。」声音低得几乎听不见。`,
-                    step3: `她警惕地看了眼四周，飞快地拉起你的手闪进门内，反手插上了门栓。黑暗中，她的呼吸又急又烫。`,
-                    step4: `锦被凌乱，她一边吻你一边去解你的衣带，动作急迫又带着一丝禁忌的颤栗。「快点……别被人发现了……」`,
-                    end: `事毕，她靠在你肩头，手指在你胸口轻轻画着圈：「下次……下次什么时候来？」`,
-                },
-                {
-                    step2: `${bd.name}倚在门边，手里拈着一朵花：「你来得可真会挑时候。他出门了，三天后才回。」`,
-                    step3: `她转身进屋，脚步比平时轻快许多。你跟着进去，她随手带上了门，却没有插栓——似乎在享受这种危险的感觉。`,
-                    step4: `她把你推倒在榻上，自己慢慢解开衣襟，动作妩媚而从容。「急什么？长夜漫漫，有的是时间。」`,
-                    end: `她慵懒地伸了个懒腰，翻身趴在你胸口：「明天……还来吗？」眼底带着狡黠的笑意。`,
-                },
-                {
-                    step2: `夜色渐深。她听见敲门声，打开一条门缝看见是你，急忙把你拉了进去。「你怎么这个时辰来了！」`,
-                    step3: `她急匆匆把你推进柴房，自己也挤了进来。狭小的空间里两人贴得很近，她屏着呼吸听外面的动静。`,
-                    step4: `柴房里堆着干草，她推着你倒在草堆上，一边捂着你的嘴一边笨拙地解你的腰带。「别出声……隔壁有人……」`,
-                    end: `她帮你拍掉身上的草屑，脸红得像火烧：「下次……下次别挑这种时候了……」说完自己却忍不住笑了。`,
-                },
-                {
-                    step2: `${bd.name}神色复杂地看着你，沉默了很久才说：「你知道这是错的吧？」可她的手却紧紧抓着你的衣袖不放。`,
-                    step3: `她拉着你走进内室，从一个锁着的箱子里拿出一壶酒：「这是我出嫁时埋下的女儿红……本来说好和他一起喝的。」她苦笑了一下。`,
-                    step4: `几杯酒下肚，她的脸颊泛起桃花色。她靠在你肩上，声音带着醉意和委屈：「他从来……从来没有好好看过我。」`,
-                    end: `她蜷缩在你怀里，像一只终于找到窝的猫。临睡前她迷迷糊糊说了一句：「要是早点遇到你就好了。」`,
-                },
-                {
-                    step2: `${bd.name}正在梳头，从镜子里看见你来了，手上的梳子顿了一下。她没有回头，只是轻声说：「把门带上。」`,
-                    step3: `她放下梳子站起身，长发披散在肩上。她走到你面前，伸手帮你整理了一下衣领，动作温柔得像妻子对待丈夫。`,
-                    step4: `她拉着你的手放在她腰间，自己踮起脚吻了上来。这个吻绵长而缠绵，像是积压了太久太久的思念。`,
-                    end: `她枕在你臂弯里，用手指梳理着你胸口的汗珠。安静了很久，她说：「我是不是个坏女人？」没等你回答，她又说：「可我不后悔。」`,
-                },
-            ],
-            widow: [
-                {
-                    step2: `${bd.name}一把抓住你的手腕，目光灼热：「还磨蹭什么？进来！」语气不容拒绝。`,
-                    step3: `她直接将你拉进屋内，一脚踢上门，把你按在门板上就是一个热吻。动作狂野而熟练。`,
-                    step4: `衣衫散落一地，她骑在你身上，居高临下地看着你：「今晚别想轻易下老娘的床。」`,
-                    end: `云收雨歇，她意犹未尽地舔了舔嘴唇：「还行，比我家那死鬼强点。明晚还来不来？」`,
-                },
-                {
-                    step2: `${bd.name}正在院里劈柴，一斧头下去木头应声裂开。她抬头看见你，把斧头往地上一插，拍了拍手：「来了？屋里坐。」`,
-                    step3: `她倒了碗凉茶递给你，趁你接碗的时候一把抓住你的手腕，力气大得惊人。「喝茶不急，先做点正事。」`,
-                    step4: `她把你的双手按在头顶，另一只手熟练地挑开你的衣襟。你刚要说话，她低头吻住你，把你的话全都堵了回去。`,
-                    end: `她大字型躺在床上，喘匀了气之后侧过头看你：「你小子体力不错。去，把柴劈了，晚上接着来。」`,
-                },
-                {
-                    step2: `${bd.name}叼着一根草茎靠在门框上，上下打量了你一番，嗤笑一声：「我还以为你不敢来了呢。」`,
-                    step3: `她转身进屋，腰带随手一扯扔在地上，边走边脱，到床边时已一丝不挂。她回头看你一眼：「愣着干什么？」`,
-                    step4: `她一把将你拽到床上，翻身压住你，手指从你的喉结一路滑到小腹。「今天姐姐心情好，让你见识见识什么叫真正的快活。」`,
-                    end: `她披衣坐起，靠在床头，拍了拍你的脸：「不错，有进步。明天这个时辰，自己过来，别让我等。」`,
-                },
-                {
-                    step2: `门没锁，你一推就开了。${bd.name}坐在昏暗的灯下，手里拈着一根针在补衣裳。她没有抬头，只是说了句：「把门锁上。」`,
-                    step3: `她咬断线头，把衣裳往旁边一放，这才抬起头来看你。灯光下她的眼神像是一汪深潭，能把人吸进去。`,
-                    step4: `她慢慢解开衣襟，露出肩头一道陈旧的疤痕。她拉着你的手去触碰那道疤，声音平静：「他打的。现在他死了。」然后她吻了上来，激烈得像要把你吃掉。`,
-                    end: `她趴在床上，脸埋在枕头里。你以为她睡了，却听见她闷闷地说了一句：「以后……别负我。」声音脆弱得像另一个人。`,
-                },
-                {
-                    step2: `${bd.name}今天似乎喝了酒，脸颊泛红，眼神比平时更加大胆。她看见你，直接勾了勾手指：「过来。」`,
-                    step3: `她拉着你的衣领把你拽进房里，脚后跟一带关上了门。她把你推到桌沿，欺身压上来，酒气混着体香扑面而来。`,
-                    step4: `她一边吻你一边抓起桌上的酒壶灌了一口，然后嘴对嘴喂给你。酒液顺着你们交缠的嘴角淌下，她伸出舌头舔了干净。`,
-                    end: `她醉醺醺地趴在你身上，手指在你胸口胡乱画着：「你知不知道……老娘忍了多久……」说着说着声音小了下去，竟是睡着了。`,
-                },
-            ],
-        };
-        const pool = scenes[s] || scenes.unmarried;
-        return pool[Math.floor(Math.random() * pool.length)];
+        return this._pickFlirtScene(bd);
     }
 
     getKissScene(bd) {
-        const s = bd.inner;
-        const scenes = {
-            unmarried: [
-                { narrator: `你轻轻捧起她的脸，她害羞地闭上眼睛，睫毛微微颤动。双唇相触的瞬间，她整个人都僵住了，像一只受惊的小鸟。`, line: '（她没有说话，只是把脸埋进了你的胸口。）' },
-                { narrator: `你低头吻她，她先是愣了愣，随后缓缓闭上眼，双手不自觉地攥住了你的衣襟。吻毕她红着脸，半天不敢抬头看你。`, line: '「你……你欺负人。」' },
-                { narrator: `她踮起脚尖，飞快地在你脸颊上啄了一下，然后退后半步脸红得像火烧。`, line: '「这……这样可以了吗？」' },
-                { narrator: `你揽住她的腰，她微微一颤，顺从地仰起头。吻到动情处，她轻轻哼了一声，双手攀上你的肩膀。`, line: '「公子……」' },
-                { narrator: `她正说着话，你突然俯身吻住她。她瞪大眼睛，片刻后缓缓闭上，攥着你衣袖的手指松开又攥紧。`, line: '（她喘匀了气，小声嘟囔了一句：「坏蛋……」）' },
-            ],
-            married: [
-                { narrator: `你揽住她的腰吻了上去，她先是一惊，随即闭上眼睛回应你的吻，带着一种压抑已久的渴望。`, line: '「别在这里……会被人看见的……」' },
-                { narrator: `她主动凑上来，双手环住你的脖子。这个吻绵长而用力，仿佛要把所有说不出口的话都融进唇齿之间。`, line: '「我想你了……」' },
-                { narrator: `你轻轻抬起她的下巴，她顺从地仰起头，目光迷离。吻到她喘息微微加快时，她咬着嘴唇低笑了一声。`, line: '「你倒是会哄人。」' },
-                { narrator: `她从背后抱住你，等你转身时她踮起脚尖吻了上来。吻了一会儿她退开半步，舌尖轻轻舔了舔嘴唇。`, line: '「这个味道……我记住了。」' },
-                { narrator: `你们的目光撞在一起，谁也没有说话。她伸手抓住你的衣领把你拉近，额头抵着你的额头。`, line: '「别说话……吻我。」' },
-            ],
-            widow: [
-                { narrator: `你还没动作，她已经一把揪住你的衣领把你拽到面前，狠狠地吻了上来。这个吻带着一股狠劲。`, line: '「怎么？吓着了？」' },
-                { narrator: `她单手撑在墙上把你困在中间，另一只手抬起你的下巴：「别动，让我好好尝尝。」然后低头吻了下来。`, line: '「嗯……还行，没让我失望。」' },
-                { narrator: `她叼着一根草茎靠在墙边，见你走近伸手勾住你的脖子，把草茎吐掉，笑着吻了上来。`, line: '「青草味的，没尝过吧？」' },
-                { narrator: `你们并肩坐着，她忽然侧过头来吻你，一只手按住你的后脑不许你退。吻够了才松开，拇指抹了一下嘴角。`, line: '「怎么？不习惯寡妇的吻？」' },
-                { narrator: `她喝了酒，脸颊泛红。她把你拉进怀里低头吻住你，酒香混着她的气息灌进口中。吻完她靠在你肩上。`, line: '「你可别嫌我粗鲁……我就这德性。」' },
-            ],
-        };
-        const pool = scenes[s] || scenes.unmarried;
-        return pool[Math.floor(Math.random() * pool.length)];
+        return this._pickKissScene(bd);
     }
 
     getGropeScene(bd) {
-        const s = bd.inner;
-        const scenes = {
-            unmarried: [
-                { narrator: `你的手轻轻覆上她的腰间，她浑身一颤，却没有躲开，只是咬着嘴唇低下头去。`, line: '「别……别在这里……」' },
-                { narrator: `你试探着将手滑到她的腰侧，她隔着衣料按住了你的手，犹豫了片刻又慢慢松开。`, line: '「你……你手老实点……」' },
-                { narrator: `你的手掌贴着她的背脊缓缓滑下，她呼吸一滞，整个人软了几分，不得不扶住你的肩膀。`, line: '「我……我站不住了……」' },
-                { narrator: `你握住她的手放在自己掌心，另一只手揽住她的腰往怀里带了带。她抬起头看了你一眼，眼波如水。`, line: '「你净会欺负我……」' },
-                { narrator: `你的手指顺着她的手臂缓缓滑下，指尖轻轻划过她的手背。她像触电般缩了一下，随即又悄悄把手放了回来。`, line: '（她低着头，耳根红得像要滴血。）' },
-            ],
-            married: [
-                { narrator: `你的手滑到她的腰间，她呼吸微微一促，非但没有躲开反而往你身上靠了靠。`, line: '「别在这里……进屋去……」' },
-                { narrator: `你从背后环住她的腰，她先是僵了一下，随即放松了身体靠在你怀里，抓住了你的手腕却没推开。`, line: '「就……就抱一会儿……」' },
-                { narrator: `你的手轻轻抚过她的肩头，她偏过头来蹭了蹭你的手，像一只慵懒的猫。她闭着眼轻声说。`, line: '「别停……」' },
-                { narrator: `你握住她的手腕将她轻轻拉近，她的气息有些不稳，却还是仰起头迎上你的目光，嘴角带着一丝若有若无的笑。`, line: '「你胆子越来越大了……」' },
-                { narrator: `你的手沿着她的背脊缓缓下滑，她咬着嘴唇没有出声，只是手指紧紧攥住了你的衣袖，指甲几乎掐进肉里。`, line: '（她深吸了一口气，努力让自己的声音平稳。）「你真是……」' },
-            ],
-            widow: [
-                { narrator: `你的手刚碰到她的腰，她一把抓住你的手腕，挑了挑眉。`, line: '「往哪儿放呢？倒是不见外。」' },
-                { narrator: `她直接拉起你的手按在自己腰上，嗤笑一声。`, line: '「想摸就摸，鬼鬼祟祟的干什么？我还能吃了你不成？」' },
-                { narrator: `你的手滑过她的背，她哼了一声，反而挺直了腰往你手上送。`, line: '「怎么？就这点胆量？我还以为你多有本事呢。」' },
-                { narrator: `她抓住你的手放在自己腿上，斜眼看着你。`, line: '「想往上还是往下？你倒是说句话呀。」' },
-                { narrator: `你刚伸手，她就把你的手按在自己胸口，笑得花枝乱颤。`, line: '「男人那点心思我还不知道？摸吧，反正你也不吃亏。」' },
-            ],
-        };
-        const pool = scenes[s] || scenes.unmarried;
-        return pool[Math.floor(Math.random() * pool.length)];
+        return this._pickGropeScene(bd);
     }
 
     flirtEventStep2(venue, beauty) {
@@ -2454,15 +2662,7 @@ class Game {
             bd._hadSex = true;
             bd.favorability = Math.min(100, bd.favorability + 8);
             this.player.neili -= 20;
-            if (!this.redRecord[bd.id]) {
-                this.redRecord[bd.id] = {
-                    id: bd.id, name: bd.name, age: bd.age, surface: bd.surface, inner: bd.inner,
-                    height: bd.height, bust: bd.bust, waist: bd.waist, hips: bd.hips,
-                    faceDesc: bd.faceDesc, bodyDesc: bd.bodyDesc, faceScore: bd.faceScore, bodyScore: bd.bodyScore,
-                    beautyScore: bd.beautyScore, chastity: bd.chastity, beautyTierLabel: bd.beautyTierLabel, beautyTierColor: bd.beautyTierColor,
-                    firstMet: new Date().toLocaleDateString(),
-                };
-            }
+            this._ensureRedRecord(bd);
             delete bd._flirtPoem;
             delete bd._flirtPoemIdx;
             delete bd._flirtIntroShown;

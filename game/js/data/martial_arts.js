@@ -23,6 +23,7 @@ const MARTIAL_ARTS = {
     zuiquan:   { name: '醉拳',     desc: '形醉意不醉，步醉心不醉，看似东倒西歪实则暗藏杀机。',       luckReq: 15, type: 'fist',  quality: 'blue' },
     taiji:     { name: '太极拳',   desc: '以柔克刚，四两拨千斤，武林中最深奥的拳法之一。',            luckReq: 15, type: 'fist',  quality: 'blue' },
     tiezhang:  { name: '铁掌',     desc: '掌力沉雄，一掌下去铁板留痕，是硬功中的极品。',              luckReq: 15, type: 'palm',  quality: 'blue' },
+    caidao:    { name: '柴刀十八路',desc: '樵夫砍柴多年自悟的刀法，看似粗鄙实则招招实用，专攻下盘。',  luckReq: 14, type: 'blade', quality: 'blue' },
     zhuifeng:  { name: '追风剑法', desc: '快如流星，疾似追风，剑出必见血。',                          luckReq: 18, type: 'sword', quality: 'purple' },
     longzhua:  { name: '龙爪手',   desc: '少林七十二绝技之一，爪力可洞金穿石。',                      luckReq: 20, type: 'fist',  quality: 'purple' },
     tiangang:  { name: '天罡拳',   desc: '三十六路天罡拳，拳拳相扣，连绵不绝。',                      luckReq: 22, type: 'fist',  quality: 'blue' },

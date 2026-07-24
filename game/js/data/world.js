@@ -34,6 +34,7 @@ const WORLD = {
             population: 2100000, area: 85, areaUnit: 'km²', economy: 'lavish',
             factions: [],
             venues: [
+                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('醉仙楼', '莫三千', '笑眯眯的掌柜，一手"醉拳"出神入化，柜台下藏着一坛坛好酒。', ['wine_daughter', 'dragon_tea', 'wine_bamboo', 'nine_dragon_cup'], false, 60),
                 v('兵器铺', '公孙冶', '须发皆白的老铁匠，打造的兵器名动江湖。', ['blue_sword', 'gold_silk_armor', 'steel_blade', 'dagger'], false, 65),
                 v('珠宝行', '周宝山', '手指上戴着五个翡翠扳指的大商人，店内珠光宝气。', ['necklace_gold', 'jade_ring', 'bangle_jade', 'ring_silver']),
@@ -49,6 +50,7 @@ const WORLD = {
             population: 1500000, area: 62, areaUnit: 'km²', economy: 'very_wealthy',
             factions: [],
             venues: [
+                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('听雨楼', '花想容', '神秘的美人楼主，武功深不可测，消息灵通。', ['dragon_tea', 'wine_bamboo', 'tang_painting', 'screen_2side'], false, 70),
                 v('珍宝阁', '沈万三', '富可敌国的大商人，阁中奇珍异宝无数。', ['jade_ring', 'necklace_gold', 'silver_ingot', 'bangle_jade']),
                 v('绣庄', '苏绣娘', '心灵手巧的绣娘，苏绣技艺冠绝天下。', ['silk_robe', 'silk_scarf', 'screen_2side', 'shu_embroidery']),
@@ -64,6 +66,7 @@ const WORLD = {
             population: 1200000, area: 90, areaUnit: 'km²', economy: 'wealthy',
             factions: [],
             venues: [
+                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('古玩店', '司徒明', '留着山羊胡的古董商人，店内古物琳琅满目。', ['qin_bamboo', 'peony_painting', 'writing_brush', 'ink_stick']),
                 v('铁匠铺', '雷炎', '肌肉虬结的铁匠，炉火烧得比别家旺三分。', ['blue_sword', 'gold_silk_armor', 'steel_blade', 'chest_mirror'], false, 55),
                 v('药店', '孙思邈', '白发苍苍的老郎中，药柜里摆满了各种丹药瓶罐。', ['jinchuang', 'huisheng', 'neili_dan', 'jiedu_san', 'qingxin_wan', 'ginseng_100', 'powder_clear', 'herb_bandage']),
@@ -82,6 +85,7 @@ const WORLD = {
             population: 520000, area: 28, areaUnit: 'km²', economy: 'moderate',
             factions: [],
             venues: [
+                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('金刀镖局', '王振威', '"金刀无敌"王振威，正指挥镖师们装卸货物。', ['steel_blade', 'chest_mirror', 'dagger'], false, 45),
                 v('画坊', '唐伯虎', '落魄不羁的画师，身边堆满了画卷。', ['peony_painting', 'stationary', 'writing_brush']),
                 v('铁匠铺', '李铁锤', '膀大腰圆的铁匠，正抡着大锤。', ['steel_blade', 'knife_wood', 'hoe_iron'], false, 30),
@@ -97,6 +101,7 @@ const WORLD = {
             population: 480000, area: 30, areaUnit: 'km²', economy: 'wealthy',
             factions: [],
             venues: [
+                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('蜀绣坊', '云锦绣', '灵巧的绣娘，店内挂满精美绣品。', ['shu_embroidery', 'silk_robe', 'silk_scarf']),
                 v('酒馆', '杜康', '酿酒世家的传人，店中酒香飘十里。', ['wine_daughter', 'wine_bamboo', 'wine_rice', 'pastry']),
                 v('首饰铺', '金巧手', '正在打磨银器的工匠，手艺精湛。', ['ring_silver', 'bangle_jade', 'jade_fish']),
@@ -112,6 +117,7 @@ const WORLD = {
             population: 380000, area: 22, areaUnit: 'km²', economy: 'subsistence',
             factions: [],
             venues: [
+                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('军需铺', '赵铁衣', '退伍老兵开的铺子，卖的都是军旅硬货。', ['dark_arrow', 'steel_blade', 'chest_mirror'], false, 40),
                 v('杂货铺', '周六斤', '朴实的庄稼汉，店里都是日常所需。', ['cloth_coarse', 'ration', 'flint', 'wine_rice']),
                 v('铁匠铺', '冯大锤', '正在修补兵器的铁匠，墙上挂着各式刀剑。', ['steel_blade', 'knife_wood', 'hoe_iron'], false, 30),
@@ -126,6 +132,7 @@ const WORLD = {
             population: 420000, area: 25, areaUnit: 'km²', economy: 'wealthy',
             factions: [],
             venues: [
+                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('绣坊', '秋娘', '正在赶制绣品的绣娘，双手上下翻飞。', ['screen_2side', 'silk_scarf', 'silk_robe']),
                 v('糕点铺', '甜婆', '慈眉善目的老太太，做的桂花糕远近闻名。', ['pastry', 'tea_cake', 'wine_rice']),
                 v('书斋', '文徵明', '温文尔雅的读书人，收藏了不少名家字帖。', ['stationary', 'writing_brush', 'ink_stick', 'moon_poem']),
@@ -140,6 +147,7 @@ const WORLD = {
             population: 280000, area: 20, areaUnit: 'km²', economy: 'moderate',
             factions: [],
             venues: [
+                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('天龙寺', '本因方丈', '白眉垂肩的高僧，双手合十，庄严肃穆。', ['buddha_relic', 'incense', 'herb_bandage'], false, 55),
                 v('集市', '段三娘', '摆摊的当地妇人，卖些药材和土产。', ['ginseng_100', 'herb_ginseng_small', 'powder_clear']),
                 v('银器铺', '金花婆婆', '白族老匠人，打了一辈子银饰。', ['ring_silver', 'jade_fish', 'bangle_jade']),
@@ -153,6 +161,7 @@ const WORLD = {
             population: 340000, area: 18, areaUnit: 'km²', economy: 'wealthy',
             factions: [],
             venues: [
+                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('盐帮总舵', '钱四海', '大腹便便的盐帮帮主，手里盘着两个玉核桃。', ['moon_poem', 'tea_cake', 'dragon_tea', 'silver_ingot'], false, 40),
                 v('醉花楼', '赛西施', '风姿绰约的酒楼女掌柜，花雕酒远近闻名。', ['wine_daughter', 'wine_bamboo', 'pastry']),
                 v('书肆', '柳如是', '才女出身的书肆老板，店内书香四溢。', ['moon_poem', 'stationary', 'writing_brush', 'ink_stick']),
@@ -162,60 +171,62 @@ const WORLD = {
         },
     ],
     villages: [
-        // helper: name, id, desc, pop, area, economy, nearestCity, distance, [herbalist, blacksmith, tavern, chief, rich]
+        // helper: name, id, desc, pop, area, economy, nearestCity, distance, [herbalist, blacksmith, tavern, chief, rich, hunter, woodcutter]
         ...[
-            ['桃源村','taoyuan','群山环抱中的宁静村落，遍植桃树。',380,2,'subsistence','xiangyang','2天脚程','李郎中','陈铁匠','赵二娘','李伯','刘财主'],
-            ['枫林渡','fenglin','江边的渡口村落，秋日枫叶如火。',620,1.5,'moderate','suzhou_city','1天脚程','王大夫','张铁匠','钱掌柜','张老汉','钱员外'],
-            ['白云庄','baiyun','建在山腰上的大庄子，常年云雾缭绕。',260,3,'subsistence','xiangyang','1天脚程','云游郎中','云铁匠','云管事','云庄主','云夫人'],
-            ['黑水村','heishui','沼泽边的渔村，常年瘴气弥漫。',220,1.8,'destitute','yangzhou','2天脚程','瘴郎中','老渔头','孙二娘','钱老大','孙渔霸'],
-            ['清溪镇','qingxi','因村中清澈见底的小溪得名。',480,1.2,'moderate','suzhou_city','半日脚程','水郎中','洪铁匠','溪边客','赵里正','李员外'],
-            ['虎头寨','hutou','由匪寨演变的村落，尚武之风犹存。',350,2.5,'subsistence','xiangyang','1天脚程','赛华佗','龙铁锤','虎妞','龙寨主','虎二爷'],
-            ['流云村','liuyun','草原上的游牧村落，以放牧为生。',400,8,'subsistence','changan','3天脚程','蒙大夫','铁木尔','马奶酒','巴特尔','巴图尔'],
-            ['双月湾','shuangyue','海边渔村，村前海湾形似两轮弯月。',560,1.5,'moderate','yangzhou','1天脚程','海郎中','陈铁锚','月娘','陈伯','海老板'],
-            ['龙门村','longmen','黄河边上的小村，传说曾有鲤鱼跃龙门。',320,1,'subsistence','luoyang','2天脚程','孙郎中','孟铁匠','鲤大娘','孙大爷','孟掌柜'],
-            ['翠微村','cuiwei','大山深处的村落，四周竹林环绕。',180,1.2,'destitute','xiangyang','3天脚程','竹郎中','竹铁匠','竹酒翁','竹翁','竹员外'],
-            ['金川镇','jinchuan','两河交汇处的繁忙集镇，方圆百里最大集散地。',1200,3.5,'moderate','yangzhou','2天脚程','金郎中','金大锤','酒缸周','周会长','钱百万'],
-            ['山神庙','shanshen','以古老山神庙为中心的村落。',150,0.8,'destitute','jingcheng','2天脚程','山郎中','刘铁匠','庙前酒','刘庙祝','陈施主'],
-            ['西口村','xikou','关外边陲村落，汉胡杂居，民风粗犷豪放。',300,4,'subsistence','changan','4天脚程','蒙大夫','胡铁匠','驼铃酒','马把头','胡老板'],
-            ['东坡村','dongpo','苏东坡曾贬谪居住之地。',280,1,'subsistence','suzhou','2天脚程','苏郎中','苏铁匠','东坡酒','苏老学究','黄员外'],
-            ['烟霞村','yanxia','山谷中的村落，早晚云雾如烟霞。出产贡茶。',420,1.5,'moderate','chengdu','1天脚程','陆郎中','陆铁匠','陆茶寮','陆管事','陆老爷'],
-            ['大黄庄','dahuang','平原上的大庄子，周围良田千亩。',680,5,'moderate','luoyang','1天脚程','黄郎中','黄铁匠','黄酒坛','黄百万','黄老爷'],
-            ['苗疆寨','miaojiang','苗人聚居的村寨，保留着蛊术和巫文化。',350,3,'subsistence','dali','3天脚程','蛊婆婆','苗铁匠','寨中酒','阿公','苗富商'],
-            ['墨渊村','moyuan','建在废弃矿坑附近的村落，后山有前朝秘密。',200,1,'destitute','chengdu','2天脚程','墨郎中','墨铁匠','黑酒翁','老矿头','矿东家'],
-            ['芦花荡','luhua','湖荡湿地中的水村，家家有船。',450,6,'subsistence','yangzhou','半日脚程','芦郎中','芦铁匠','芦花酒','吴老大','吴掌柜'],
-            ['松涛庄','songtao','松林中的清幽居所，原是退休官员别院。',190,1.2,'subsistence','suzhou','1天脚程','王郎中','王铁匠','松风酒','王员外','王庄头'],
-        ].map(([name,id,desc,pop,area,economy,nearestCity,distance,...staff]) => {
-            const [herbalNpc, smithNpc, tavernNpc, chiefNpc, richNpc] = staff;
+            ['桃源村','taoyuan','群山环抱中的宁静村落，遍植桃树。',380,2,'subsistence','xiangyang','2天脚程','李郎中','陈铁匠','赵二娘','李伯','刘财主','张猎户','赵樵'],
+            ['枫林渡','fenglin','江边的渡口村落，秋日枫叶如火。',620,1.5,'moderate','suzhou_city','1天脚程','王大夫','张铁匠','钱掌柜','张老汉','钱员外','王弓','陈樵哥'],
+            ['白云庄','baiyun','建在山腰上的大庄子，常年云雾缭绕。',260,3,'subsistence','xiangyang','1天脚程','云游郎中','云铁匠','云管事','云庄主','云夫人','云猎户','云樵子'],
+            ['黑水村','heishui','沼泽边的渔村，常年瘴气弥漫。',220,1.8,'destitute','yangzhou','2天脚程','瘴郎中','老渔头','孙二娘','钱老大','孙渔霸','水猎头','刘樵'],
+            ['清溪镇','qingxi','因村中清澈见底的小溪得名。',480,1.2,'moderate','suzhou_city','半日脚程','水郎中','洪铁匠','溪边客','赵里正','李员外','洪猎户','孙樵'],
+            ['虎头寨','hutou','由匪寨演变的村落，尚武之风犹存。',350,2.5,'subsistence','xiangyang','1天脚程','赛华佗','龙铁锤','虎妞','龙寨主','虎二爷','虎猎手','虎樵'],
+            ['流云村','liuyun','草原上的游牧村落，以放牧为生。',400,8,'subsistence','changan','3天脚程','蒙大夫','铁木尔','马奶酒','巴特尔','巴图尔','蒙弓','木樵'],
+            ['双月湾','shuangyue','海边渔村，村前海湾形似两轮弯月。',560,1.5,'moderate','yangzhou','1天脚程','海郎中','陈铁锚','月娘','陈伯','海老板','海猎户','陈樵'],
+            ['龙门村','longmen','黄河边上的小村，传说曾有鲤鱼跃龙门。',320,1,'subsistence','luoyang','2天脚程','孙郎中','孟铁匠','鲤大娘','孙大爷','孟掌柜','孟弓','孙樵汉'],
+            ['翠微村','cuiwei','大山深处的村落，四周竹林环绕。',180,1.2,'destitute','xiangyang','3天脚程','竹郎中','竹铁匠','竹酒翁','竹翁','竹员外','竹猎户','竹樵'],
+            ['金川镇','jinchuan','两河交汇处的繁忙集镇，方圆百里最大集散地。',1200,3.5,'moderate','yangzhou','2天脚程','金郎中','金大锤','酒缸周','周会长','钱百万','金猎手','钱樵'],
+            ['山神庙','shanshen','以古老山神庙为中心的村落。',150,0.8,'destitute','jingcheng','2天脚程','山郎中','刘铁匠','庙前酒','刘庙祝','陈施主','山弓','刘樵子'],
+            ['西口村','xikou','关外边陲村落，汉胡杂居，民风粗犷豪放。',300,4,'subsistence','changan','4天脚程','蒙大夫','胡铁匠','驼铃酒','马把头','胡老板','胡猎户','马樵'],
+            ['东坡村','dongpo','苏东坡曾贬谪居住之地。',280,1,'subsistence','suzhou','2天脚程','苏郎中','苏铁匠','东坡酒','苏老学究','黄员外','苏弓','黄樵'],
+            ['烟霞村','yanxia','山谷中的村落，早晚云雾如烟霞。出产贡茶。',420,1.5,'moderate','chengdu','1天脚程','陆郎中','陆铁匠','陆茶寮','陆管事','陆老爷','陆猎户','陆樵'],
+            ['大黄庄','dahuang','平原上的大庄子，周围良田千亩。',680,5,'moderate','luoyang','1天脚程','黄郎中','黄铁匠','黄酒坛','黄百万','黄老爷','黄弓','黄樵子'],
+            ['苗疆寨','miaojiang','苗人聚居的村寨，保留着蛊术和巫文化。',350,3,'subsistence','dali','3天脚程','蛊婆婆','苗铁匠','寨中酒','阿公','苗富商','蛊猎手','苗樵'],
+            ['墨渊村','moyuan','建在废弃矿坑附近的村落，后山有前朝秘密。',200,1,'destitute','chengdu','2天脚程','墨郎中','墨铁匠','黑酒翁','老矿头','矿东家','墨弓','老樵'],
+            ['芦花荡','luhua','湖荡湿地中的水村，家家有船。',450,6,'subsistence','yangzhou','半日脚程','芦郎中','芦铁匠','芦花酒','吴老大','吴掌柜','芦猎户','吴樵'],
+            ['松涛庄','songtao','松林中的清幽居所，原是退休官员别院。',190,1.2,'subsistence','suzhou','1天脚程','王郎中','王铁匠','松风酒','王员外','王庄头','王猎户','松樵'],
+        ].map(([name,id,desc,pop,area,economy,nearestCity,distance,...staff], vi) => {
+            const [herbalNpc, smithNpc, tavernNpc, chiefNpc, richNpc, hunterNpc, woodcutterNpc] = staff;
             const villageTier = Math.min(5, Math.floor(pop / 150)); // 1-5 tier
             const baseCp = 12 + villageTier * 3; // 15-27
             const venues = [
                 v('草药铺', herbalNpc, `村里的草药郎中。`, ['herb_bandage', 'powder_clear', 'herb_ginseng_small']),
                 v('铁匠铺', smithNpc, `村里的铁匠，手艺还不错。`, ['knife_wood', 'hoe_iron', 'pot_iron', 'dagger', 'band_head', 'pants_coarse', 'bracers_cloth', 'shoes_straw'], false, baseCp),
                 v('酒馆', tavernNpc, `小酒馆里飘出阵阵酒香。`, ['wine_rice', 'ration', 'pastry']),
-                v(`${chiefNpc}家`, chiefNpc, `村长的家，${chiefNpc}正在院子里忙活。`, ['tea_cake', 'incense']),
+                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
+                v('村长家', chiefNpc, `村长的家，${chiefNpc}正在院子里忙活。`, ['tea_cake', 'incense']),
             ];
             const warriorNames = ['寨主', '庄主', '把头', '渔霸'];
             if (warriorNames.some(w => chiefNpc.includes(w))) {
-                venues[3].npcs[0].civilian = false;
-                venues[3].npcs[0].combatPower = baseCp + 8;
+                venues[4].npcs[0].civilian = false;
+                venues[4].npcs[0].combatPower = baseCp + 8;
             }
-            venues[3].npcs[0].isChief = true;
+            venues[4].npcs[0].isChief = true;
             if (richNpc && richNpc !== chiefNpc) {
-                venues.push(v(`${richNpc}府`, richNpc, `村里的富户，宅子比别家气派不少。`, ['silk_robe', 'silk_scarf', 'silver_ingot']));
+                venues.push(v(`${richNpc}府`, richNpc, `村里的富户，宅子比别家气派不少。`, ['silk_robe', 'silk_scarf', 'silver_ingot', 'gold_ingot']));
                 if (warriorNames.some(w => richNpc.includes(w))) {
                     venues[venues.length - 1].npcs[0].civilian = false;
                     venues[venues.length - 1].npcs[0].combatPower = baseCp + 5;
                 }
             }
+            venues.push({ name: '小树林', npcs: [] });  // NPC 由 game.js 动态生成
             venues.push({ name: '断桥', npcs: [] });
             venues.push({ name: '小溪', npcs: [] });
             venues.push({ name: '田埂', npcs: [] });
-            venues.push({ name: '小树林', npcs: [] });
             const villageRep = { destitute:12, poor:12, subsistence:14, moderate:16 }[economy] || 12;
             const guardBase = { destitute:10, poor:12, subsistence:15, moderate:20 }[economy] || 10;
             return { id, name, desc, population:pop, area, areaUnit:'km²', economy, nearestCity, distanceToCity:distance,
                 repThreshold: villageRep, guardianPower: guardBase + Math.floor(pop / 100), venues,
                 travelDays: parseTravelDays(distance),
+                hunterNpc, woodcutterNpc,
                 npcs: venues.flatMap(v => v.npcs.map(n => ({ name: n.npcName, desc: n.npcDesc, civilian: n.civilian, combatPower: n.combatPower, items: [...n.items], isChief: n.isChief || false, martialArt: n.martialArt || null }))) };
         }),
     ],
