@@ -68,6 +68,7 @@ function _getAvailableClothes(state) {
 // ─── 详细云雨场景主流程 ───
 
 function startDetailedSexScene(bd, player, callbacks) {
+    const root = player.attrs.root || 10;
     bd._sexState = {
         femaleArousal: 0,
         maleArousal: 0,
@@ -75,6 +76,10 @@ function startDetailedSexScene(bd, player, callbacks) {
         orgasmCount: 0,
         canSquirt: Math.random() < 0.3,
         finished: false,
+        ejacCount: 0,
+        ejacLimit: _getEjacLimit(root),
+        holdRounds: _getHoldRounds(root),
+        overClock: 0,
     };
     _sexBuildLayout();
     callbacks.clearChoices();
@@ -97,11 +102,10 @@ function _renderSexMain(bd, player, callbacks) {
     }
 
     if (s.maleArousal >= 100) {
-        if (s.overClock) {
+        if (s.overClock >= s.holdRounds) {
             return _showEjacMenu(bd, player, callbacks);
         }
-        s.overClock = true;
-    }
+        s.overClock++;
 
     callbacks.clearChoices();
     const choices = [];
@@ -357,9 +361,22 @@ function _impendingDone(bd, player, callbacks, isSquirt, maleCame) {
     if (!maleCame) {
         _sexAddMessage(getOrgasmReaction(bd, isSquirt), 'narrator');
     }
+    if (maleCame) {
+        s.maleArousal = 70;
+        s.ejacCount++;
+        s.overClock = 0;
+    } else {
+        s.maleArousal = Math.max(0, s.maleArousal - 30);
+    }
     s.femaleArousal = Math.max(0, s.femaleArousal - 30);
-    if (maleCame) s.maleArousal = Math.max(0, s.maleArousal - 30);
     _sexUpdatePanel(s);
+    if (maleCame && s.ejacCount >= s.ejacLimit) {
+        const root = player.attrs.root || 10;
+        const label = getRatingLabel(root);
+        const msg = '你只觉腰眼一阵酸软，再也无力继续。终究是你' + label + '(' + root + ')的根骨，' + (s.ejacLimit === 1 ? '只能泄这一次。' : '最多只能支持' + s.ejacLimit + '次。') + '你喘息片刻，揽着她温存了一会儿。';
+        _sexAddMessage(msg, 'narrator');
+        return callbacks.showChoices([{ text: '结束云雨', action: () => _endSexScene(bd, player, callbacks) }]);
+    }
     callbacks.showChoices([
         { text: '继续', action: () => _renderSexMain(bd, player, callbacks) },
         { text: '结束云雨', action: () => _endSexScene(bd, player, callbacks) },
@@ -406,7 +423,16 @@ function _afterEjac(bd, player, callbacks) {
     const s = bd._sexState;
     s.maleArousal = 70;
     s.femaleArousal = Math.max(0, s.femaleArousal - 30);
+    s.ejacCount++;
+    s.overClock = 0;
     _sexUpdatePanel(s);
+    if (s.ejacCount >= s.ejacLimit) {
+        const root = player.attrs.root || 10;
+        const label = getRatingLabel(root);
+        const msg = '你只觉腰眼一阵酸软，再也无力继续。终究是你' + label + '(' + root + ')的根骨，' + (s.ejacLimit === 1 ? '只能泄这一次。' : '最多只能支持' + s.ejacLimit + '次。') + '你喘息片刻，揽着她温存了一会儿。';
+        _sexAddMessage(msg, 'narrator');
+        return callbacks.showChoices([{ text: '结束云雨', action: () => _endSexScene(bd, player, callbacks) }]);
+    }
     callbacks.showChoices([
         { text: '继续云雨', action: () => _renderSexMain(bd, player, callbacks) },
         { text: '结束云雨', action: () => _endSexScene(bd, player, callbacks) },
@@ -433,25 +459,69 @@ function _endSexScene(bd, player, callbacks) {
         _sexAddMessage(pickSexEndDesc(), 'narrator');
     }
 
-    const next = () => {
-        let msg = pickAfterglowDesc(bd);
-        if (s.wasInternal && bd._wasVirgin) {
-            msg += ' 那白浊之间搀着缕缕血丝，顺着红肿的花唇缓缓淌下——处子之血与阳精混在一起，在身下晕开一片。';
-        }
-        if (msg) {
-            callbacks.clearChoices();
-            _sexAddMessage(msg, 'narrator');
-            callbacks.showChoices([{ text: '继续', action: () => {
+    // 女性体验评价
+    const feedback = pickFeedback(bd, s.orgasmCount, s.femaleArousal);
+    _sexAddMessage('（' + feedback.label + '）', 'system');
+
+    const feedbackNext = () => {
+        callbacks.clearChoices();
+        _sexAddMessage(feedback.text, 'narrator');
+        const afterglowNext = () => {
+            let msg = pickAfterglowDesc(bd);
+            if (s.wasInternal && bd._wasVirgin) {
+                msg += ' 那白浊之间搀着缕缕血丝，顺着红肿的花唇缓缓淌下——处子之血与阳精混在一起，在身下晕开一片。';
+            }
+            if (msg) {
+                callbacks.clearChoices();
+                _sexAddMessage(msg, 'narrator');
+                callbacks.showChoices([{ text: '继续', action: () => {
+                    delete bd._sexState;
+                    if (feedback.showPoem) {
+                        _startPoem(bd, player, callbacks);
+                    } else {
+                        _finishCloudRain(bd, player, callbacks);
+                    }
+                } }]);
+            } else {
                 delete bd._sexState;
-                _startPoem(bd, player, callbacks);
-            } }]);
-        } else {
-            delete bd._sexState;
-            _startPoem(bd, player, callbacks);
-        }
+                if (feedback.showPoem) {
+                    _startPoem(bd, player, callbacks);
+                } else {
+                    _finishCloudRain(bd, player, callbacks);
+                }
+            }
+        };
+        callbacks.showChoices([{ text: '继续', action: afterglowNext }]);
     };
 
-    callbacks.showChoices([{ text: '继续', action: next }]);
+    callbacks.showChoices([{ text: '继续', action: feedbackNext }]);
+}
+
+function _finishCloudRain(bd, player, callbacks) {
+    const scene = _crPickScene(bd);
+    _sexAddMessage(scene.end, 'narrator');
+    bd._hadSex = true;
+    bd.favorability = Math.min(100, bd.favorability + 8);
+    player.neili -= 20;
+    if (callbacks.ensureRedRecord) callbacks.ensureRedRecord(bd);
+    delete bd._flirtPoem;
+    delete bd._flirtPoemIdx;
+    delete bd._flirtIntroShown;
+    callbacks.updateStatsBar();
+    player._sleptWithBeauty = true;
+
+    callbacks.showChoices([{ text: '沉沉睡去……', action: () => {
+        callbacks.clearChoices();
+        document.getElementById('log').innerHTML = '';
+        callbacks.sleepToTomorrow(true);
+        let wakeMsg = pickWakeDesc(bd._sexVenue, bd.name);
+        if (bd._firstTimeWith) {
+            player.attrs.luck = (player.attrs.luck || 0) + 1;
+            wakeMsg += ' 福缘 +1（当前 ' + player.attrs.luck + '）';
+            delete bd._firstTimeWith;
+        }
+        callbacks.addMessage(wakeMsg, 'narrator');
+    } }]);
 }
 
 function _startPoem(bd, player, callbacks) {
@@ -477,31 +547,7 @@ function _sexShowPoemLine(bd, player, callbacks) {
             callbacks.showChoices([{ text: '……', action: () => _sexShowPoemLine(bd, player, callbacks) }]);
         }
     } else {
-        const scene = _crPickScene(bd);
-        _sexAddMessage(scene.end, 'narrator');
-        bd._hadSex = true;
-        bd.favorability = Math.min(100, bd.favorability + 8);
-        player.neili -= 20;
-        if (callbacks.ensureRedRecord) callbacks.ensureRedRecord(bd);
-        delete bd._flirtPoem;
-        delete bd._flirtPoemIdx;
-        delete bd._flirtIntroShown;
-        callbacks.updateStatsBar();
-        player._sleptWithBeauty = true;
-
-        callbacks.showChoices([{ text: '沉沉睡去……', action: () => {
-            callbacks.clearChoices();
-            // 清除独立页面，不留痕迹
-            document.getElementById('log').innerHTML = '';
-            callbacks.sleepToTomorrow(true);
-            let wakeMsg = pickWakeDesc(bd._sexVenue, bd.name);
-            if (bd._firstTimeWith) {
-                player.attrs.luck = (player.attrs.luck || 0) + 1;
-                wakeMsg += ' 福缘 +1（当前 ' + player.attrs.luck + '）';
-                delete bd._firstTimeWith;
-            }
-            callbacks.addMessage(wakeMsg, 'narrator');
-        } }]);
+        _finishCloudRain(bd, player, callbacks);
     }
 }
 
