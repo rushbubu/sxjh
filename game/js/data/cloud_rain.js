@@ -21,12 +21,12 @@ function _sexBuildLayout() {
     const layout = document.createElement('div');
     layout.id = 'sex-layout';
     layout.innerHTML =
-        '<div id="sex-scene-log"></div>' +
         '<div id="sex-panel">' +
         '<div class="sex-arousal-row"><span class="sex-a-label sex-female-label">女</span><div class="sex-a-track"><div class="sex-a-fill sex-fa-fill" id="sex-fa-fill"></div></div><span class="sex-a-val" id="sex-fa-text">0</span></div>' +
         '<div class="sex-arousal-row"><span class="sex-a-label sex-male-label">男</span><div class="sex-a-track"><div class="sex-a-fill sex-ma-fill" id="sex-ma-fill"></div></div><span class="sex-a-val" id="sex-ma-text">0</span></div>' +
         '<div class="sex-clothes" id="sex-clothes"></div>' +
-        '</div>';
+        '</div>' +
+        '<div id="sex-scene-log"></div>';
     logEl.appendChild(layout);
 }
 
@@ -80,6 +80,9 @@ function startDetailedSexScene(bd, player, callbacks) {
     callbacks.clearChoices();
     const venueName = bd._sexVenue || bd._currentVenueName || '闺房';
     _sexAddMessage(pickSexStartDesc(venueName), 'narrator');
+    if (bd._wasVirgin) {
+        _sexAddMessage(pickFirstTimeDesc(bd), 'narrator');
+    }
     _renderSexMain(bd, player, callbacks);
 }
 
@@ -93,6 +96,13 @@ function _renderSexMain(bd, player, callbacks) {
         return _handleImpendingOrgasm(bd, player, callbacks);
     }
 
+    if (s.maleArousal >= 100) {
+        if (s.overClock) {
+            return _showEjacMenu(bd, player, callbacks);
+        }
+        s.overClock = true;
+    }
+
     callbacks.clearChoices();
     const choices = [];
 
@@ -103,16 +113,12 @@ function _renderSexMain(bd, player, callbacks) {
         if (_getAvailableClothes(s).length > 0) {
             choices.push({ text: '脱衣', action: () => _showUndressMenu(bd, player, callbacks) });
         }
-        if (s.femaleArousal >= 50) {
+        if (s.femaleArousal >= 30) {
             choices.push({ text: '侍奉', action: () => _showServiceMenu(bd, player, callbacks) });
         }
-        if (s.femaleArousal >= 70) {
+        if (s.femaleArousal >= 60) {
             choices.push({ text: '正戏', action: () => _showSexMenu(bd, player, callbacks) });
         }
-    }
-
-    if (s.maleArousal >= 100) {
-        choices.push({ text: '射精', action: () => _showEjacMenu(bd, player, callbacks) });
     }
 
     choices.push({ text: '结束云雨', action: () => _endSexScene(bd, player, callbacks) });
@@ -139,8 +145,12 @@ function _showForeplayMenu(bd, player, callbacks) {
 
 function _doForeplay(bd, player, callbacks, part) {
     callbacks.clearChoices();
-    _sexAddMessage(pickForeplay(part), 'narrator');
-    bd._sexState.femaleArousal = Math.min(100, bd._sexState.femaleArousal + 5);
+    _sexAddMessage(pickForeplay(part, bd), 'narrator');
+    const s = bd._sexState;
+    s.femaleArousal = Math.min(100, s.femaleArousal + 5);
+    const mAValues = { chest: 4, hips: 4, waist: 2, legs: 2, face: 1, arms: 1, feet: 1 };
+    s.maleArousal = Math.min(100, s.maleArousal + (mAValues[part] || 1));
+    _sexUpdatePanel(s);
     callbacks.showChoices([{ text: '继续', action: () => _renderSexMain(bd, player, callbacks) }]);
 }
 
@@ -153,12 +163,12 @@ function _showUndressMenu(bd, player, callbacks) {
         _sexAddMessage('她已经一丝不挂了。', 'narrator');
         return _renderSexMain(bd, player, callbacks);
     }
-    const choices = available.map(k => ({
-        text: '脱下' + CLOTHING_NAMES[k],
-        action: () => _doUndress(bd, player, callbacks, k),
-    }));
-    choices.push({ text: '返回', action: () => _renderSexMain(bd, player, callbacks) });
-    callbacks.showChoices(choices);
+    const next = available[0];
+    _sexAddMessage('她身上还穿着' + CLOTHING_NAMES[next] + '。', 'narrator');
+    callbacks.showChoices([
+        { text: '脱下' + CLOTHING_NAMES[next], action: () => _doUndress(bd, player, callbacks, next) },
+        { text: '返回', action: () => _renderSexMain(bd, player, callbacks) },
+    ]);
 }
 
 function _doUndress(bd, player, callbacks, key) {
@@ -189,6 +199,7 @@ function _doUndress(bd, player, callbacks, key) {
 function _showServiceMenu(bd, player, callbacks) {
     callbacks.clearChoices();
     const choices = [
+        { text: '接吻', action: () => _doService(bd, player, callbacks, 'kiss') },
         { text: '口交', action: () => _doService(bd, player, callbacks, 'blowjob') },
         { text: '足交', action: () => _doService(bd, player, callbacks, 'footjob') },
     ];
@@ -203,9 +214,14 @@ function _showServiceMenu(bd, player, callbacks) {
 
 function _doService(bd, player, callbacks, type) {
     callbacks.clearChoices();
-    _sexAddMessage(pickServiceDesc(type), 'narrator');
+    const desc = pickServiceDesc(type);
+    const segments = (_splitDesc || function(t){return[t]})(desc);
+    _sexAddMessage(segments[0], 'narrator');
     const s = bd._sexState;
-    if (type === 'breast') {
+    if (type === 'kiss') {
+        s.femaleArousal = Math.min(100, s.femaleArousal + 4);
+        s.maleArousal = Math.min(100, s.maleArousal + 3);
+    } else if (type === 'breast') {
         s.femaleArousal = Math.min(100, s.femaleArousal + 6);
         s.maleArousal = Math.min(100, s.maleArousal + 2);
     } else if (type === 'garden') {
@@ -216,7 +232,20 @@ function _doService(bd, player, callbacks, type) {
         s.femaleArousal = Math.min(100, s.femaleArousal + 4);
     }
     _sexUpdatePanel(s);
-    callbacks.showChoices([{ text: '继续', action: () => _renderSexMain(bd, player, callbacks) }]);
+    if (segments.length > 1) {
+        callbacks.showChoices([{ text: '继续', action: () => _showServiceSegment(bd, player, callbacks, segments, 1) }]);
+    } else {
+        callbacks.showChoices([{ text: '继续', action: () => _renderSexMain(bd, player, callbacks) }]);
+    }
+}
+function _showServiceSegment(bd, player, callbacks, segments, idx) {
+    callbacks.clearChoices();
+    _sexAddMessage(segments[idx], 'narrator');
+    if (idx < segments.length - 1) {
+        callbacks.showChoices([{ text: '继续', action: () => _showServiceSegment(bd, player, callbacks, segments, idx + 1) }]);
+    } else {
+        callbacks.showChoices([{ text: '继续', action: () => _renderSexMain(bd, player, callbacks) }]);
+    }
 }
 
 // ─── 正戏 ───
@@ -238,14 +267,35 @@ function _showSexMenu(bd, player, callbacks) {
 
 function _doSex(bd, player, callbacks, key) {
     callbacks.clearChoices();
-    const pos = pickSexPosition(key);
-    _sexAddMessage('【' + pos.name + '】', 'system');
-    _sexAddMessage(pos.desc, 'narrator');
     const s = bd._sexState;
+    if (!s.posIdx) s.posIdx = {};
+    if (!s.posCount) s.posCount = {};
+    s.posCount[key] = (s.posCount[key] || 0) + 1;
+    const idx = s.posIdx[key] || 0;
+    s.posIdx[key] = idx + 1;
+    const isFav = bd._favPos === key;
+    const pos = pickSexPosition(key, bd, idx);
+    _sexAddMessage('【' + pos.name + (isFav ? '★' : '') + '】', 'system');
+    const segments = (_splitDesc || function(t){return[t]})(pos.desc);
+    _sexAddMessage(segments[0], 'narrator');
+    const fA = isFav ? Math.round(pos.fA * 1.1) : pos.fA;
     s.maleArousal = Math.min(100, s.maleArousal + pos.mA);
-    s.femaleArousal = Math.min(100, s.femaleArousal + pos.fA);
+    s.femaleArousal = Math.min(100, s.femaleArousal + fA);
     _sexUpdatePanel(s);
-    callbacks.showChoices([{ text: '继续', action: () => _afterSexAction(bd, player, callbacks) }]);
+    if (segments.length > 1) {
+        callbacks.showChoices([{ text: '继续', action: () => _showSexSegment(bd, player, callbacks, segments, 1) }]);
+    } else {
+        callbacks.showChoices([{ text: '继续', action: () => _afterSexAction(bd, player, callbacks) }]);
+    }
+}
+function _showSexSegment(bd, player, callbacks, segments, idx) {
+    callbacks.clearChoices();
+    _sexAddMessage(segments[idx], 'narrator');
+    if (idx < segments.length - 1) {
+        callbacks.showChoices([{ text: '继续', action: () => _showSexSegment(bd, player, callbacks, segments, idx + 1) }]);
+    } else {
+        _afterSexAction(bd, player, callbacks);
+    }
 }
 
 function _afterSexAction(bd, player, callbacks) {
@@ -270,35 +320,45 @@ function _handleImpendingOrgasm(bd, player, callbacks) {
     const isSquirt = s.canSquirt && s.orgasmCount <= 1;
     callbacks.clearChoices();
 
-    // 将至描写
     _sexAddMessage('她的花径骤然缩紧，一阵阵剧烈的颤抖从深处传来，紧紧绞住你的阳物。温热的花蜜喷涌而出，浇淋在你的龟头之上。', 'narrator');
-    _sexAddMessage('你只觉阳具被又湿又热的软肉死死缠住，酥麻感从脊椎直冲头顶，几乎要把你化掉。', 'narrator');
 
     s.maleArousal = Math.min(100, s.maleArousal + 20);
     _sexUpdatePanel(s);
 
-    // 检查是否同步高潮（男欲也到了100）
-    if (s.maleArousal >= 100) {
-        // 同步高潮 + 强制内射
-        _sexAddMessage('她的花径猛地收紧，像一张小嘴死死咬住你的阳物，你根本来不及抽出，便被那阵剧烈的痉挛绞得精关失守——', 'narrator');
-        _sexAddMessage('滚烫的阳精尽数喷洒在她花心深处，她在这股热流的冲击下达到了顶峰。', 'narrator');
-        s.orgasmCount++;
-        _sexAddMessage(getOrgasmReaction(bd, isSquirt), 'narrator');
-        s.femaleArousal = Math.max(0, s.femaleArousal - 30);
-        s.maleArousal = Math.max(0, s.maleArousal - 30);
-        _sexUpdatePanel(s);
-        callbacks.showChoices([
-            { text: '继续', action: () => _renderSexMain(bd, player, callbacks) },
-            { text: '结束云雨', action: () => _endSexScene(bd, player, callbacks) },
-        ]);
-        return;
-    }
+    callbacks.showChoices([{ text: '继续', action: () => _impendingNext1(bd, player, callbacks, isSquirt) }]);
+}
+function _impendingNext1(bd, player, callbacks, isSquirt) {
+    callbacks.clearChoices();
+    _sexAddMessage('你只觉阳具被又湿又热的软肉死死缠住，酥麻感从脊椎直冲头顶，几乎要把你化掉。', 'narrator');
 
-    // 仅女性高潮
-    s.orgasmCount++;
+    const s = bd._sexState;
+    if (s.maleArousal >= 100) {
+        callbacks.showChoices([{ text: '继续', action: () => _impendingNext2(bd, player, callbacks, isSquirt) }]);
+    } else {
+        s.orgasmCount++;
+        callbacks.showChoices([{ text: '继续', action: () => _impendingDone(bd, player, callbacks, isSquirt, false) }]);
+    }
+}
+function _impendingNext2(bd, player, callbacks, isSquirt) {
+    callbacks.clearChoices();
+    _sexAddMessage('她的花径猛地收紧，像一张小嘴死死咬住你的阳物，你根本来不及抽出，便被那阵剧烈的痉挛绞得精关失守——', 'narrator');
+    callbacks.showChoices([{ text: '继续', action: () => _impendingNext3(bd, player, callbacks, isSquirt) }]);
+}
+function _impendingNext3(bd, player, callbacks, isSquirt) {
+    callbacks.clearChoices();
+    _sexAddMessage('滚烫的阳精尽数喷洒在她花心深处，她在这股热流的冲击下达到了顶峰。', 'narrator');
+    bd._sexState.orgasmCount++;
+    bd._sexState.wasInternal = true;
+    callbacks.showChoices([{ text: '继续', action: () => _impendingDone(bd, player, callbacks, isSquirt, true) }]);
+}
+function _impendingDone(bd, player, callbacks, isSquirt, maleCame) {
+    const s = bd._sexState;
     _sexAddMessage('（高潮）', 'system');
-    _sexAddMessage(getOrgasmReaction(bd, isSquirt), 'narrator');
+    if (!maleCame) {
+        _sexAddMessage(getOrgasmReaction(bd, isSquirt), 'narrator');
+    }
     s.femaleArousal = Math.max(0, s.femaleArousal - 30);
+    if (maleCame) s.maleArousal = Math.max(0, s.maleArousal - 30);
     _sexUpdatePanel(s);
     callbacks.showChoices([
         { text: '继续', action: () => _renderSexMain(bd, player, callbacks) },
@@ -323,6 +383,7 @@ function _showEjacMenu(bd, player, callbacks) {
 function _doEjacInternal(bd, player, callbacks) {
     callbacks.clearChoices();
     _sexAddMessage(getCreampieDesc(), 'narrator');
+    bd._sexState.wasInternal = true;
     _afterEjac(bd, player, callbacks);
 }
 
@@ -343,7 +404,7 @@ function _doEjacExternal(bd, player, callbacks, loc) {
 
 function _afterEjac(bd, player, callbacks) {
     const s = bd._sexState;
-    s.maleArousal = 0;
+    s.maleArousal = 70;
     s.femaleArousal = Math.max(0, s.femaleArousal - 30);
     _sexUpdatePanel(s);
     callbacks.showChoices([
@@ -357,10 +418,43 @@ function _afterEjac(bd, player, callbacks) {
 function _endSexScene(bd, player, callbacks) {
     const s = bd._sexState;
     s.finished = true;
-    delete bd._sexState;
 
-    _sexAddMessage(pickSexEndDesc(), 'narrator');
+    if (s.posCount) {
+        let maxKey = null, maxCount = 0;
+        for (const [k, v] of Object.entries(s.posCount)) {
+            if (v > maxCount) { maxCount = v; maxKey = k; }
+        }
+        if (maxKey) bd._favPos = maxKey;
+    }
 
+    if (s.wasInternal) {
+        _sexAddMessage(pickPulloutDesc(bd), 'narrator');
+    } else {
+        _sexAddMessage(pickSexEndDesc(), 'narrator');
+    }
+
+    const next = () => {
+        let msg = pickAfterglowDesc(bd);
+        if (s.wasInternal && bd._wasVirgin) {
+            msg += ' 那白浊之间搀着缕缕血丝，顺着红肿的花唇缓缓淌下——处子之血与阳精混在一起，在身下晕开一片。';
+        }
+        if (msg) {
+            callbacks.clearChoices();
+            _sexAddMessage(msg, 'narrator');
+            callbacks.showChoices([{ text: '继续', action: () => {
+                delete bd._sexState;
+                _startPoem(bd, player, callbacks);
+            } }]);
+        } else {
+            delete bd._sexState;
+            _startPoem(bd, player, callbacks);
+        }
+    };
+
+    callbacks.showChoices([{ text: '继续', action: next }]);
+}
+
+function _startPoem(bd, player, callbacks) {
     bd._flirtPoem = POEMS[Math.floor(Math.random() * POEMS.length)];
     bd._flirtPoemIdx = 0;
     delete bd._flirtIntroShown;
@@ -400,7 +494,13 @@ function _sexShowPoemLine(bd, player, callbacks) {
             // 清除独立页面，不留痕迹
             document.getElementById('log').innerHTML = '';
             callbacks.sleepToTomorrow(true);
-            callbacks.addMessage('你从' + bd.name + '的闺房中醒来，昨夜风流如梦，神清气爽。', 'narrator');
+            let wakeMsg = pickWakeDesc(bd._sexVenue, bd.name);
+            if (bd._firstTimeWith) {
+                player.attrs.luck = (player.attrs.luck || 0) + 1;
+                wakeMsg += ' 福缘 +1（当前 ' + player.attrs.luck + '）';
+                delete bd._firstTimeWith;
+            }
+            callbacks.addMessage(wakeMsg, 'narrator');
         } }]);
     }
 }
@@ -409,31 +509,8 @@ function _sexShowPoemLine(bd, player, callbacks) {
 
 function startCloudRain(bd, player, callbacks) {
     if (callbacks.venue) bd._sexVenue = callbacks.venue.name || callbacks.venue;
-    bd._flirtPoem = POEMS[Math.floor(Math.random() * POEMS.length)];
-    bd._flirtPoemIdx = 0;
-    delete bd._flirtIntroShown;
-    step2(bd, player, callbacks);
-}
-
-function step2(bd, player, callbacks) {
-    callbacks.clearChoices();
-    const scene = _crPickScene(bd);
-    callbacks.addMessage(scene.step2, 'narrator');
-    callbacks.showChoices([{ text: '……', action: () => step3(bd, player, callbacks) }]);
-}
-
-function step3(bd, player, callbacks) {
-    callbacks.clearChoices();
-    const scene = _crPickScene(bd);
-    callbacks.addMessage(scene.step3, 'narrator');
-    callbacks.showChoices([{ text: '……', action: () => step4(bd, player, callbacks) }]);
-}
-
-function step4(bd, player, callbacks) {
-    callbacks.clearChoices();
-    const scene = _crPickScene(bd);
-    callbacks.addMessage(scene.step4, 'narrator');
-    callbacks.showChoices([{ text: '……', action: () => startDetailedSexScene(bd, player, callbacks) }]);
+    if (!bd._hadSex) bd._firstTimeWith = true;
+    startDetailedSexScene(bd, player, callbacks);
 }
 
 function step5(bd, player, callbacks) {
@@ -465,14 +542,13 @@ function showPoemLine(bd, player, callbacks) {
         player.neili -= 20;
         if (callbacks.ensureRedRecord) callbacks.ensureRedRecord(bd);
         delete bd._flirtPoem;
-        delete bd._flirtPoemIdx;
         delete bd._flirtIntroShown;
         callbacks.updateStatsBar();
         player._sleptWithBeauty = true;
         callbacks.showChoices([{ text: '沉沉睡去……', action: () => {
             callbacks.clearChoices();
             callbacks.sleepToTomorrow(true);
-            callbacks.addMessage('你从' + bd.name + '的闺房中醒来，昨夜风流如梦，神清气爽。', 'narrator');
+            callbacks.addMessage(pickWakeDesc(bd._sexVenue, bd.name), 'narrator');
         } }]);
     }
 }

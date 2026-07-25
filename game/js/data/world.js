@@ -200,7 +200,7 @@ const WORLD = {
             const venues = [
                 v('草药铺', herbalNpc, `村里的草药郎中。`, ['herb_bandage', 'powder_clear', 'herb_ginseng_small']),
                 v('铁匠铺', smithNpc, `村里的铁匠，手艺还不错。`, ['knife_wood', 'hoe_iron', 'pot_iron', 'dagger', 'band_head', 'pants_coarse', 'bracers_cloth', 'shoes_straw'], false, baseCp),
-                v('酒馆', tavernNpc, `小酒馆里飘出阵阵酒香。`, ['wine_rice', 'ration', 'pastry']),
+                v('酒馆', tavernNpc, `小酒馆里飘出阵阵酒香。`, ['wine_rice', 'wine_daughter']),
                 v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('村长家', chiefNpc, `村长的家，${chiefNpc}正在院子里忙活。`, ['tea_cake', 'incense']),
             ];

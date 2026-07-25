@@ -12,7 +12,7 @@ const ITEMS = {
     pot_iron:        { id: 'pot_iron',        name: '铁锅',      desc: '生铁铸成的锅，做饭必备。',                            value: 2,   stealDiff: 10, category: 'household' },
     herb_bandage:    { id: 'herb_bandage',    name: '止血草',    desc: '常见的草药，晒干磨粉可止外伤出血。',                   value: 2,   stealDiff: 10, category: 'medicine' },
     powder_clear:    { id: 'powder_clear',    name: '清心散',    desc: '清凉解热的药散，可缓解轻微中毒。',                    value: 5,   stealDiff: 20, category: 'medicine' },
-    wine_rice:       { id: 'wine_rice',       name: '米酒',      desc: '农家自酿的米酒，度数不高但味道淳朴。',                value: 2,   stealDiff: 8,  category: 'wine' },
+    wine_rice:       { id: 'wine_rice',       name: '米酒',      desc: '农家自酿的米酒，度数不高但味道淳朴。',                value: 2,   stealDiff: 8,  category: 'wine', use: { healNeili: 5 } },
 
     // ═══ 村庄特殊物品 ═══
     ginseng_100:     { id: 'ginseng_100',     name: '百年山参',  desc: '生于深山中的百年老参，有续命之效，价值不菲。',        value: 20,  stealDiff: 50, category: 'rare_herb', special: true },
@@ -20,7 +20,7 @@ const ITEMS = {
     cloud_manual:    { id: 'cloud_manual',    name: '云纹秘籍残页', desc: '泛黄的纸页，记载着某种轻功心法，可惜只有残篇。', value: 25,  stealDiff: 55, category: 'skill', special: true },
     iron_command:    { id: 'iron_command',    name: '玄铁令',    desc: '刻着古怪符文的铁牌，似乎与某个秘密有关。',             value: 18,  stealDiff: 45, category: 'token', special: true },
 
-    herb_ginseng_small:{ id: 'herb_ginseng_small', name: '小参',      desc: '山中采来的小野参，虽年份不足但也有补气之效。',          value: 5,   stealDiff: 15, category: 'medicine' },
+    herb_ginseng_small:{ id: 'herb_ginseng_small', name: '小参',      desc: '山中采来的小野参，虽年份不足但也有补气之效。',          value: 8,   stealDiff: 15, category: 'medicine' },
 
     // ═══ 小城通用物品 ═══
     silk_robe:       { id: 'silk_robe',       name: '绸缎衣',    desc: '上等丝绸制成的衣衫，穿在身上轻软舒适。',               value: 10,  stealDiff: 25, category: 'clothing', slot: 'upperBody', tier: 'green' },
@@ -30,8 +30,8 @@ const ITEMS = {
     chest_mirror:    { id: 'chest_mirror',    name: '护心镜',    desc: '铜制护心镜，可挡暗箭。',                               value: 20,  stealDiff: 35, category: 'armor', slot: 'upperBody', tier: 'green' },
     ring_silver:     { id: 'ring_silver',     name: '银戒指',    desc: '做工精细的银戒指，刻着缠枝花纹。',                     value: 12,  stealDiff: 28, category: 'jewelry', slot: 'accessory', tier: 'green' },
     bangle_jade:     { id: 'bangle_jade',     name: '玉镯子',    desc: '和田玉制成的镯子，水头不错。',                         value: 25,  stealDiff: 40, category: 'jewelry', slot: 'accessory', tier: 'blue' },
-    wine_bamboo:     { id: 'wine_bamboo',     name: '竹叶青',    desc: '以竹叶浸制的清酒，入口甘冽。',                         value: 5,   stealDiff: 15, category: 'wine' },
-    wine_daughter:   { id: 'wine_daughter',   name: '女儿红',    desc: '埋藏十八年的绍兴黄酒，香气醇厚。',                     value: 10,  stealDiff: 25, category: 'wine' },
+    wine_bamboo:     { id: 'wine_bamboo',     name: '竹叶青',    desc: '以竹叶浸制的清酒，入口甘冽。',                         value: 5,   stealDiff: 15, category: 'wine', use: { healNeili: 10 } },
+    wine_daughter:   { id: 'wine_daughter',   name: '女儿红',    desc: '埋藏十八年的绍兴黄酒，香气醇厚。',                     value: 10,  stealDiff: 25, category: 'wine', use: { healNeili: 20 } },
 
     // ═══ 小城特殊物品 ═══
     peony_painting:  { id: 'peony_painting',  name: '洛阳牡丹图', desc: '当代名家所绘牡丹图，色彩艳丽，栩栩如生。',            value: 50,  stealDiff: 60, category: 'art', special: true },
@@ -66,6 +66,15 @@ const ITEMS = {
     neili_dan:        { id: 'neili_dan',      name: '养气丹',    desc: '培元固本的丹药，可恢复20点内力。',                       value: 10,  stealDiff: 25, category: 'medicine', use: { healNeili: 20 } },
     jiedu_san:        { id: 'jiedu_san',      name: '解毒散',    desc: '专解百毒的药散，可解除中毒状态。',                       value: 6,   stealDiff: 18, category: 'medicine', use: { cure: 'poison' } },
     qingxin_wan:      { id: 'qingxin_wan',    name: '清心丸',    desc: '宁神静气的药丸，可解除混乱状态。',                       value: 6,   stealDiff: 18, category: 'medicine', use: { cure: 'confusion' } },
+
+    // ═══ 猎物 ═══
+    meat_rabbit:      { id: 'meat_rabbit',    name: '兔肉',      desc: '新鲜的兔肉，烤着吃很香。',                                value: 2,   stealDiff: 3,  category: 'food' },
+    meat_snake:       { id: 'meat_snake',     name: '蛇肉',      desc: '蛇肉细嫩，煲汤极鲜。',                                   value: 3,   stealDiff: 4,  category: 'food' },
+    meat_goat:        { id: 'meat_goat',      name: '羊肉',      desc: '山羊肉质紧实，适合烤制。',                                value: 4,   stealDiff: 5,  category: 'food' },
+    meat_boar:        { id: 'meat_boar',      name: '野猪肉',    desc: '野猪肉腥膻味重，但极有嚼劲。',                             value: 6,   stealDiff: 8,  category: 'food' },
+    gall_snake:       { id: 'gall_snake',     name: '蛇胆',      desc: '巨蟒之胆，服用可增内力。',                                value: 10,  stealDiff: 15, category: 'medicine' },
+    gall_bear:        { id: 'gall_bear',      name: '熊胆',      desc: '黑熊之胆，大补内力。',                                    value: 20,  stealDiff: 25, category: 'medicine' },
+    gall_tiger:       { id: 'gall_tiger',     name: '虎胆',      desc: '猛虎之胆，稀世珍品，可大幅提升内力。',                    value: 40,  stealDiff: 40, category: 'medicine' },
 };
 
 function getItem(id) {
