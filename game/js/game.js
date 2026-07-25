@@ -126,7 +126,7 @@ class Game {
             items: [],
             equipment: { rightHand:null, leftHand:null, head:null, upperBody:null, lowerBody:null, boots:null, bracers:null, accessory1:null, accessory2:null },
             externalSkills: [],
-            internalSkills: ['天之经'],
+            internalSkills: ['天之书'],
             locationId: null,
             villageBlacklist: {},
         };
@@ -141,6 +141,10 @@ class Game {
         for (const loc of getAllLocations()) {
             const type = loc.nearestCity ? 'village' : WORLD.big_cities.find(c => c.id === loc.id) ? 'big_city' : 'small_city';
             this.beautyMap[loc.id] = generateBeauties(loc.id, type, usedNames);
+        }
+        for (const sb of SPECIAL_BEAUTIES) {
+            if (!this.beautyMap[sb.locationId]) this.beautyMap[sb.locationId] = [];
+            this.beautyMap[sb.locationId].push(sb);
         }
         this.brothelProstitutes = {};
         for (const loc of getAllLocations()) {
@@ -166,7 +170,7 @@ class Game {
             '耳边还回响着他冷冰冰的声音：「师兄，这掌门之位就归我了。」',
             '万劫深渊，深不见底，自古无人能生还。但你竟没有死。',
             '坠落途中，怀里的古老竹简突然发光——是师父交给你的天之书残本。',
-            '那是《天之经》残本，上古无上心法。经文虽不全，却已深深刻入你的魂魄。',
+            '那是《天之书》残本，上古无上心法。经文虽不全，却已深深刻入你的魂魄。',
             '你，重生了。',
             '这一世，你要从零开始，一步一步——让那些背叛你的人，付出代价。',
         ];
@@ -407,7 +411,7 @@ class Game {
             <div class="stat-line" style="margin-top:6px;"><span>心法</span><span>${intSkills}</span></div>
             <div class="stat-line"><span>外功</span><span>${extSkills}</span></div>
         `;
-        document.getElementById('menu-rep').textContent = `声望：${p.reputation}`;
+        document.getElementById('menu-rep').textContent = `声望：${p.reputation}  里声望：${p.shadowRep}`;
         let extra = `<div style="margin-top:8px;">行囊：${il}</div>`;
         if (loc && loc.nearestCity) {
             const city = getAllLocations().find(l => l.id === loc.nearestCity);
@@ -629,15 +633,38 @@ class Game {
     }
 
     getVenueLockDifficulty(venue) {
-        // 根据场所物品总价值估算撬锁难度
+        const loc = this.currentLocation;
+        const locType = loc ? getLocationTypeLabel(loc.id) : null;
+        // 物品总价值
         const items = venue.npcs && venue.npcs.length > 0 ? venue.npcs[0].items : [];
-        const totalValue = items.reduce((s, id) => {
-            const item = getItem(id);
-            return s + (item ? item.value : 0);
-        }, 0);
-        if (totalValue >= 100) return 50;
-        if (totalValue >= 50) return 35;
-        if (totalValue >= 20) return 25;
+        let totalValue = 0;
+        for (const it of items) {
+            if (it && it.value) totalValue += it.value;
+        }
+        // 大户家：守卫森严
+        if (venue.name.endsWith('府')) {
+            let diff = 30;
+            if (totalValue >= 50) diff += 25;
+            else if (totalValue >= 20) diff += 15;
+            return diff;
+        }
+        // 珍宝阁/藏宝级（总价值≥200）
+        if (totalValue >= 200) return 90;
+        if (totalValue >= 100) return 70;
+        // 大城商店 50-70
+        if (locType === LOCATION_TYPES.big_city) {
+            if (totalValue >= 60) return 60;
+            return 50;
+        }
+        // 小城商店 30-50
+        if (locType === LOCATION_TYPES.small_city) {
+            if (totalValue >= 60) return 50;
+            if (totalValue >= 30) return 40;
+            return 30;
+        }
+        // 村庄 15-30
+        if (totalValue >= 30) return 30;
+        if (totalValue >= 15) return 25;
         return 15;
     }
 
@@ -646,11 +673,12 @@ class Game {
         const dex = this.player.attrs.dexterity || 10;
         const diff = this.getVenueLockDifficulty(venue);
         const successChance = Math.min(0.9, dex / (diff + dex));
-        this.addMessage(`你屏住呼吸，摸到门前，掏出随身铁片试着撬锁……`, 'narrator');
+        this.addMessage(`你屏住呼吸，摸到门前，掏出随身铁片试着撬锁潜入……`, 'narrator');
         if (Math.random() < successChance) {
             this.addMessage('锁「咔」一声开了！你闪身溜了进去，没有惊动任何人。', 'system');
             this.player.shadowRep += 1;
             this.updateStatsBar();
+            this._sneaking = true;
             this.enterVenueInner(venue);
         } else {
             this.addMessage('你正专心撬锁，突然远处传来一声大喝：「有贼！」', 'danger');
@@ -667,7 +695,7 @@ class Game {
         if (this.isVenueClosed(venue)) {
             this.addMessage(`${venue.name}的大门紧闭，门上挂着一块「已打烊」的木牌。`, 'narrator');
             this.showChoices([
-                { text: '撬锁', action: () => this.attemptPickLock(venue) },
+                { text: `潜入（灵巧${this.getVenueLockDifficulty(venue)}）`, action: () => this.attemptPickLock(venue) },
                 { text: '离开', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
             ]);
             return;
@@ -676,8 +704,22 @@ class Game {
     }
 
     enterVenueInner(venue) {
+        if (this._sneaking) {
+            this._sneaking = false;
+            this.enterVenueSneak(venue);
+            return;
+        }
         // Landlord gate check for starting village quest
-        if (this.player.mainQuest === 1 && this.player.startingVillage === this.player.locationId && venue.name.endsWith('府')) {
+        if (this.player.mainQuest <= 1 && this.player.startingVillage === this.player.locationId && venue.name.endsWith('府')) {
+            if (this.player.mainQuest === 0) {
+                this.addMessage(`你来到${venue.name}门前，只见朱门紧闭，门口站着两个虎背熊腰的家丁。`, 'narrator');
+                this.addMessage(`家丁横臂拦住去路，冷声道：「此处是私宅，闲人免进！要找死别处死去！」`, 'narrator');
+                this.showChoices([
+                    { text: `潜入（灵巧${this.getVenueLockDifficulty(venue)}）`, action: () => this.attemptPickLock(venue) },
+                    { text: '离开', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
+                ]);
+                return;
+            }
             this.addMessage(`你来到${venue.name}门前，只见朱门紧闭，门口站着两个虎背熊腰的家丁。`, 'narrator');
             this.addMessage(`其中一个家丁上前一步，横臂拦住去路：「站住！你是何人？我家老爷岂是你想见就见的？」`, 'narrator');
             const loc = this.currentLocation;
@@ -707,6 +749,7 @@ class Game {
                         setTimeout(() => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()), 400);
                     }
                 }},
+                { text: `潜入（灵巧${this.getVenueLockDifficulty(venue)}）`, action: () => this.attemptPickLock(venue) },
                 { text: '硬闯', action: () => this.landlordFightGuards(venue) },
                 { text: '算了，改日再来', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
             ]);
@@ -787,6 +830,100 @@ class Game {
         }
         choices.push({ text: `离开${venue.name}`, action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) });
         this.showChoices(choices);
+    }
+
+    enterVenueSneak(venue) {
+        this.clearChoices();
+        const items = [];
+        for (const npc of venue.npcs) {
+            if (npc.items) {
+                for (const it of npc.items) {
+                    if (it.stock !== undefined && it.stock <= 0) continue;
+                    if (it._noBuy) continue;
+                    items.push({ item: it, npc: npc });
+                }
+            }
+        }
+        if (items.length === 0) {
+            this.addMessage('你环顾四周，这里没什么值得偷的东西。', 'narrator');
+            this.showChoices([
+                { text: '离开', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
+            ]);
+            return;
+        }
+        this._sneakItems = items;
+        this.addMessage(`你悄然潜入${venue.name}，目光扫过四周的货物。`, 'narrator');
+        this.showStealMenu(venue);
+    }
+
+    showStealMenu(venue) {
+        this.clearChoices();
+        const items = this._sneakItems;
+        const choices = items.map((entry, i) => ({
+            text: `${entry.item.name}（价值${entry.item.value}两）`,
+            action: () => this.stealSingleItem(venue, i),
+        }));
+        choices.push({ text: '全部偷走', action: () => this.stealAllItems(venue) });
+        choices.push({ text: '算了，离开', action: () => {
+            this._sneakItems = null;
+            this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices();
+        }});
+        this.showChoices(choices);
+    }
+
+    stealSingleItem(venue, index) {
+        this.clearChoices();
+        const entry = this._sneakItems[index];
+        const it = entry.item;
+        const copy = { ...it };
+        if (copy.stock !== undefined) {
+            copy.stock = 1;
+            it.stock--;
+        }
+        if (!this.autoEquip(copy)) {
+            this.player.items.push(copy);
+        }
+        this.player.shadowRep += 1;
+        this.addMessage(`你悄悄摸走「${it.name}」（价值${it.value}两）。`, 'system');
+        this.addMessage(`里声望 +1（当前 ${this.player.shadowRep}）`, 'system');
+        this.updateStatsBar();
+        this._sneakItems.splice(index, 1);
+        if (this._sneakItems.length === 0) {
+            this.addMessage('这里已经没有值得偷的东西了。', 'narrator');
+            this._sneakItems = null;
+            this.showChoices([
+                { text: '离开', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
+            ]);
+        } else {
+            this.showStealMenu(venue);
+        }
+    }
+
+    stealAllItems(venue) {
+        this.clearChoices();
+        this.addMessage('你手脚麻利地将值钱的东西一扫而空……', 'narrator');
+        let totalValue = 0;
+        for (const entry of this._sneakItems) {
+            const it = entry.item;
+            const copy = { ...it };
+            if (copy.stock !== undefined) {
+                copy.stock = 1;
+                it.stock--;
+            }
+            if (!this.autoEquip(copy)) {
+                this.player.items.push(copy);
+            }
+            totalValue += it.value || 0;
+        }
+        const count = this._sneakItems.length;
+        this.player.shadowRep += count;
+        this._sneakItems = null;
+        this.addMessage(`你成功偷取了 <b>${count}</b> 件物品，价值 ${totalValue} 两。`, 'system');
+        this.addMessage(`里声望 +${count}（当前 ${this.player.shadowRep}）`, 'system');
+        this.updateStatsBar();
+        this.showChoices([
+            { text: '迅速离开', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
+        ]);
     }
 
     landlordQuestGrant(venue) {
@@ -1622,11 +1759,16 @@ class Game {
             onWin: onWin,
             onLose: onLose || (() => {}),
             onFlee: onFlee || (() => {}),
+            playerSpeed: this.player.attrs.dexterity || 10,
+            enemySpeed: Math.max(1, Math.floor((enemy.combatPower || 15) / 3)),
+            playerPoints: 0,
+            enemyPoints: 0,
+            consecutiveActions: 0,
         };
         this.clearChoices();
         document.getElementById('log').innerHTML = '';
         this.renderBattleHUD();
-        this.showBattleActions();
+        this.determineNextTurn();
     }
 
     renderBattleHUD() {
@@ -1655,6 +1797,13 @@ class Game {
         html += '<span class="battle-bar-label">内力</span>';
         html += `<div class="battle-bar-track"><div class="battle-bar-fill battle-mp-fill" style="width:${npct}%"></div></div>`;
         html += `<span class="battle-bar-text">${this.player.neili}/${this.player.maxNeili}</span>`;
+        html += '</div>';
+        html += '<div class="battle-bar-row battle-action-row">';
+        html += '<span class="battle-bar-label">行动</span>';
+        const taken = this.battleState ? this.battleState.consecutiveActions : 0;
+        for (let i = 0; i < 4; i++) {
+            html += `<span class="action-dot ${i >= taken ? 'action-dot-ready' : 'action-dot-empty'}">●</span>`;
+        }
         html += '</div></div></div>';
 
         const logLines = this.battleState.log.slice(-3);
@@ -1665,6 +1814,24 @@ class Game {
         html += '</div>';
 
         document.getElementById('log').innerHTML = html;
+    }
+
+    determineNextTurn() {
+        if (!this.battleState) return;
+        const bs = this.battleState;
+        const MAX_CONSECUTIVE = 4;
+        bs.playerPoints += bs.playerSpeed;
+        bs.enemyPoints += bs.enemySpeed;
+        if (bs.consecutiveActions >= MAX_CONSECUTIVE || bs.playerPoints <= bs.enemyPoints) {
+            bs.enemyPoints -= bs.playerPoints;
+            bs.playerPoints = 0;
+            bs.consecutiveActions = 0;
+            this.enemyTurn();
+        } else {
+            bs.playerPoints -= bs.enemyPoints;
+            bs.enemyPoints = 0;
+            this.showBattleActions();
+        }
     }
 
     showBattleActions() {
@@ -1688,11 +1855,12 @@ class Game {
         e.hp -= dmg;
         this.battleState.log.push({ text: `你使出一记重击，造成 <b>${dmg}</b> 点伤害！`, cls: 'battle-log-hit' });
 
+        this.battleState.consecutiveActions++;
         if (e.hp <= 0) {
             this.resolveBattleVictory();
             return;
         }
-        setTimeout(() => this.enemyTurn(), 300);
+        setTimeout(() => this.determineNextTurn(), 300);
     }
 
     showBattleSkillMenu() {
@@ -1702,12 +1870,20 @@ class Game {
             this.showBattleActions();
             return;
         }
+        const MAX_CONSECUTIVE = 4;
+        const remaining = MAX_CONSECUTIVE - this.battleState.consecutiveActions;
         const choices = skills.map((sk, i) => {
             const fixedPower = getSkillFixedPower(sk.quality, sk.level);
             const neiliCost = Math.max(1, Math.floor(fixedPower * 0.4));
-            const canUse = this.player.neili >= neiliCost;
+            const actionCost = getSkillActionCost(sk);
+            const enoughNeili = this.player.neili >= neiliCost;
+            const enoughAction = remaining >= actionCost;
+            const canUse = enoughNeili && enoughAction;
+            let label = `${sk.name} Lv.${sk.level}（内力${neiliCost} 行动${actionCost}）`;
+            if (!enoughNeili) label += ' [内力不足]';
+            else if (!enoughAction) label += ' [行动不足]';
             return {
-                text: `${sk.name} Lv.${sk.level}（内力${neiliCost}）${canUse ? '' : ' [不足]'}`,
+                text: label,
                 action: canUse ? () => this.battleUseSkill(i) : null,
             };
         });
@@ -1717,6 +1893,14 @@ class Game {
 
     battleUseSkill(skillIndex) {
         const sk = this.player.externalSkills[skillIndex];
+        const actionCost = getSkillActionCost(sk);
+        const MAX_CONSECUTIVE = 4;
+        if (this.battleState.consecutiveActions + actionCost > MAX_CONSECUTIVE) {
+            this.battleState.log.push({ text: `行动值不足，不足以释放${sk.name}。`, cls: 'battle-log-info' });
+            this.showBattleActions();
+            return;
+        }
+        this.battleState.consecutiveActions += actionCost;
         const basePower = Math.floor(this.player.attrs.root * 0.5 + this.player.attrs.dexterity * 0.5);
         let weaponPower = 0;
         for (const s of ['rightHand', 'leftHand']) {
@@ -1738,7 +1922,7 @@ class Game {
             this.resolveBattleVictory();
             return;
         }
-        setTimeout(() => this.enemyTurn(), 400);
+        setTimeout(() => this.determineNextTurn(), 400);
     }
 
     showBattleItemMenu() {
@@ -1775,8 +1959,9 @@ class Game {
             msg += ` 气血恢复 ${heal} 点。`;
             this.battleState.log.push({ text: msg, cls: 'battle-log-info' });
         }
+        this.battleState.consecutiveActions++;
         this.updateStatsBar();
-        setTimeout(() => this.enemyTurn(), 300);
+        setTimeout(() => this.determineNextTurn(), 300);
     }
 
     attemptFlee() {
@@ -1792,8 +1977,9 @@ class Game {
             cb();
             }, 600);
         } else {
+            this.battleState.consecutiveActions++;
             this.battleState.log.push({ text: '你试图逃跑，但没能脱身！', cls: 'battle-log-miss' });
-            setTimeout(() => this.enemyTurn(), 300);
+            setTimeout(() => this.determineNextTurn(), 300);
         }
     }
 
@@ -1831,7 +2017,7 @@ class Game {
             }, 800);
             return;
         }
-        this.showBattleActions();
+        setTimeout(() => this.determineNextTurn(), 300);
     }
 
     resolveBattleVictory() {
@@ -2375,16 +2561,21 @@ class Game {
         if (!beauties || beauties.length === 0) return;
         const venues = this.player.locationVenues;
         if (venues.length === 0) return;
-        const publicVenues = venues.filter(v => !v.name.includes('家') && !v.name.includes('府'));
+        const publicVenues = venues.filter(v => !v.name.includes('家') && !v.name.includes('府') && v.name !== '小树林');
         if (publicVenues.length === 0) return;
         for (const b of beauties) {
             if (this.killedNpcs.has('beauty_' + b.id)) continue;
-            const vi = Math.floor(Math.random() * publicVenues.length);
+            let targetVenue;
+            if (b.special && b.fixedVenue) {
+                targetVenue = venues.find(v => v.name === b.fixedVenue) || publicVenues[Math.floor(Math.random() * publicVenues.length)];
+            } else {
+                targetVenue = publicVenues[Math.floor(Math.random() * publicVenues.length)];
+            }
             b._currentLocId = loc.id;
-            b._currentVenueName = publicVenues[vi].name;
-            publicVenues[vi].npcs.push({
+            b._currentVenueName = targetVenue.name;
+            targetVenue.npcs.push({
                 npcName: b.name,
-                npcDesc: '一位容貌出众的女子。',
+                npcDesc: b.special ? (b.bodyDesc || '一位容貌出众的女子。') : '一位容貌出众的女子。',
                 isBeauty: true,
                 beautyId: b.id,
                 _beautyData: b,
@@ -2403,15 +2594,44 @@ class Game {
             this.enterVenueInner(venue);
             return;
         }
+        // 特殊美人专用交互（可自定义对话树/任务）
+        if (bd.special && bd.onInteract) {
+            bd.onInteract(this, venue, beauty);
+            return;
+        }
         const effFav = computeFavorability(this.player, bd) >= 80 ? computeFavorability(this.player, bd) : bd.favorability;
         this.addMessage(`${bd.name}「${bd.faceDesc}」`, 'html');
         const choices = [
             { text: '鉴赏', action: () => this.appreciateBeauty(venue, beauty) },
-            { text: '聊天', action: () => this.chatBeauty(venue, beauty) },
+            { text: '聊天', action: () => {
+                if (bd.special && bd.dialogueTree) this._specialChat(venue, beauty, 0);
+                else this.chatBeauty(venue, beauty);
+            } },
             { text: '行动', action: () => this.actBeauty(venue, beauty) },
         ];
         if (effFav >= 80) choices.push({ text: '亲密行为', action: () => this.intimateBeauty(venue, beauty) });
         choices.push({ text: '不义之举', action: () => this.evilBeauty(venue, beauty) });
+        choices.push({ text: '离开', action: () => this.enterVenue(venue) });
+        this.showChoices(choices);
+    }
+
+    _specialChat(venue, beauty, stage) {
+        const bd = beauty._beautyData;
+        const tree = bd.dialogueTree;
+        if (!tree || !tree[stage]) {
+            this.chatBeauty(venue, beauty);
+            return;
+        }
+        this.clearChoices();
+        const node = tree[stage];
+        this.addMessage(typeof node === 'string' ? node : node.text, 'narrator');
+        const choices = (node.choices || [{ text: '……', next: stage + 1 }]).map(c => ({
+            text: c.text,
+            action: () => {
+                if (c.action) c.action(this, venue, beauty);
+                else this._specialChat(venue, beauty, c.next);
+            },
+        }));
         choices.push({ text: '离开', action: () => this.enterVenue(venue) });
         this.showChoices(choices);
     }
@@ -2427,7 +2647,7 @@ class Game {
         if (bd._revealed.body) msgs.push({ text: `身材：${bd.bodyDesc}`, type: 'html' });
         if (bd._revealed.clothing) msgs.push({ text: `穿着：${bd.clothing}`, type: 'html' });
         if (bd._revealed.age) msgs.push({ text: `年龄：约${bd.age}岁`, type: 'info' });
-        if (bd._revealed.height) msgs.push({ text: `身高：${bd.height}cm`, type: 'info' });
+        if (bd._revealed.height) msgs.push({ text: `身高：${bd.height}cm${bd.heightLabel ? '（' + bd.heightLabel + '）' : ''}`, type: 'info' });
         if (bd._revealed.measurements) msgs.push({ text: `三围：${bd.bust}-${bd.waist}-${bd.hips}`, type: 'info' });
         if (bd._revealed.marital) {
             const fam = bd.married ? '已婚' : '未婚';
@@ -2441,10 +2661,12 @@ class Game {
         if (!this.redRecord[bd.id]) {
             this.redRecord[bd.id] = {
                 id: bd.id, name: bd.name, age: bd.age, surface: bd.surface, inner: bd.inner,
-                height: bd.height, bust: bd.bust, waist: bd.waist, hips: bd.hips,
+                height: bd.height, heightLabel: bd.heightLabel,
+                bust: bd.bust, waist: bd.waist, hips: bd.hips,
                 beautyScore: bd.beautyScore, beautyTierLabel: bd.beautyTierLabel, beautyTierColor: bd.beautyTierColor,
                 faceScore: bd.faceScore, bodyScore: bd.bodyScore, faceDesc: bd.faceDesc, bodyDesc: bd.bodyDesc,
                 chastity: bd.chastity, _currentLocId: bd._currentLocId,
+                special: !!bd.special,
                 sexCount: 0, lastTime: this.player.day,
             };
         }
@@ -2457,21 +2679,11 @@ class Game {
     _pickChatLine(bd, stage) {
         const pool = window.CHAT_LINES[bd.inner] || window.CHAT_LINES.unmarried;
         const c = randomEntry(pool['s' + stage]);
-        return { narrator: fmtLine(c.n, bd), line: c.l };
-    }
-
-    _pickFlirtScene(bd) {
-        const s = pickScene(window.FLIRT_SCENES, bd.inner);
-        return { step2: fmtLine(s.s2, bd), step3: fmtLine(s.s3, bd), step4: fmtLine(s.s4, bd), end: fmtLine(s.end, bd) };
+        return { narrator: fmtLine(c.n, bd), line: c.l, player: c.p ? fmtLine(c.p, bd) : null };
     }
 
     _pickKissScene(bd) {
         const s = pickScene(window.KISS_SCENES, bd.inner);
-        return { narrator: fmtLine(s.n, bd), line: fmtLine(s.l, bd) };
-    }
-
-    _pickGropeScene(bd) {
-        const s = pickScene(window.GROPE_SCENES, bd.inner);
         return { narrator: fmtLine(s.n, bd), line: fmtLine(s.l, bd) };
     }
 
@@ -2489,11 +2701,13 @@ class Game {
         const c = this._pickChatLine(bd, 0);
         bd._revealed.body = true;
         const msgs = [
-            { text: attitudeText, type: 'html' },
             { text: c.narrator, type: 'narrator' },
+        ];
+        if (c.player) msgs.push({ text: `你：${c.player}`, type: 'narrator' });
+        msgs.push(
             { text: `${bd.name}：${c.line}`, type: 'narrator' },
             { text: `一番闲谈之后，你得知她名叫${bd.name}。`, type: 'info' },
-        ];
+        );
         this._ensureRedRecord(bd);
         msgs.push({ text: `已将${bd.name}记入红颜录，可通过红颜录查询她的去向。`, type: 'system' });
         const gift = pickRegionalGift(this.currentLocation.id);
@@ -2506,7 +2720,7 @@ class Game {
     _chatProgressive(venue, beauty) {
         const bd = beauty._beautyData;
         const stage = bd.chatLevel;
-        const stageLabels = ['粗谈一番', '相谈甚欢', '卧心长谈', '深入交流'];
+        const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧心长谈', '深入交流'];
         bd.chatLevel = stage + 1;
         const c = this._pickChatLine(bd, stage);
         if (stage === 1) { bd._revealed.clothing = true; bd._revealed.height = true; }
@@ -2515,8 +2729,9 @@ class Game {
         const msgs = [
             { text: `（${stageLabels[stage]}）`, type: 'system' },
             { text: c.narrator, type: 'narrator' },
-            { text: `${bd.name}：${c.line}`, type: 'narrator' },
         ];
+        if (c.player) msgs.push({ text: `你：${c.player}`, type: 'narrator' });
+        msgs.push({ text: `${bd.name}：${c.line}`, type: 'narrator' });
         if (stage === 3) {
             msgs.push({ text: `她告诉你她今年${bd.age}岁，${bd.surface === 'unmarried' ? '尚未婚配' : bd.surface === 'widow' ? '夫家已故，守寡至今' : '已嫁人'}${bd.surface === 'married_child' ? '，育有子女' : ''}。`, type: 'info' });
             msgs.push({ text: `你偷偷记下了她的三围：${bd.bust}-${bd.waist}-${bd.hips}。`, type: 'info' });
@@ -2535,7 +2750,17 @@ class Game {
         if (bd.flirtCount >= 4) {
             this.addMessage(`夜色渐深，${bd.name}脸颊绯红，${getFlirtMood(bd)}。`, 'narrator');
             bd._chattedToday = true;
-            this.showChoices([{ text: '……', action: () => this.flirtEventStep2(venue, beauty) }]);
+            this.showChoices([{ text: '……', action: () => {
+                startCloudRain(bd, this.player, {
+                    addMessage: (...a) => this.addMessage(...a),
+                    showChoices: (...a) => this.showChoices(...a),
+                    clearChoices: () => this.clearChoices(),
+                    updateStatsBar: () => this.updateStatsBar(),
+                    sleepToTomorrow: (v) => this.sleepToTomorrow(v),
+                    ensureRedRecord: (b) => this._ensureRedRecord(b),
+                    venue: venue,
+                });
+            } }]);
             return;
         }
         const line = randomEntry(FLIRT_LINES);
@@ -2585,7 +2810,7 @@ class Game {
         }
         if (stage === 0) return this._chatFirstMet(venue, beauty);
         if (fav < threshold[stage]) {
-            const stageLabels = ['粗谈一番', '相谈甚欢', '卧心长谈', '深入交流'];
+const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧心长谈', '深入交流'];
             this.showMessageSequence([
                 { text: `（${stageLabels[stage]}）`, type: 'system' },
                 { text: `${bd.name}对你还不够信任，不愿深谈。（需要好感度≥${threshold[stage]}）`, type: 'narrator' },
@@ -2597,83 +2822,8 @@ class Game {
     }
 
 
-    getFlirtScene(bd) {
-        return this._pickFlirtScene(bd);
-    }
-
     getKissScene(bd) {
         return this._pickKissScene(bd);
-    }
-
-    getGropeScene(bd) {
-        return this._pickGropeScene(bd);
-    }
-
-    flirtEventStep2(venue, beauty) {
-        this.clearChoices();
-        const bd = beauty._beautyData;
-        const scene = this.getFlirtScene(bd);
-        this.addMessage(scene.step2, 'narrator');
-        this.showChoices([{ text: '……', action: () => this.flirtEventStep3(venue, beauty) }]);
-    }
-
-    flirtEventStep3(venue, beauty) {
-        this.clearChoices();
-        const bd = beauty._beautyData;
-        const scene = this.getFlirtScene(bd);
-        this.addMessage(scene.step3, 'narrator');
-        this.showChoices([{ text: '……', action: () => this.flirtEventStep4(venue, beauty) }]);
-    }
-
-    flirtEventStep4(venue, beauty) {
-        this.clearChoices();
-        const bd = beauty._beautyData;
-        const scene = this.getFlirtScene(bd);
-        this.addMessage(scene.step4, 'narrator');
-        this.showChoices([{ text: '……', action: () => this.flirtEventStep5(venue, beauty) }]);
-    }
-
-    flirtEventStep5(venue, beauty) {
-        this.clearChoices();
-        const bd = beauty._beautyData;
-        bd._flirtPoem = POEMS[Math.floor(Math.random() * POEMS.length)];
-        bd._flirtPoemIdx = 0;
-        this.flirtShowPoemLine(venue, beauty);
-    }
-
-    flirtShowPoemLine(venue, beauty) {
-        this.clearChoices();
-        const bd = beauty._beautyData;
-        const poem = bd._flirtPoem;
-        const idx = bd._flirtPoemIdx;
-        if (idx < poem.lines.length) {
-            if (idx === 0 && !bd._flirtIntroShown) {
-                this.addMessage('有道是：', 'narrator');
-                bd._flirtIntroShown = true;
-                this.showChoices([{ text: '……', action: () => this.flirtShowPoemLine(venue, beauty) }]);
-            } else {
-                this.addMessage(`　　${poem.lines[idx]}`, 'poem');
-                bd._flirtPoemIdx = idx + 1;
-                this.showChoices([{ text: '……', action: () => this.flirtShowPoemLine(venue, beauty) }]);
-            }
-        } else {
-            const scene = this.getFlirtScene(bd);
-            this.addMessage(scene.end, 'narrator');
-            bd._hadSex = true;
-            bd.favorability = Math.min(100, bd.favorability + 8);
-            this.player.neili -= 20;
-            this._ensureRedRecord(bd);
-            delete bd._flirtPoem;
-            delete bd._flirtPoemIdx;
-            delete bd._flirtIntroShown;
-            this.updateStatsBar();
-            this.player._sleptWithBeauty = true;
-            this.showChoices([{ text: '沉沉睡去……', action: () => {
-                this.clearChoices();
-                this.sleepToTomorrow(true);
-                this.addMessage(`你从${bd.name}的闺房中醒来，昨夜风流如梦，神清气爽。`, 'narrator');
-            } }]);
-        }
     }
 
     actBeauty(venue, beauty) {
@@ -2772,20 +2922,40 @@ class Game {
     gropeBeauty(venue, beauty) {
         this.clearChoices();
         const bd = beauty._beautyData;
-        const scene = this.getGropeScene(bd);
-        this.addMessage(scene.narrator, 'narrator');
-        this.addMessage(scene.line, 'narrator');
+        this.addMessage(`${bd.name}${bd.heightLabel ? '（' + bd.heightLabel + '）' : ''}俏生生地站在你面前，你想对她哪里下手？`, 'narrator');
+        this.showChoices([
+            { text: '胸', action: () => this.gropeBodyPart(venue, beauty, 'chest') },
+            { text: '腰', action: () => this.gropeBodyPart(venue, beauty, 'waist') },
+            { text: '臀', action: () => this.gropeBodyPart(venue, beauty, 'hips') },
+            { text: '腿', action: () => this.gropeBodyPart(venue, beauty, 'legs') },
+            { text: '算了', action: () => this.intimateBeauty(venue, beauty) },
+        ]);
+    }
+
+    gropeBodyPart(venue, beauty, bodyPart) {
+        this.clearChoices();
+        const bd = beauty._beautyData;
+        const line = pickGropeBodyScene(bd, bodyPart);
+        this.addMessage(line, 'narrator');
         bd.favorability = Math.min(100, bd.favorability + 2);
         this.updateStatsBar();
-        setTimeout(() => this.interactBeauty(venue, beauty), 500);
+        this.showChoices([
+            { text: '继续', action: () => this.gropeBeauty(venue, beauty) },
+            { text: '返回', action: () => this.intimateBeauty(venue, beauty) },
+        ]);
     }
 
     sexBeauty(venue, beauty) {
-        this.clearChoices();
         const bd = beauty._beautyData;
-        bd._flirtPoem = POEMS[Math.floor(Math.random() * POEMS.length)];
-        bd._flirtPoemIdx = 0;
-        this.flirtEventStep2(venue, beauty);
+        startCloudRain(bd, this.player, {
+            addMessage: (...a) => this.addMessage(...a),
+            showChoices: (...a) => this.showChoices(...a),
+            clearChoices: () => this.clearChoices(),
+            updateStatsBar: () => this.updateStatsBar(),
+            sleepToTomorrow: (v) => this.sleepToTomorrow(v),
+            ensureRedRecord: (b) => this._ensureRedRecord(b),
+            venue: venue,
+        });
     }
 
     evilBeauty(venue, beauty) {
@@ -2893,17 +3063,22 @@ class Game {
                 }
                 this.player.gold -= prostitute.price;
                 this.addMessage(`你付了${prostitute.price}两银子，${prostitute.name}微微一笑，牵起你的手走向闺房……`, 'narrator');
-                this.brothelSexProstitute(prostitute);
+                this.brothelSexProstitute(prostitute, venue);
             }},
             { text: '离开', action: () => this.brothelShowGirls(venue, npc) },
         ]));
     }
 
-    brothelSexProstitute(prostitute) {
-        this.clearChoices();
-        prostitute._flirtPoem = POEMS[Math.floor(Math.random() * POEMS.length)];
-        prostitute._flirtPoemIdx = 0;
-        this.flirtEventStep2(this.currentLocation, { _beautyData: prostitute });
+    brothelSexProstitute(prostitute, venue) {
+        startCloudRain(prostitute, this.player, {
+            addMessage: (...a) => this.addMessage(...a),
+            showChoices: (...a) => this.showChoices(...a),
+            clearChoices: () => this.clearChoices(),
+            updateStatsBar: () => this.updateStatsBar(),
+            sleepToTomorrow: (v) => this.sleepToTomorrow(v),
+            ensureRedRecord: (b) => this._ensureRedRecord(b),
+            venue: venue,
+        });
     }
 
     /* ─── 红颜录 ─── */

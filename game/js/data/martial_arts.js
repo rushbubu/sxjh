@@ -56,6 +56,12 @@ function getSkillCoefficient(quality, level) {
     return 1.0;
 }
 
+function getSkillActionCost(skill) {
+    if (skill.quality === 'gold') return 3;
+    if (skill.quality === 'purple' || skill.quality === 'blue') return 2;
+    return 1;
+}
+
 function getSkillPowerTotal(basePower, weaponPower, fixedPower, coefficient) {
     return Math.floor((basePower + weaponPower + fixedPower) * coefficient);
 }

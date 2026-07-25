@@ -633,6 +633,112 @@ body {
 .battle-log-self { color: #f06060; }
 .battle-log-info { color: #80c080; }
 
+.battle-action-row {
+    margin-top: 6px;
+    gap: 2px;
+}
+.action-dot {
+    font-size: 10px;
+    margin: 0 1px;
+    transition: all 0.3s;
+}
+.action-dot-ready {
+    color: #ffd700;
+    text-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
+}
+.action-dot-empty {
+    color: #3a3a3a;
+}
+
+/* ─── 云雨独立页面 ─── */
+
+#sex-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    animation: fadeIn 0.3s ease;
+}
+
+#sex-scene-log {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+#sex-panel {
+    padding: 10px 14px;
+    background: rgba(60, 20, 40, 0.35);
+    border: 1px solid #6a3a4a;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.sex-arousal-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+}
+.sex-a-label {
+    width: 20px;
+    text-align: center;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+.sex-female-label { color: #f080a0; }
+.sex-male-label { color: #80a0f0; }
+
+.sex-a-track {
+    flex: 1;
+    height: 12px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 6px;
+    overflow: hidden;
+    min-width: 60px;
+}
+.sex-a-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.3s;
+}
+.sex-fa-fill { background: linear-gradient(90deg, #803050, #e04080); }
+.sex-ma-fill { background: linear-gradient(90deg, #304080, #4080e0); }
+
+.sex-a-val {
+    width: 28px;
+    text-align: right;
+    font-size: 13px;
+    color: #c0a8b8;
+    flex-shrink: 0;
+}
+
+.sex-clothes {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+    font-size: 12px;
+}
+.sex-c-icon {
+    padding: 1px 6px;
+    border: 1px solid #5a4a5a;
+    border-radius: 4px;
+    color: #c0a8b8;
+    background: rgba(60, 30, 50, 0.3);
+}
+.sex-c-off {
+    border-color: #3a2a3a;
+    color: #4a3a4a;
+    text-decoration: line-through;
+    background: rgba(30, 20, 30, 0.3);
+}
+
 @keyframes battleFadeIn {
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: translateY(0); }

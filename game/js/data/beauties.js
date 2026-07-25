@@ -133,6 +133,23 @@ function generateRequirements(type) {
     return reqs;
 }
 
+function getHeightLabel(height) {
+    if (height < 155) return '萝莉';
+    if (height < 160) return '娇小';
+    if (height < 165) return '中等';
+    if (height < 170) return '高挑';
+    if (height < 178) return '高挑出众';
+    return '过高';
+}
+function getHeightModifier(height) {
+    if (height < 155) return 4;
+    if (height < 160) return -3;
+    if (height < 165) return 0;
+    if (height < 170) return 4;
+    if (height < 178) return 7;
+    return -3;
+}
+
 function getScoreTierKey(score) {
     if (score >= 93) return 'top';
     if (score >= 83) return 'high';
@@ -253,15 +270,25 @@ function generateBeauties(locationId, type, usedNames) {
         }
         const scores = generateBeautyScores(type);
         const faceScore = scores.face;
-        const bodyScore = scores.body;
+        const height = rand(155, type === 'big_city' ? 175 : 170);
+        const heightMod = getHeightModifier(height);
+        const bodyScore = Math.min(99, Math.max(65, scores.body + heightMod));
         const faceDesc = getFaceDesc(faceScore);
         const bodyDesc = getBodyDesc(bodyScore, ms);
+        let bust, waist, hips;
+        if (ms === 'unmarried') {
+            bust = rand(30, 35); waist = rand(20, 24); hips = rand(30, 35);
+        } else if (ms === 'widow') {
+            bust = rand(33, 38); waist = rand(23, 28); hips = rand(33, 38);
+        } else {
+            bust = rand(34, 40); waist = rand(24, 30); hips = rand(34, 40);
+        }
         const b = {
             id: `beauty_${locationId}_${i}`,
             name, age, faceScore, bodyScore,
             surface: ms, inner: ms,
-            height: rand(155, type === 'big_city' ? 175 : 170),
-            bust: rand(32, 38), waist: rand(22, 28), hips: rand(32, 38),
+            height, bust, waist, hips,
+            heightLabel: getHeightLabel(height),
             faceDesc, bodyDesc,
             clothing: ms === 'widow' ? pick(CLOTHING_WIDOW) : pick(type === 'big_city' ? CLOTHING_BIG : type === 'small_city' ? CLOTHING_CITY : CLOTHING_VILLAGE),
             favorability: 0,
@@ -306,15 +333,18 @@ function generateProstitutes(locationId, type, usedNames) {
         const name = generateBeautyName(type, usedNames);
         const scores = generateBeautyScores(type);
         const faceScore = scores.face;
-        const bodyScore = scores.body;
+        const height = rand(158, type === 'big_city' ? 172 : 168);
+        const heightMod = getHeightModifier(height);
+        const bodyScore = Math.min(99, Math.max(65, scores.body + heightMod));
         const faceDesc = getFaceDesc(faceScore);
         const bodyDesc = getBodyDesc(bodyScore, 'unmarried');
         const p = {
             id: `prostitute_${locationId}_${i}`,
             name, age: rand(18, 28), faceScore, bodyScore,
             surface: 'unmarried', inner: 'unmarried',
-            height: rand(158, type === 'big_city' ? 172 : 168),
-            bust: rand(33, 38), waist: rand(22, 27), hips: rand(33, 38),
+            height,
+            heightLabel: getHeightLabel(height),
+            bust: rand(31, 37), waist: rand(21, 25), hips: rand(31, 36),
             faceDesc, bodyDesc,
             clothing: pick(type === 'big_city' ? CLOTHING_BIG : CLOTHING_CITY),
             favorability: 30,
