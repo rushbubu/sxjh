@@ -75,6 +75,12 @@ const ITEMS = {
     gall_snake:       { id: 'gall_snake',     name: '蛇胆',      desc: '巨蟒之胆，服用可增内力。',                                value: 10,  stealDiff: 15, category: 'medicine' },
     gall_bear:        { id: 'gall_bear',      name: '熊胆',      desc: '黑熊之胆，大补内力。',                                    value: 20,  stealDiff: 25, category: 'medicine' },
     gall_tiger:       { id: 'gall_tiger',     name: '虎胆',      desc: '猛虎之胆，稀世珍品，可大幅提升内力。',                    value: 40,  stealDiff: 40, category: 'medicine' },
+
+    // ═══ 赌徒心经 ═══
+    sutra_gambler_1:  { id: 'sutra_gambler_1', name: '初级赌徒心经', desc: '一本皱巴巴的旧册子，记着些出千和听骰的粗浅门道。',   value: 1,   stealDiff: 5,  category: 'skill', use: { learnInternalSkill: '初级赌徒心经' } },
+    sutra_gambler_2:  { id: 'sutra_gambler_2', name: '中级赌徒心经', desc: '笔记更深的赌术心得，但习练需有一定福缘。',            value: 1,   stealDiff: 5,  category: 'skill', use: { learnInternalSkill: '中级赌徒心经' } },
+    sutra_gambler_3:  { id: 'sutra_gambler_3', name: '高级赌徒心经', desc: '密不外传的赌门要诀，非大福缘之人不可窥其门径。',   value: 1,   stealDiff: 5,  category: 'skill', use: { learnInternalSkill: '高级赌徒心经' } },
+    sutra_gambler_4:  { id: 'sutra_gambler_4', name: '大师赌徒心经', desc: '赌门至高秘典，据传练成可逢赌必赢。',                   value: 1,   stealDiff: 5,  category: 'skill', use: { learnInternalSkill: '大师赌徒心经' } },
 };
 
 function getItem(id) {

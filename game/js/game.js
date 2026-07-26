@@ -2254,8 +2254,17 @@ class Game {
     }
 
     doUseItem(item, idx) {
-        this.player.items.splice(idx, 1);
         const use = item.use || {};
+        // 福缘检查（在删除物品前）
+        if (use.learnInternalSkill) {
+            const tier = GAMBLING_SKILL_TIERS.find(t => t.internalName === use.learnInternalSkill);
+            if (tier && tier.luckReq > 0 && (this.player.attrs.luck || 0) < tier.luckReq) {
+                this.addMessage(`你翻开「${item.name}」研读半晌，却发现其中玄机深奥，以你的福缘（${this.player.attrs.luck || 0}）尚不足以参悟。需要福缘达到${tier.luckReq}方可习练。`, 'danger');
+                this.updateStatsBar();
+                return this.showInventory();
+            }
+        }
+        this.player.items.splice(idx, 1);
         let msg = `你使用了「${item.name}」。`;
         if (use.healNeili) {
             this.player.neili = Math.min(this.player.maxNeili, this.player.neili + use.healNeili);
@@ -2263,6 +2272,14 @@ class Game {
         } else if (use.healHp) {
             this.player.hp = Math.min(this.player.maxHp, this.player.hp + use.healHp);
             msg += ` 气血恢复 ${use.healHp} 点。`;
+        } else if (use.learnInternalSkill) {
+            const skName = use.learnInternalSkill;
+            if (!this.player.internalSkills.includes(skName)) {
+                this.player.internalSkills.push(skName);
+                msg += ` 你默记心法口诀，习得「${skName}」！`;
+            } else {
+                msg += ` 但你已经学过这门心法了。`;
+            }
         }
         this.addMessage(msg, 'narrator');
         this.updateStatsBar();
@@ -2416,10 +2433,26 @@ class Game {
         this.player.exp += 5;
         this.player.day += 1;
         this.addMessage(`内力上限 +1（${this.player.maxNeili}），经验 +5`, 'system');
+        // 沿袭赌徒心经解锁赌技
+        if (name.endsWith('赌徒心经')) {
+            this._unlockGamblingSkill(name);
+        }
         this.addMessage('运功完毕，你收功归元，沉沉睡去。', 'narrator');
         this.checkLevelUp();
         this.updateStatsBar();
         setTimeout(() => this.showLocationChoices(), 400);
+    }
+
+    _unlockGamblingSkill(sutraName) {
+        const tier = GAMBLING_SKILL_TIERS.find(t => t.internalName === sutraName);
+        if (!tier) return;
+        const currLevel = this.player._gamblingSkillLevel || 0;
+        if (tier.level > currLevel) {
+            this.player._gamblingSkillLevel = tier.level;
+            this.addMessage(`你从「${sutraName}」中悟得了**${tier.name}**！此后赌博时可用内力催动，提升胜率。`, 'event');
+        } else {
+            this.addMessage('你在「' + sutraName + '」的运功中又多了几分心得，赌术更加精纯。', 'info');
+        }
     }
 
     sleepToTomorrow(silent = false) {

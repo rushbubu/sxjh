@@ -3,7 +3,15 @@
  * 赢钱微提悟性，输赢看属性双判
  * 城市赌徒会出老千，男主可阻拦
  * 赢超30两触发打手黑吃黑
+ * 净负值达标赌徒传授赌徒心经，修炼解锁赌技
  */
+
+const GAMBLING_SKILL_TIERS = [
+    { level: 1, name: '初级赌技', internalName: '初级赌徒心经', netLossReq: -30, luckReq: 0,   neiliCost: 5,  boost: 0.08 },
+    { level: 2, name: '中级赌技', internalName: '中级赌徒心经', netLossReq: -50, luckReq: 30, neiliCost: 10, boost: 0.12 },
+    { level: 3, name: '高级赌技', internalName: '高级赌徒心经', netLossReq: -80, luckReq: 50, neiliCost: 15, boost: 0.16 },
+    { level: 4, name: '大师赌技', internalName: '大师赌徒心经', netLossReq: -120, luckReq: 70, neiliCost: 20, boost: 0.20 },
+];
 
 // ─── 初始化：为所有街角添加赌徒NPC ───
 
@@ -41,11 +49,20 @@ function setupStreetGamblers(world) {
 function _gambleWinChance(player, gameType) {
     const wit = player.attrs.wit || 10;
     const dex = player.attrs.dexterity || 10;
+    let base;
     if (gameType === 'dice') {
-        return Math.min(0.90, 0.40 + wit * 0.003 + dex * 0.001);
+        base = Math.min(0.90, 0.40 + wit * 0.003 + dex * 0.001);
     } else {
-        return Math.min(0.90, 0.40 + dex * 0.003 + wit * 0.001);
+        base = Math.min(0.90, 0.40 + dex * 0.003 + wit * 0.001);
     }
+    if (player._gamblingSkillActive) {
+        const level = player._gamblingSkillLevel || 0;
+        if (level > 0) {
+            const tier = GAMBLING_SKILL_TIERS[level - 1];
+            base = Math.min(0.95, base + tier.boost);
+        }
+    }
+    return base;
 }
 
 function _cheatDetectChance(player) {
@@ -84,25 +101,81 @@ function _gambleShowMenu(gambler, player, callbacks) {
         gambler._gamblingSession = { totalWin: 0, roundCount: 0 };
     }
     callbacks.addMessage('你摸了摸钱袋，掂了掂——囊中还有' + player.gold + '两银子。', 'info');
+    const skLevel = player._gamblingSkillLevel || 0;
+    if (skLevel > 0) {
+        const tier = GAMBLING_SKILL_TIERS[skLevel - 1];
+        const canUse = player.neili >= tier.neiliCost;
+        if (canUse) {
+            const status = player._gamblingSkillActive ? '（已发动✓）' : '';
+            callbacks.addMessage('你暗自运转赌技心法，指间隐隐有一股暗劲流转。' + status, 'info');
+        }
+    }
     callbacks.addMessage('「来来来，想玩点啥？」' + gambler.npcName + '咧嘴一笑。', 'narrator');
-    callbacks.showChoices([
+    const choices = [
         { text: '骰宝（押大小）', action: () => _gambleBetSelect(gambler, player, callbacks, 'dice') },
         { text: '猜单双', action: () => _gambleBetSelect(gambler, player, callbacks, 'oddEven') },
-        { text: '不玩了', action: () => {
-            const s = gambler._gamblingSession;
-            delete gambler._gamblingSession;
-            const net = s.totalWin;
-            if (net > 0) {
-                callbacks.addMessage(gambler.npcName + '数着银子，脸色不太好看：「赢了就想走？下次可不许这么早跑了！」', 'narrator');
-            } else if (net < 0) {
-                callbacks.addMessage(gambler.npcName + '笑呵呵地收起银子：「承让承让！下回多带点钱再来啊！」', 'narrator');
-            } else {
-                callbacks.addMessage(gambler.npcName + '把骰子往碗里一丢：「不玩拉倒。」', 'narrator');
-            }
-            callbacks.updateStatsBar();
-            callbacks.gamblerAction(gambler);
-        } },
-    ]);
+    ];
+    if (skLevel > 0) {
+        const tier = GAMBLING_SKILL_TIERS[skLevel - 1];
+        const canUse = player.neili >= tier.neiliCost;
+        const isActive = !!player._gamblingSkillActive;
+        choices.splice(0, 0, {
+            text: isActive ? '收起赌技（取消）' : (canUse ? '发动' + tier.name + '（' + tier.neiliCost + '内力）' : '内力不足，无法发动赌技'),
+            action: canUse ? () => {
+                if (isActive) {
+                    player._gamblingSkillActive = false;
+                } else {
+                    player.neili -= tier.neiliCost;
+                    player._gamblingSkillActive = true;
+                    callbacks.addMessage('你暗暗催动「' + tier.internalName + '」，一股暗劲流转至指尖，目光变得锐利如鹰。', 'event');
+                }
+                _gambleShowMenu(gambler, player, callbacks);
+            } : undefined,
+        });
+    }
+    choices.push({ text: '不玩了', action: () => {
+        const s = gambler._gamblingSession;
+        // 净负值已在每局结算时更新，此处不需重复
+        delete gambler._gamblingSession;
+        player._gamblingSkillActive = false;
+        const net = s.totalWin;
+        if (net > 0) {
+            callbacks.addMessage(gambler.npcName + '数着银子，脸色不太好看：「赢了就想走？下次可不许这么早跑了！」', 'narrator');
+        } else if (net < 0) {
+            callbacks.addMessage(gambler.npcName + '笑呵呵地收起银子：「承让承让！下回多带点钱再来啊！」', 'narrator');
+        } else {
+            callbacks.addMessage(gambler.npcName + '把骰子往碗里一丢：「不玩拉倒。」', 'narrator');
+        }
+        callbacks.updateStatsBar();
+        callbacks.gamblerAction(gambler);
+    } });
+    callbacks.showChoices(choices);
+}
+
+function _checkSutraReward(gambler, player, callbacks, sessionNet) {
+    if (!player._sutraReceived) player._sutraReceived = [];
+    const totalLoss = gambler._netLoss || 0;
+    for (const tier of GAMBLING_SKILL_TIERS) {
+        if (player._sutraReceived.includes(tier.level)) continue;
+        if (tier.internalName === '初级赌徒心经' && totalLoss <= tier.netLossReq) {
+            player._sutraReceived.push(tier.level);
+            _giveSutraItem(gambler, player, callbacks, tier);
+            return;
+        }
+        if (totalLoss <= tier.netLossReq && player._sutraReceived.includes(tier.level - 1)) {
+            player._sutraReceived.push(tier.level);
+            _giveSutraItem(gambler, player, callbacks, tier);
+            return;
+        }
+    }
+}
+
+function _giveSutraItem(gambler, player, callbacks, tier) {
+    const item = getItem('sutra_gambler_' + tier.level);
+    if (!item) return;
+    player.items.push({ ...item });
+    callbacks.addMessage(gambler.npcName + '叹了口气，从怀里摸出一本皱巴巴的册子递给你：「你输得不少啊……这本' + tier.internalName + '你拿回去琢磨琢磨，下次别输这么惨了。」', 'narrator');
+    callbacks.addMessage('获得「' + item.name + '」', 'event');
 }
 
 // ─── 骰子游戏 ───
@@ -274,6 +347,7 @@ function _gambleThugCheck(gambler, player, callbacks) {
                     callbacks.updateStatsBar();
                     callbacks.addMessage('你挣扎着爬起来，灰头土脸地离开了巷子。', 'narrator');
                     delete gambler._gamblingSession;
+                    player._gamblingSkillActive = false;
                     callbacks.gamblerAction(gambler);
                 }
             );
@@ -295,11 +369,15 @@ function _gambleThugCheck(gambler, player, callbacks) {
 // ─── 每局结算 ───
 
 function _gambleAftermath(gambler, player, callbacks, didWin, bet) {
+    gambler._netLoss = (gambler._netLoss || 0) + (didWin ? bet : -bet);
     callbacks.updateStatsBar();
+    // 检查是否该给心经
+    _checkSutraReward(gambler, player, callbacks, gambler._netLoss);
     const s = gambler._gamblingSession;
     if (player.gold <= 0) {
         callbacks.addMessage('你摸了摸口袋——一文不名了。' + gambler.npcName + '撇了撇嘴：「没钱了还想玩？去去去，别耽误我做生意。」', 'narrator');
         delete gambler._gamblingSession;
+        player._gamblingSkillActive = false;
         return callbacks.gamblerAction(gambler);
     }
     if (didWin && s.totalWin > 30 && !gambler._thugTriggered) {
