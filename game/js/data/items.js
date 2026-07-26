@@ -67,6 +67,18 @@ const ITEMS = {
     jiedu_san:        { id: 'jiedu_san',      name: '解毒散',    desc: '专解百毒的药散，可解除中毒状态。',                       value: 6,   stealDiff: 18, category: 'medicine', use: { cure: 'poison' } },
     qingxin_wan:      { id: 'qingxin_wan',    name: '清心丸',    desc: '宁神静气的药丸，可解除混乱状态。',                       value: 6,   stealDiff: 18, category: 'medicine', use: { cure: 'confusion' } },
 
+    // ═══ 通用商品（店铺售卖，无特殊用途） ═══
+    incense:         { id: 'incense',         name: '熏香',      desc: '上等檀香制成的熏香，香气清雅持久。',                     value: 5,   stealDiff: 15, category: 'consumable' },
+    silk_scarf:      { id: 'silk_scarf',      name: '丝巾',      desc: '轻柔的丝绸围巾，做工精致。',                              value: 8,   stealDiff: 20, category: 'clothing', slot: 'accessory', tier: 'white' },
+    writing_brush:   { id: 'writing_brush',   name: '毛笔',      desc: '狼毫毛笔，笔锋锐利，写字流畅。',                          value: 3,   stealDiff: 10, category: 'culture' },
+    ink_stick:       { id: 'ink_stick',       name: '墨锭',      desc: '上等松烟墨，墨色乌黑发亮。',                              value: 3,   stealDiff: 10, category: 'culture' },
+    tea_cake:        { id: 'tea_cake',        name: '茶饼',      desc: '压制成饼的普洱茶，越陈越香。',                             value: 6,   stealDiff: 15, category: 'food' },
+
+    // ═══ 锻造材料 ═══
+    iron_ore:        { id: 'iron_ore',        name: '铁矿石',    desc: '山中开采的铁矿石，可熔炼成铁。',                         value: 3,   stealDiff: 10, category: 'material' },
+    leather_raw:     { id: 'leather_raw',     name: '兽皮',      desc: '处理过的兽皮，可用于制作皮具铠甲。',                     value: 3,   stealDiff: 10, category: 'material' },
+    wood_hard:       { id: 'wood_hard',       name: '硬木',      desc: '坚硬耐用的木材，适合做兵器握柄或盾牌。',                 value: 2,   stealDiff: 8,  category: 'material' },
+
     // ═══ 猎物 ═══
     meat_rabbit:      { id: 'meat_rabbit',    name: '兔肉',      desc: '新鲜的兔肉，烤着吃很香。',                                value: 2,   stealDiff: 3,  category: 'food' },
     meat_snake:       { id: 'meat_snake',     name: '蛇肉',      desc: '蛇肉细嫩，煲汤极鲜。',                                   value: 3,   stealDiff: 4,  category: 'food' },

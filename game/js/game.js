@@ -210,8 +210,6 @@ class Game {
 
     _adjInnerRep(delta, label) {
         this.player._innerRep = Math.max(0, Math.min(100, (this.player._innerRep || 100) + delta));
-        const d = delta >= 0 ? '+' : '';
-        this.addMessage(`里声望 ${d}${delta}（当前 ${this.player._innerRep}）`, delta >= 0 ? 'event' : 'danger');
     }
 
     _adjWorldHelp(delta, label) {
@@ -1220,6 +1218,9 @@ class Game {
             { text: '购买', action: () => this.buyFromNpc(venue, npc) },
             { text: '出售', action: () => this.sellToNpc(venue, npc) },
         ];
+        if (venue.name === '铁匠铺') {
+            choices.splice(choices.findIndex(c => c.text === '出售') + 1, 0, { text: '锻造', action: () => this.showForgeMenu(venue, npc) });
+        }
         // 小树林：猎人或樵夫专属
         if (npc._forestType === 'hunter' && !npc._killed) {
             choices.splice(choices.length, 0, { text: '帮助打猎', action: () => this.huntWithHunter(venue, npc) });
@@ -1686,17 +1687,52 @@ class Game {
     chatWithNpc(venue, npc) {
         this.clearChoices();
         const chats = {
-            '草药铺': [ '最近山里的药材越来越少，采药得走更远了。', '你懂药理吗？我这有几味好药……', '看你的气色，要不要抓副药调理调理？' ],
-            '铁匠铺': [ '这铁是上好的百炼钢，一般人打不动。', '前两天有人来打了把好刀，那气势……', '你要是想打兵器，得自己带好铁来。' ],
-            '酒馆': [ '客官来点什么？本店的招牌菜可是一绝。', '听说了吗？最近城外好像不太平。', '我这有坛十八年的女儿红，想不想尝尝？' ],
-            '家': [ '村里最近倒是太平，没什么大事。', '你要是想找活干，可以去后山看看。', '唉，今年的收成不太好……' ],
-            '府': [ '最近生意不太好做啊……', '你要是有什么好东西，可以卖给我。', '听说镇上来了个陌生人，你可要多加小心。' ],
-            '街角': [ '行行好，赏口饭吃吧……', '我已经三天没吃东西了……', '这年头，活着真难啊。', '大爷您行行好，我给你磕头了！' ],
-            '猎人': [ '后山的猎物越来越精了，不好打。', '你要是想试试身手，可以跟我进山。', '猎了一辈子，这山里的东西没人比我更熟。', '昨天打了个大家伙，够吃好几天了。' ],
-            '樵夫': [ '这柴劈起来也有门道，顺着纹路才省力。', '山上的木头硬得很，我这把刀都快卷刃了。', '每天砍柴，倒也自在。', '你要是有空，可以搭把手。' ],
+            '草药铺': [
+                '最近山里的药材越来越少，采药得走更远了。', '你懂药理吗？我这有几味好药……', '看你的气色，要不要抓副药调理调理？',
+                '后山小树林里常有药草，你有空可以去采些来，我高价收。', '你要是受了伤，记得来买金疮药，跌打损伤都好使。',
+                '村里的樵夫常在山上砍柴，也认得些草药，你可以去后山小树林寻他。',
+            ],
+            '铁匠铺': [
+                '这铁是上好的百炼钢，一般人打不动。', '前两天有人来打了把好刀，那气势……', '你要是想打兵器，得自己带好铁来。',
+                '后山小树林里有猎户打猎、樵夫砍柴，他们手上常有材料，你可以去瞧瞧。', '想打造好装备，得先有好的矿石，打猎砍柴都能弄到材料。',
+                '我这里有锻炉，你拿铁矿石、兽皮、硬木来，我给你打兵器铠甲。猎户的兽皮、樵夫的硬木都是好材料。',
+            ],
+            '酒馆': [
+                '客官来点什么？本店的招牌菜可是一绝。', '听说了吗？最近城外好像不太平。', '我这有坛十八年的女儿红，想不想尝尝？',
+                '你要想打听消息，街角那老乞丐消息最灵通，塞几两银子什么都告诉你。', '出门在外，多带些干粮和酒水，路上用得着。',
+                '听说有些村子的铁匠铺能打造上好的兵器，你有材料不妨去试试。',
+            ],
+            '家': [
+                '村里最近倒是太平，没什么大事。', '你要是想找活干，可以去后山看看。', '唉，今年的收成不太好……',
+                '后山小树林里有猎户打猎，也有樵夫砍柴，年轻人可以去搭把手。', '你需要啥就去村里各铺子转转，草药铺找郎中，铁匠铺找铁匠。',
+                '街角那个乞丐别看邋遢，这十里八乡的事他门儿清。',
+            ],
+            '府': [
+                '最近生意不太好做啊……', '你要是有什么好东西，可以卖给我。', '听说镇上来了个陌生人，你可要多加小心。',
+                '我府上缺些山货，你去小树林找猎户樵夫收些来，我出高价。', '这年头各村的郎中都不错，跌打损伤找他们比去大城便宜。',
+                '你想发财的话，小树林里打猎砍柴都能卖钱，攒够了去铁匠铺打身好行头。',
+            ],
+            '街角': [
+                '行行好，赏口饭吃吧……', '我已经三天没吃东西了……', '这年头，活着真难啊。', '大爷您行行好，我给你磕头了！',
+                '……你要是想赌两手，那边巷子里有人开局，不过别怪我没提醒你，水深的很。', '后山林子里有猎户，你要是想打猎可以去找他，比跟我这老骨头耗着强。',
+            ],
+            '猎人': [
+                '后山的猎物越来越精了，不好打。', '你要是想试试身手，可以跟我进山。', '猎了一辈子，这山里的东西没人比我更熟。', '昨天打了个大家伙，够吃好几天了。',
+                '你要是能帮我打些猎物，皮毛和肉都归你，拿去铁匠铺能换不少钱。', '山里偶尔能碰到珍兽，打到了可值大钱，不过没点本事可别去送死。',
+                '你可以先去村里铁匠铺打把趁手的兵器，再来跟我进山。', '打到的猎物剥下的兽皮是好东西，铁匠铺收这个，能打皮甲。',
+            ],
+            '樵夫': [
+                '这柴劈起来也有门道，顺着纹路才省力。', '山上的木头硬得很，我这把刀都快卷刃了。', '每天砍柴，倒也自在。', '你要是有空，可以搭把手。',
+                '你帮我砍够了柴，这些硬木你可以拿去铁匠铺，他们打兵器正缺好木料。', '村头的草药铺郎中有时也会来采药，你留意脚下，别踩坏了药草。',
+                '我天天在山上转悠，倒是常见到猎户打猎，你们年轻人该去跟他学学。', '这硬木适合做刀柄和弓身，铁匠铺的师傅识货。',
+            ],
         };
         const key = Object.keys(chats).find(k => venue.name.includes(k) || (npc._forestType && npc._forestType === k));
-        const lines = chats[key] || ['今天天气不错。', '你好啊，有什么事吗？', '这日子一天天过，平淡是福。'];
+        const lines = chats[key] || [
+            '今天天气不错。', '你好啊，有什么事吗？', '这日子一天天过，平淡是福。',
+            '你要想找事做，可以去小树林帮猎户打猎或者帮樵夫砍柴。', '每个村子都有草药铺和铁匠铺，受伤了去找郎中，想打装备去找铁匠。',
+            '街角的乞丐消息灵通，想打听什么事找他准没错。', '赌博有风险，输光了可别怪我没提醒你。',
+        ];
         this.addMessage(npc.npcName + '：「' + lines[Math.floor(Math.random() * lines.length)] + '」', 'narrator');
         this.player.neili -= 2;
         this.updateStatsBar();
@@ -1709,7 +1745,6 @@ class Game {
         this.clearChoices();
         this.addMessage(`墙角的老乞丐缩了缩脖子，咧嘴露出一口黄牙：「爷，赏口饭吃吧……」`, 'narrator');
         const choices = [
-            { text: '施舍几枚铜钱（济苍生+1）', action: () => this.beggarCharity(venue, npc) },
             { text: '打听消息（1两）', action: () => this.beggarIntel(venue, npc) },
             { text: '打听门派势力', action: () => this.beggarIntelFactions(venue, npc) },
             { text: '暴打一顿', action: () => this.beatBeggar(venue, npc) },
@@ -1870,6 +1905,11 @@ class Game {
             const reward = prey.reward;
             this.player.items.push({ ...getItem(reward.item) });
             this.addMessage(`获得 ${reward.label}`, 'system');
+            if (prey.diff >= 1) {
+                const leatherQty = Math.floor(prey.diff / 2) + 1;
+                for (let i = 0; i < leatherQty; i++) this.player.items.push({ ...getItem('leather_raw') });
+                this.addMessage(`获得兽皮×${leatherQty}`, 'system');
+            }
 
             if (reward.boost) {
                 if (reward.boost.maxNeili) {
@@ -1913,6 +1953,8 @@ class Game {
         this.addMessage('你一斧一斧地劈着，虽然累，但感觉筋骨舒展了不少。', 'narrator');
         this.addMessage('不知不觉，半天过去了。', 'narrator');
         this.advanceTime();
+        this.player.items.push({ ...getItem('wood_hard') });
+        this.addMessage('获得硬木×1', 'system');
         const chopRoot = this.player._chopRootBonus || 0;
         if (chopRoot < 10) {
             this.player.attrs.root += 1;
@@ -2871,6 +2913,64 @@ class Game {
         setTimeout(() => this.sellToNpc(venue, npc), 400);
     }
 
+    /* ─── 锻造 ─── */
+
+    showForgeMenu(venue, npc) {
+        this.clearChoices();
+        const p = this.player;
+        const allRecipes = [
+            { id: 'knife_wood',    name: '柴刀',      tier: 'white', cost: 3,  ings: { iron_ore: 2 }, desc: '劈柴用的铁刀' },
+            { id: 'dagger',        name: '匕首',      tier: 'white', cost: 3,  ings: { iron_ore: 2 }, desc: '短小锋利的匕首' },
+            { id: 'steel_blade',   name: '精铁刀',    tier: 'green', cost: 10, ings: { iron_ore: 4, wood_hard: 2 }, desc: '百炼精铁打造的腰刀' },
+            { id: 'chest_mirror',  name: '护心镜',    tier: 'green', cost: 10, ings: { iron_ore: 4, leather_raw: 2 }, desc: '可挡暗箭的铜镜' },
+            { id: 'blue_blade',    name: '砍山刀',    tier: 'blue',  cost: 30, ings: { iron_ore: 6, leather_raw: 4, wood_hard: 2 }, desc: '刃口厚重的砍刀' },
+            { id: 'blue_sword',    name: '青锋剑',    tier: 'blue',  cost: 35, ings: { iron_ore: 8, wood_hard: 4 }, desc: '剑身泛青光的利器' },
+            { id: 'gold_silk_armor', name: '金丝软甲', tier: 'purple', cost: 60, ings: { iron_ore: 10, leather_raw: 8 }, desc: '刀枪不入的宝甲' },
+        ];
+        const hasHighTier = (npc.items || []).some(it => it.tier === 'blue' || it.tier === 'purple');
+        const recipes = hasHighTier ? allRecipes : allRecipes.filter(r => r.tier === 'white' || r.tier === 'green');
+
+        const countItem = (id) => p.items.filter(it => it.id === id).length;
+        const ingName = (id) => (getItem(id) || { name: id }).name;
+
+        this.addMessage(`—— ${npc.npcName}的锻炉 ——`, 'system');
+        this.addMessage(`你身上的材料：铁矿石×${countItem('iron_ore')}、兽皮×${countItem('leather_raw')}、硬木×${countItem('wood_hard')}  银两：${p.gold}两`, 'narrator');
+
+        const choices = recipes.map(r => {
+            const hasMat = Object.entries(r.ings).every(([id, qty]) => countItem(id) >= qty);
+            const hasGold = p.gold >= r.cost;
+            const canForge = hasMat && hasGold;
+            const label = (canForge ? '' : '⚠ ') + r.name + (r.tier !== 'white' ? `（${r.tier}）` : '') + ` — ${r.desc} 需：` +
+                Object.entries(r.ings).map(([id, qty]) => `${ingName(id)}×${qty}`).join('、') + ` + ${r.cost}两`;
+            return {
+                text: label,
+                action: canForge ? () => this._doForge(venue, npc, r) : () => { this.addMessage('材料不足，无法锻造。', 'info'); setTimeout(() => this.showForgeMenu(venue, npc), 200); },
+            };
+        });
+        choices.push({ text: '返回', action: () => this.interactNpc(venue, npc) });
+        this.showChoices(choices);
+    }
+
+    _doForge(venue, npc, recipe) {
+        this.clearChoices();
+        const p = this.player;
+        for (const [id, qty] of Object.entries(recipe.ings)) {
+            let left = qty;
+            p.items = p.items.filter(it => {
+                if (it.id === id && left > 0) { left--; return false; }
+                return true;
+            });
+        }
+        p.gold -= recipe.cost;
+        const item = getItem(recipe.id);
+        if (!item) { this.addMessage('锻造失败：未知的配方。', 'danger'); this.updateStatsBar(); setTimeout(() => this.showForgeMenu(venue, npc), 400); return; }
+        if (!this.autoEquip(item)) p.items.push({ ...item });
+        this.addMessage(`你将材料投入炉火中，锻造成了一把${recipe.name}！`, 'event');
+        this.addMessage(`花费 ${recipe.cost}两，消耗了相应材料。`, 'info');
+        this.updateStatsBar();
+        setTimeout(() => this.showForgeMenu(venue, npc), 400);
+    }
+
     /* ─── 偷盗 ─── */
 
     attemptSteal(venue, npc) {
@@ -3041,6 +3141,220 @@ class Game {
         this.showInventory();
     }
 
+    /* ─── 装备系统 ─── */
+
+    showEquipment() {
+        const overlay = document.getElementById('equip-overlay');
+        overlay.classList.remove('hidden');
+        this._buildEquipSlots();
+    }
+
+    hideEquipment() {
+        document.getElementById('equip-overlay').classList.add('hidden');
+        document.getElementById('equip-sub').classList.add('hidden');
+    }
+
+    _buildEquipSlots() {
+        const eq = this.player.equipment;
+        const slots = document.getElementById('equip-slots');
+        const defs = [
+            { row: 0, slots: [{ key: 'head',        label: '头部' }] },
+            { row: 1, slots: [
+                { key: 'leftHand',   label: '左手' },
+                { key: 'upperBody',  label: '上衣' },
+                { key: 'rightHand',  label: '右手' },
+            ]},
+            { row: 2, slots: [
+                { key: 'bracers',    label: '护腕' },
+                { key: 'lowerBody',  label: '下装' },
+                { key: 'boots',      label: '鞋子' },
+            ]},
+            { row: 3, slots: [
+                { key: 'accessory1', label: '饰品·壹' },
+                { key: 'accessory2', label: '饰品·贰' },
+            ]},
+        ];
+
+        const tierClass = { white:'eq-tier-white', green:'eq-tier-green', blue:'eq-tier-blue', purple:'eq-tier-purple' };
+        let html = '';
+        for (const row of defs) {
+            html += '<div class="equip-row">';
+            for (const s of row.slots) {
+                const item = eq[s.key];
+                const filled = !!item;
+                const tc = item ? (tierClass[item.tier] || '') : '';
+                html += '<div class="equip-slot' + (filled ? ' eq-filled' : '') + '" data-slot="' + s.key + '">' +
+                    '<span class="eq-label">' + s.label + '</span>' +
+                    '<span class="eq-name ' + tc + '">' + (item ? item.name : '空') + '</span>' +
+                    '</div>';
+            }
+            html += '</div>';
+        }
+        html += '<div class="equip-row" style="margin-top:8px">' +
+            '<button class="equip-loadout-btn" id="btn-save-loadout">保存套装</button>' +
+            '<button class="equip-loadout-btn" id="btn-load-loadout">读取套装</button>' +
+            '</div>';
+        slots.innerHTML = html;
+
+        for (const el of slots.querySelectorAll('.equip-slot')) {
+            el.onclick = () => {
+                const slot = el.dataset.slot;
+                if (eq[slot]) {
+                    this._doUnequip(slot);
+                } else {
+                    this._showEquipItems(slot);
+                }
+            };
+        }
+        document.getElementById('btn-save-loadout').onclick = () => this._saveLoadout();
+        document.getElementById('btn-load-loadout').onclick = () => this._showLoadouts();
+    }
+
+    _showEquipItems(slot) {
+        const sub = document.getElementById('equip-sub');
+        const eq = this.player.equipment;
+        const items = this.player.items.filter(it => it.slot && this._slotMatches(slot, it.slot));
+
+        if (items.length === 0) {
+            sub.classList.remove('hidden');
+            sub.innerHTML = '<div style="text-align:center;color:#6a7a9a;padding:8px;">没有可装备的物品</div>';
+            return;
+        }
+
+        const tierClass = { white:'eq-tier-white', green:'eq-tier-green', blue:'eq-tier-blue', purple:'eq-tier-purple' };
+        let html = '';
+        for (const it of items) {
+            const tc = tierClass[it.tier] || '';
+            html += '<button class="equip-item-choice" data-id="' + it.id + '">' +
+                '<span class="' + tc + '">' + it.name + '</span> — ' + (it.desc || '') + '（价值 ' + it.value + '两）' +
+                '</button>';
+        }
+        sub.innerHTML = html;
+        sub.classList.remove('hidden');
+
+        for (const btn of sub.querySelectorAll('.equip-item-choice')) {
+            btn.onclick = () => {
+                const id = btn.dataset.id;
+                const idx = this.player.items.findIndex(it => it.id === id && it.slot && this._slotMatches(slot, it.slot));
+                if (idx > -1) {
+                    const item = this.player.items[idx];
+                    const current = eq[slot];
+                    if (current) this.player.items.push({ ...current });
+                    this.player.items.splice(idx, 1);
+                    eq[slot] = { ...item };
+                    this.updateStatsBar();
+                    this._buildEquipSlots();
+                    sub.classList.add('hidden');
+                }
+            };
+        }
+    }
+
+    _slotMatches(slotKey, itemSlot) {
+        if (slotKey === itemSlot) return true;
+        if (slotKey === 'accessory1' || slotKey === 'accessory2') return itemSlot === 'accessory';
+        return false;
+    }
+
+    _doUnequip(slot) {
+        const eq = this.player.equipment;
+        const item = eq[slot];
+        if (!item) return;
+        this.player.items.push({ ...item });
+        eq[slot] = null;
+        this.updateStatsBar();
+        this._buildEquipSlots();
+        document.getElementById('equip-sub').classList.add('hidden');
+    }
+
+    /* ─── 套装保存/读取 ─── */
+
+    _saveLoadout() {
+        const eq = this.player.equipment;
+        if (!this.player._equipLoadouts) this.player._equipLoadouts = [];
+        const name = '套装' + (this.player._equipLoadouts.length + 1);
+        const snapshot = {};
+        for (const key of Object.keys(eq)) {
+            if (eq[key]) snapshot[key] = eq[key].id;
+        }
+        this.player._equipLoadouts.push({ name, slots: snapshot });
+        this.addMessage('已保存当前装备为「' + name + '」。', 'event');
+        this._buildEquipSlots();
+    }
+
+    _showLoadouts() {
+        const sub = document.getElementById('equip-sub');
+        const loadouts = this.player._equipLoadouts || [];
+        if (loadouts.length === 0) {
+            sub.classList.remove('hidden');
+            sub.innerHTML = '<div style="text-align:center;color:#6a7a9a;padding:8px;">暂无保存的套装</div>';
+            return;
+        }
+        let html = '';
+        for (let i = 0; i < loadouts.length; i++) {
+            const lo = loadouts[i];
+            const count = Object.keys(lo.slots).length;
+            html += '<button class="equip-item-choice" data-idx="' + i + '">' +
+                lo.name + '（' + count + '件）</button>';
+        }
+        html += '<button class="equip-item-choice" style="border-color:#6a3a3a;color:#c09090" id="btn-clear-loadouts">删除全部</button>';
+        sub.innerHTML = html;
+        sub.classList.remove('hidden');
+
+        for (const btn of sub.querySelectorAll('.equip-item-choice[data-idx]')) {
+            btn.onclick = () => {
+                const idx = parseInt(btn.dataset.idx);
+                this._applyLoadout(idx);
+            };
+        }
+        document.getElementById('btn-clear-loadouts').onclick = () => {
+            this.player._equipLoadouts = [];
+            sub.classList.add('hidden');
+            this.addMessage('已删除所有套装。', 'info');
+            this._buildEquipSlots();
+        };
+    }
+
+    _applyLoadout(idx) {
+        const sub = document.getElementById('equip-sub');
+        const loadouts = this.player._equipLoadouts || [];
+        const lo = loadouts[idx];
+        if (!lo) return;
+
+        const allItems = [...this.player.items, ...Object.values(this.player.equipment).filter(Boolean)];
+        const missing = [];
+        for (const [slot, id] of Object.entries(lo.slots)) {
+            const already = this.player.equipment[slot] && this.player.equipment[slot].id === id;
+            if (already) continue;
+            if (!allItems.some(it => it.id === id)) {
+                missing.push(id);
+            }
+        }
+
+        if (missing.length > 0) {
+            const names = missing.map(id => (getItem(id) || { name: id }).name);
+            sub.classList.remove('hidden');
+            sub.innerHTML = '<div style="text-align:center;color:#d08060;padding:8px;">缺少装备：' + names.join('、') + '，无法换装。</div>';
+            return;
+        }
+
+        const eq = this.player.equipment;
+        for (const [slot, id] of Object.entries(lo.slots)) {
+            if (eq[slot] && eq[slot].id === id) continue;
+            if (eq[slot]) this.player.items.push({ ...eq[slot] });
+            const found = this.player.items.findIndex(it => it.id === id);
+            if (found > -1) {
+                eq[slot] = { ...this.player.items[found] };
+                this.player.items.splice(found, 1);
+            }
+        }
+
+        this.updateStatsBar();
+        this._buildEquipSlots();
+        sub.classList.add('hidden');
+        this.addMessage('已换装为「' + lo.name + '」。', 'event');
+    }
+
     showCharacterStatus() {
         this.clearChoices();
         const p = this.player;
@@ -3060,10 +3374,6 @@ class Game {
                 this.addMessage(`门派：${f.name} · ${rankName}（贡献 ${p.factionRep || 0}）`, 'event');
             }
         }
-        const innerRep = p._innerRep || 100;
-        const worldHelp = p._worldHelp || 0;
-        this.addMessage(`里声望：${innerRep}/100${innerRep >= 80 ? '·问心无愧' : innerRep >= 50 ? '·心有愧色' : innerRep >= 20 ? '·良心不安' : '·丧尽天良'}`, innerRep >= 50 ? 'info' : 'danger');
-        this.addMessage(`济苍生：${worldHelp}`, worldHelp > 0 ? 'event' : 'info');
         this.addMessage('', 'narrator');
         this.addMessage('—— 装备 ——', 'system');
         let combatStr = `战力（全力以赴）：${this.getPlayerCombatPower('full')}`;

@@ -60,6 +60,16 @@ body {
     color: #a0c0e0;
 }
 
+#header-equip {
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 6px;
+    color: #c0a080;
+}
+#header-equip:hover {
+    color: #e0c0a0;
+}
+
 #scene-bg {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -750,3 +760,116 @@ body {
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ─── 装备面板 ─── */
+#equip-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+#equip-overlay.hidden { display: none; }
+#equip-panel {
+    background: linear-gradient(180deg, #1a1e38, #141830);
+    border: 1px solid #3a4a7a;
+    border-radius: 16px;
+    padding: 20px 18px;
+    width: 100%;
+    max-width: 420px;
+    max-height: 92vh;
+    overflow-y: auto;
+}
+#equip-panel h2 {
+    text-align: center;
+    color: #e8d5a3;
+    margin: 0 0 14px 0;
+    font-size: 18px;
+    letter-spacing: 3px;
+}
+#equip-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.equip-row {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+}
+.equip-slot {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 4px;
+    background: rgba(30, 40, 80, 0.5);
+    border: 1px solid #3a4a7a;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 13px;
+    color: #8a9aba;
+    transition: border-color 0.15s;
+}
+.equip-slot:hover { border-color: #6a8ada; }
+.equip-slot.eq-filled { color: #c8d8f0; border-color: #5a7aaa; background: rgba(40, 60, 120, 0.4); }
+.equip-slot .eq-label { font-size: 11px; color: #6a7a9a; display: block; }
+.equip-slot .eq-name { font-size: 13px; display: block; margin-top: 2px; }
+.equip-slot .eq-tier-white { color: #c8c8c8; }
+.equip-slot .eq-tier-green { color: #80c080; }
+.equip-slot .eq-tier-blue  { color: #80a0ff; }
+.equip-slot .eq-tier-purple { color: #c080ff; }
+
+#equip-sub {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(20, 24, 48, 0.7);
+    border: 1px solid #3a4a7a;
+    border-radius: 10px;
+    max-height: 240px;
+    overflow-y: auto;
+}
+.equip-item-choice {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 4px;
+    background: rgba(40, 50, 100, 0.3);
+    border: 1px solid #4a5a7a;
+    border-radius: 6px;
+    color: #c8d8f0;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: left;
+}
+.equip-item-choice:hover { border-color: #6a8ada; }
+.equip-item-choice:last-child { margin-bottom: 0; }
+
+#equip-panel > button {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px;
+    background: rgba(60, 70, 120, 0.3);
+    border: 1px solid #4a5a7a;
+    border-radius: 8px;
+    color: #d4c9a8;
+    font-size: 15px;
+    cursor: pointer;
+}
+#equip-panel > button:hover { background: rgba(60, 70, 140, 0.5); }
+
+.equip-loadout-btn {
+    flex: 1;
+    padding: 8px;
+    background: rgba(50, 60, 110, 0.4);
+    border: 1px solid #4a5a7a;
+    border-radius: 8px;
+    color: #d4c9a8;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: center;
+}
+.equip-loadout-btn:hover { background: rgba(50, 60, 140, 0.5); }

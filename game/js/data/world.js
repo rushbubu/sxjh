@@ -84,7 +84,7 @@ const WORLD = {
             venues: [
                 v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('古玩店', '司徒明', '留着山羊胡的古董商人，店内古物琳琅满目。', ['qin_bamboo', 'peony_painting', 'writing_brush', 'ink_stick']),
-                v('铁匠铺', '雷炎', '肌肉虬结的铁匠，炉火烧得比别家旺三分。', ['blue_sword', 'gold_silk_armor', 'steel_blade', 'chest_mirror'], false, 55),
+                v('铁匠铺', '雷炎', '肌肉虬结的铁匠，炉火烧得比别家旺三分。', ['iron_ore', 'blue_sword', 'gold_silk_armor', 'steel_blade', 'chest_mirror'], false, 55),
                 v('药店', '孙思邈', '白发苍苍的老郎中，药柜里摆满了各种丹药瓶罐。', ['jinchuang', 'huisheng', 'neili_dan', 'jiedu_san', 'qingxin_wan', 'ginseng_100', 'powder_clear', 'herb_bandage']),
                 v('珠宝斋', '胡商', '西域来的珠宝商人，兜售各种奇珍异宝。', ['jade_ring', 'bangle_jade', 'necklace_gold', 'jade_fish']),
                 v('春风楼', '杨玉弦', '长安城最有名的老鸨，人脉极广，手中掌握着长安一半的胭脂行当。', ['wine_bamboo', 'pastry', 'incense']),
@@ -104,7 +104,7 @@ const WORLD = {
                 v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('金刀镖局', '王振威', '"金刀无敌"王振威，正指挥镖师们装卸货物。', ['steel_blade', 'chest_mirror', 'dagger'], false, 45),
                 v('画坊', '唐伯虎', '落魄不羁的画师，身边堆满了画卷。', ['peony_painting', 'stationary', 'writing_brush']),
-                v('铁匠铺', '李铁锤', '膀大腰圆的铁匠，正抡着大锤。', ['steel_blade', 'knife_wood', 'hoe_iron'], false, 30),
+                v('铁匠铺', '李铁锤', '膀大腰圆的铁匠，正抡着大锤。', ['iron_ore', 'steel_blade', 'knife_wood', 'hoe_iron'], false, 30),
                 v('杂货铺', '马掌柜', '精明的商人，货物齐全。', ['silk_robe', 'stationary', 'flint', 'ration']),
                 v('牡丹院', '花三娘', '手里摇着团扇的中年妇人，眼神精明，洛阳城的风月场都归她说了算。', ['wine_daughter', 'wine_rice', 'pastry']),
                 v('酒楼', '宋厨子', '手艺一绝的大厨，招牌菜是洛阳水席。', ['wine_daughter', 'pastry', 'wine_bamboo', 'ration']),
@@ -136,7 +136,7 @@ const WORLD = {
                 v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('军需铺', '赵铁衣', '退伍老兵开的铺子，卖的都是军旅硬货。', ['dark_arrow', 'steel_blade', 'chest_mirror'], false, 40),
                 v('杂货铺', '周六斤', '朴实的庄稼汉，店里都是日常所需。', ['cloth_coarse', 'ration', 'flint', 'wine_rice']),
-                v('铁匠铺', '冯大锤', '正在修补兵器的铁匠，墙上挂着各式刀剑。', ['steel_blade', 'knife_wood', 'hoe_iron'], false, 30),
+                v('铁匠铺', '冯大锤', '正在修补兵器的铁匠，墙上挂着各式刀剑。', ['iron_ore', 'steel_blade', 'knife_wood', 'hoe_iron'], false, 30),
                 v('汉水楼', '楚红袖', '豪爽的女掌柜，店里的女儿红远近闻名。', ['wine_bamboo', 'wine_daughter', 'ration']),
                 v('酒楼', '刘一刀', '豪爽的掌柜，招牌菜是红烧狮子头。', ['wine_bamboo', 'ration', 'pastry'], false, 25),
                 v('襄阳武馆', '郭威', '守城将领退下来的老兵，教的全是战场上的杀人技。', ['chest_mirror', 'steel_blade'], false, 55),
@@ -215,7 +215,7 @@ const WORLD = {
             const baseCp = 12 + villageTier * 3; // 15-27
             const venues = [
                 v('草药铺', herbalNpc, `村里的草药郎中。`, ['herb_bandage', 'powder_clear', 'herb_ginseng_small']),
-                v('铁匠铺', smithNpc, `村里的铁匠，手艺还不错。`, ['knife_wood', 'hoe_iron', 'pot_iron', 'dagger', 'band_head', 'pants_coarse', 'bracers_cloth', 'shoes_straw'], false, baseCp),
+                v('铁匠铺', smithNpc, `村里的铁匠，手艺还不错。`, ['iron_ore', 'knife_wood', 'hoe_iron', 'pot_iron', 'dagger', 'band_head', 'pants_coarse', 'bracers_cloth', 'shoes_straw'], false, baseCp),
                 v('酒馆', tavernNpc, `小酒馆里飘出阵阵酒香。`, ['wine_rice', 'wine_daughter']),
                 v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('村长家', chiefNpc, `村长的家，${chiefNpc}正在院子里忙活。`, ['tea_cake', 'incense']),

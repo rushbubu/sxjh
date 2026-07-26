@@ -10,8 +10,9 @@
     <div id="app">
         <div id="header">
             <span id="header-title">率性江湖</span>
-            <span id="header-inv" onclick="game.showInventory()">囊</span>
-            <span id="header-menu" onclick="game.toggleMenu()">≡</span>
+            <span id="header-inv" onclick="game.showInventory()">背</span>
+            <span id="header-menu" onclick="game.toggleMenu()">☺</span>
+            <span id="header-equip" onclick="game.showEquipment()">⚔</span>
         </div>
         <div id="scene-bg"></div>
         <div id="main-area">
@@ -82,6 +83,16 @@
                 <div id="create-ratings"></div>
                 <button id="btn-start" onclick="game.startGame()">踏入江湖</button>
                 <button id="btn-cheat" onclick="game.cheatMaxAttrs()" style="margin-top:8px;background:#8b0000;color:#ffd700;border:1px solid #ffd700;padding:6px 16px;border-radius:4px;cursor:pointer;font-size:13px">⚡ 作弊：属性全满</button>
+            </div>
+        </div>
+
+        <!-- 装备面板 -->
+        <div id="equip-overlay" class="hidden" onclick="game.hideEquipment()">
+            <div id="equip-panel" onclick="event.stopPropagation()">
+                <h2>—— 装备 ——</h2>
+                <div id="equip-slots"></div>
+                <div id="equip-sub" class="hidden"></div>
+                <button onclick="game.hideEquipment()">关闭</button>
             </div>
         </div>
 
