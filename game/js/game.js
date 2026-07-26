@@ -137,6 +137,8 @@ class Game {
             _worldHelp: 0,
             _theftCount: 0,
             _assassinationCount: 0,
+            _chopRootBonus: 0,
+            _huntUnlockLevel: 0,
         };
 
         setupStreetGamblers(WORLD);
@@ -1004,12 +1006,18 @@ class Game {
             this.addMessage('里面空无一人……', 'narrator');
             if (venue.name === '小树林' && this.player.items.some(i => i.id === 'knife_wood')) {
                 this.showChoices([
-                    { text: '砍柴（根骨 +1）', action: () => {
+                    { text: '砍柴' + (this.player._chopRootBonus < 10 ? '（根骨 +1）' : '（已至瓶颈）'), action: () => {
                         this.clearChoices();
-                        this.player.attrs.root += 1;
-                        this.player.exp += 2;
-                        this.addMessage('你抡起柴刀，劈了半个时辰的柴火。出了一身汗，但筋骨更结实了。', 'narrator');
-                        this.addMessage(`根骨 +1（当前 ${this.player.attrs.root}），经验 +2`, 'system');
+                        const chopBonus = this.player._chopRootBonus || 0;
+                        if (chopBonus < 10) {
+                            this.player.attrs.root += 1;
+                            this.player._chopRootBonus = chopBonus + 1;
+                            this.player.exp += 2;
+                            this.addMessage('你抡起柴刀，劈了半个时辰的柴火。出了一身汗，但筋骨更结实了。', 'narrator');
+                            this.addMessage(`根骨 +1（当前 ${this.player.attrs.root}），经验 +2`, 'system');
+                        } else {
+                            this.addMessage('你抡起柴刀劈了半个时辰的柴，但筋骨已到瓶颈，再砍也无寸进。', 'narrator');
+                        }
                         this.advanceTime();
                         this.updateStatsBar();
                         setTimeout(() => this.enterVenueInner(venue), 400);
@@ -1029,10 +1037,16 @@ class Game {
         if (venue.name === '小树林' && this.player.items.some(i => i.id === 'knife_wood')) {
             choices.splice(choices.length, 0, { text: '砍柴（根骨 +1）', action: () => {
                 this.clearChoices();
-                this.player.attrs.root += 1;
-                this.player.exp += 2;
-                this.addMessage('你抡起柴刀，劈了半个时辰的柴火。出了一身汗，但筋骨更结实了。', 'narrator');
-                this.addMessage(`根骨 +1（当前 ${this.player.attrs.root}），经验 +2`, 'system');
+                const chopRoot = this.player._chopRootBonus || 0;
+                if (chopRoot < 10) {
+                    this.player.attrs.root += 1;
+                    this.player._chopRootBonus = chopRoot + 1;
+                    this.player.exp += 2;
+                    this.addMessage('你抡起柴刀，劈了半个时辰的柴火。出了一身汗，但筋骨更结实了。', 'narrator');
+                    this.addMessage(`根骨 +1（当前 ${this.player.attrs.root}），经验 +2`, 'system');
+                } else {
+                    this.addMessage('你抡起柴刀劈了半个时辰的柴，但筋骨已到瓶颈，再砍也无寸进。', 'narrator');
+                }
                 this.advanceTime();
                 this.updateStatsBar();
                 setTimeout(() => this.enterVenueInner(venue), 400);
@@ -1800,7 +1814,7 @@ class Game {
                     clearChoices: () => this.clearChoices(),
                     showChoices: (c) => this.showChoices(c),
                     updateStatsBar: () => this.updateStatsBar(),
-                    startBattle: (enemy, onWin, onLose) => this.startBattle(enemy, onWin, onLose),
+                    startBattle: (enemy, onWin, onLose, onFlee) => this.startBattle(enemy, onWin, onLose, onFlee),
                     gameOver: (reason) => this.gameOver(reason),
                     gamblerAction: () => this.gamblerAction(venue, npc),
                 });
@@ -1831,18 +1845,20 @@ class Game {
 
         this.addMessage(`${npc.npcName}：「今天想打点什么？」`, 'narrator');
 
-        const choices = preyList.map(p => {
+        const unlockLevel = this.player._huntUnlockLevel || 0;
+        const choices = preyList.map((p, i) => {
+            if (i > unlockLevel) return null;
             const chance = Math.round(calcChance(p) * 100);
             return {
                 text: `${p.name}（${chance}%）`,
-                action: () => this._doHunt(venue, npc, p, chance),
+                action: () => this._doHunt(venue, npc, p, chance, i),
             };
-        });
+        }).filter(Boolean);
         choices.push({ text: '算了，不打了', action: () => { this.clearChoices(); setTimeout(() => this.enterVenueInner(venue), 100); } });
         this.showChoices(choices);
     }
 
-    _doHunt(venue, npc, prey, chancePct) {
+    _doHunt(venue, npc, prey, chancePct, preyIndex) {
         this.clearChoices();
         const success = Math.random() < (chancePct / 100);
 
@@ -1867,6 +1883,12 @@ class Game {
             this.addMessage(`灵巧 +${prey.dexReward}（当前 ${this.player.attrs.dexterity}）`, 'system');
 
             this.player._huntCount = (this.player._huntCount || 0) + 1;
+            if (preyIndex != null && preyIndex === (this.player._huntUnlockLevel || 0)) {
+                this.player._huntUnlockLevel = preyIndex + 1;
+                if (preyIndex < 6) {
+                    this.addMessage(`「好手艺！」${npc.npcName}赞道，「下次可以试试更猛的猎物了。」`, 'event');
+                }
+            }
         } else {
             if (prey.diff >= 4) {
                 this.addMessage(`那${prey.name}发现了你们，低吼着作势欲扑。你和${npc.npcName}对视一眼——「跑！」`, 'narrator');
@@ -1891,9 +1913,16 @@ class Game {
         this.addMessage('你一斧一斧地劈着，虽然累，但感觉筋骨舒展了不少。', 'narrator');
         this.addMessage('不知不觉，半天过去了。', 'narrator');
         this.advanceTime();
-        this.player.attrs.root += 1;
-        this.player.exp += 3;
-        this.addMessage(`根骨 +1（当前 ${this.player.attrs.root}），经验 +3`, 'system');
+        const chopRoot = this.player._chopRootBonus || 0;
+        if (chopRoot < 10) {
+            this.player.attrs.root += 1;
+            this.player._chopRootBonus = chopRoot + 1;
+            this.player.exp += 3;
+            this.addMessage(`根骨 +1（当前 ${this.player.attrs.root}），经验 +3`, 'system');
+        } else {
+            this.player.exp += 1;
+            this.addMessage('筋骨已到瓶颈，再无寸进。只得了些许经验。', 'narrator');
+        }
 
         const chopCount = this.player._chopCount;
         const shadowRep = this.player.shadowRep || 0;
@@ -2122,11 +2151,11 @@ class Game {
 
     confrontChiefSonAfterIntro(venue, chief, sonName, sonPower, loc) {
         const ratio = sonPower / Math.max(1, this.getPlayerCombatPower('full'));
-        chief._sonBeaten = true;
 
         const enemy = generateChiefSonEnemy(sonName, sonPower);
         this.startBattle(enemy,
             () => {
+                chief._sonBeaten = true;
                 let repGain = 1;
                 if (ratio <= 0.3) repGain = 3;
                 else if (ratio <= 0.6) repGain = 2;
@@ -2144,7 +2173,15 @@ class Game {
                     { text: `声望 +${repGain}（当前 ${this.player.reputation}）`, type: 'system' },
                 ], () => setTimeout(() => this.chiefAction(venue, chief), 300));
             },
-            () => this.gameOver('你受伤过重，不治身亡')
+            () => this.gameOver('你受伤过重，不治身亡'),
+            () => {
+                document.getElementById('log').innerHTML = '';
+                this.addMessage('你无心恋战，虚晃一招抽身而退。', 'narrator');
+                this.addMessage(`${sonName}在你身后叫道：「有种别跑！」`, 'narrator');
+                this.showChoices([
+                    { text: '返回', action: () => this.enterVenue(venue) },
+                ]);
+            }
         );
     }
 
@@ -2429,7 +2466,11 @@ class Game {
             log: [],
             onWin,
             onLose: onLose || (() => {}),
-            onFlee: onFlee || (() => {}),
+            onFlee: onFlee || (() => {
+                document.getElementById('log').innerHTML = '';
+                this.addMessage('你灰溜溜地逃走了。', 'narrator');
+                this.showOutdoorChoices();
+            }),
             playerSpeed: ps,
             enemySpeed: es,
             playerMaxActions: Math.max(1, Math.min(4, Math.floor(ps / es))),
@@ -2568,10 +2609,19 @@ class Game {
 
     battleNormalAttack() {
         const basePower = Math.floor(this.player.attrs.root * 0.5 + this.player.attrs.dexterity * 0.5);
-        const dmg = Math.max(1, Math.floor(basePower + Math.floor(Math.random() * 3) - 1));
+        let weaponPower = 0;
+        let descs = ['直拳', '横扫', '飞踢', '肘击', '膝撞', '劈掌', '勾拳', '侧踹'];
+        for (const s of ['rightHand', 'leftHand']) {
+            const w = this.player.equipment[s];
+            if (w && w.attackDescs) {
+                weaponPower += w.value;
+                if (s === 'rightHand') descs = w.attackDescs;
+            }
+        }
+        const dmg = Math.max(1, Math.floor((basePower + weaponPower) * (0.3 + Math.random() * 0.6)));
         const e = this.battleState.enemy;
         e.hp -= dmg;
-        this.battleState.log.push({ text: `你使出一记重击，造成 <b>${dmg}</b> 点伤害！`, cls: 'battle-log-hit' });
+        this.battleState.log.push({ text: `你一记${descs[Math.floor(Math.random() * descs.length)]}，造成 <b>${dmg}</b> 点伤害！`, cls: 'battle-log-hit' });
         this._advanceTurn();
     }
 
@@ -2675,16 +2725,18 @@ class Game {
     }
 
     attemptFlee() {
+        if (!this.battleState) return;
         const e = this.battleState.enemy;
         const fleeChance = Math.min(0.85, (this.player.attrs.dexterity * 3) / Math.max(1, e.combatPower));
         if (Math.random() < fleeChance) {
+            this.clearChoices();
             this.battleState.log.push({ text: '你转身就跑，成功摆脱了战斗！', cls: 'battle-log-info' });
             this.renderBattleHUD();
             this.updateStatsBar();
             setTimeout(() => {
-            const cb = this.battleState.onFlee;
-            this.battleState = null;
-            cb();
+                const cb = this.battleState.onFlee;
+                this.battleState = null;
+                cb();
             }, 600);
         } else {
             this.battleState.log.push({ text: '你试图逃跑，但没能脱身！', cls: 'battle-log-miss' });
@@ -3357,7 +3409,12 @@ class Game {
                 this.updateStatsBar();
                 setTimeout(() => this.enterLocation(locationId), 600);
             },
-            () => this.gameOver('你受伤过重，不治身亡')
+            () => this.gameOver('你受伤过重，不治身亡'),
+            () => {
+                this.addMessage('你趁乱逃走了。', 'narrator');
+                this.updateStatsBar();
+                setTimeout(() => this.enterLocation(locationId), 600);
+            }
         );
     }
 

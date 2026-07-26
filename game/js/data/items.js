@@ -7,8 +7,8 @@ const ITEMS = {
     bracers_cloth:   { id: 'bracers_cloth',   name: '布护腕',    desc: '粗布护腕，防止袖口磨损。',                             value: 1,   stealDiff: 5,  category: 'clothing', slot: 'bracers', tier: 'white' },
     ration:          { id: 'ration',          name: '干粮',      desc: '粗粮制成的干饼，能填饱肚子。',                        value: 1,   stealDiff: 3,  category: 'food' },
     flint:           { id: 'flint',           name: '火折子',    desc: '引火用的工具，行走江湖必备。',                        value: 2,   stealDiff: 8,  category: 'tool' },
-    knife_wood:      { id: 'knife_wood',      name: '柴刀',      desc: '劈柴用的铁刀，刃口有些钝了。',                        value: 3,   stealDiff: 15, category: 'weapon', slot: 'rightHand', tier: 'white' },
-    hoe_iron:        { id: 'hoe_iron',        name: '铁锄头',    desc: '农夫用的铁锄，也可以当武器使。',                      value: 2,   stealDiff: 10, category: 'weapon', slot: 'rightHand', tier: 'white' },
+    knife_wood:      { id: 'knife_wood',      name: '柴刀',      desc: '劈柴用的铁刀，刃口有些钝了。',                        value: 3,   stealDiff: 15, category: 'weapon', slot: 'rightHand', tier: 'white', attackDescs: ['砍', '横砍', '劈砍'] },
+    hoe_iron:        { id: 'hoe_iron',        name: '铁锄头',    desc: '农夫用的铁锄，也可以当武器使。',                      value: 2,   stealDiff: 10, category: 'weapon', slot: 'rightHand', tier: 'white', attackDescs: ['砸', '挥击', '横扫'] },
     pot_iron:        { id: 'pot_iron',        name: '铁锅',      desc: '生铁铸成的锅，做饭必备。',                            value: 2,   stealDiff: 10, category: 'household' },
     herb_bandage:    { id: 'herb_bandage',    name: '止血草',    desc: '常见的草药，晒干磨粉可止外伤出血。',                   value: 2,   stealDiff: 10, category: 'medicine' },
     powder_clear:    { id: 'powder_clear',    name: '清心散',    desc: '清凉解热的药散，可缓解轻微中毒。',                    value: 5,   stealDiff: 20, category: 'medicine' },
@@ -26,7 +26,7 @@ const ITEMS = {
     silk_robe:       { id: 'silk_robe',       name: '绸缎衣',    desc: '上等丝绸制成的衣衫，穿在身上轻软舒适。',               value: 10,  stealDiff: 25, category: 'clothing', slot: 'upperBody', tier: 'green' },
     pastry:          { id: 'pastry',          name: '精致糕点',  desc: '用上等糯米和蜜糖制成的糕点，香甜可口。',               value: 3,   stealDiff: 10, category: 'food' },
     stationary:      { id: 'stationary',      name: '文房四宝',  desc: '笔墨纸砚一套，品相中等，值些银两。',                   value: 8,   stealDiff: 20, category: 'culture' },
-    steel_blade:     { id: 'steel_blade',     name: '精铁刀',    desc: '百炼精铁打造的腰刀，锋利异常。',                        value: 15,  stealDiff: 30, category: 'weapon', slot: 'rightHand', tier: 'green' },
+    steel_blade:     { id: 'steel_blade',     name: '精铁刀',    desc: '百炼精铁打造的腰刀，锋利异常。',                        value: 15,  stealDiff: 30, category: 'weapon', slot: 'rightHand', tier: 'green', attackDescs: ['砍', '横砍', '劈砍', '斜劈'] },
     chest_mirror:    { id: 'chest_mirror',    name: '护心镜',    desc: '铜制护心镜，可挡暗箭。',                               value: 20,  stealDiff: 35, category: 'armor', slot: 'upperBody', tier: 'green' },
     ring_silver:     { id: 'ring_silver',     name: '银戒指',    desc: '做工精细的银戒指，刻着缠枝花纹。',                     value: 12,  stealDiff: 28, category: 'jewelry', slot: 'accessory', tier: 'green' },
     bangle_jade:     { id: 'bangle_jade',     name: '玉镯子',    desc: '和田玉制成的镯子，水头不错。',                         value: 25,  stealDiff: 40, category: 'jewelry', slot: 'accessory', tier: 'blue' },
@@ -36,7 +36,7 @@ const ITEMS = {
     // ═══ 小城特殊物品 ═══
     peony_painting:  { id: 'peony_painting',  name: '洛阳牡丹图', desc: '当代名家所绘牡丹图，色彩艳丽，栩栩如生。',            value: 50,  stealDiff: 60, category: 'art', special: true },
     shu_embroidery:  { id: 'shu_embroidery',  name: '蜀绣',      desc: '蜀中名绣，绣工精细，双面异色，堪称一绝。',            value: 40,  stealDiff: 55, category: 'art', special: true },
-    dark_arrow:      { id: 'dark_arrow',      name: '玄铁箭镞',  desc: '玄铁打造的箭镞，据说可射穿铁甲。',                     value: 35,  stealDiff: 50, category: 'weapon', slot: 'rightHand', tier: 'green' },
+    dark_arrow:      { id: 'dark_arrow',      name: '玄铁箭镞',  desc: '玄铁打造的箭镞，据说可射穿铁甲。',                     value: 35,  stealDiff: 50, category: 'weapon', slot: 'rightHand', tier: 'green', attackDescs: ['刺', '扎', '穿'] },
     screen_2side:    { id: 'screen_2side',    name: '双面绣屏风', desc: '苏绣精品，双面绣出不同花鸟图案，巧夺天工。',         value: 55,  stealDiff: 60, category: 'art', special: true },
     buddha_relic:    { id: 'buddha_relic',    name: '佛骨舍利',  desc: '高僧圆寂后留下的舍利子，佛门至宝。',                   value: 60,  stealDiff: 70, category: 'treasure', special: true },
     moon_poem:       { id: 'moon_poem',       name: '二十四桥明月词', desc: '前朝诗人手书长词真迹，字迹飘逸。',              value: 45,  stealDiff: 58, category: 'art', special: true },
@@ -44,8 +44,8 @@ const ITEMS = {
     // ═══ 大城通用物品 ═══
     brocade_robe:    { id: 'brocade_robe',    name: '锦袍',      desc: '织锦华服，金线绣边，穿在身上气度不凡。',               value: 30,  stealDiff: 40, category: 'clothing', slot: 'upperBody', tier: 'blue' },
     dragon_tea:      { id: 'dragon_tea',      name: '上等龙井',  desc: '西湖龙井中的珍品，一两黄金一两茶。',                   value: 20,  stealDiff: 30, category: 'food' },
-    blue_sword:      { id: 'blue_sword',      name: '青锋剑',    desc: '剑身泛青光，吹毛断发，剑客梦寐以求的利器。',           value: 50,  stealDiff: 55, category: 'weapon', slot: 'rightHand', tier: 'blue' },
-    blue_blade:      { id: 'blue_blade',      name: '砍山刀',    desc: '刃口厚重的砍刀，是山里人常用的利器，削铁如泥。',       value: 45,  stealDiff: 50, category: 'weapon', slot: 'rightHand', tier: 'blue' },
+    blue_sword:      { id: 'blue_sword',      name: '青锋剑',    desc: '剑身泛青光，吹毛断发，剑客梦寐以求的利器。',           value: 50,  stealDiff: 55, category: 'weapon', slot: 'rightHand', tier: 'blue', attackDescs: ['刺', '挑', '扫', '削'] },
+    blue_blade:      { id: 'blue_blade',      name: '砍山刀',    desc: '刃口厚重的砍刀，是山里人常用的利器，削铁如泥。',       value: 45,  stealDiff: 50, category: 'weapon', slot: 'rightHand', tier: 'blue', attackDescs: ['砍', '横砍', '劈砍', '猛劈'] },
     gold_silk_armor: { id: 'gold_silk_armor', name: '金丝软甲',  desc: '金丝与天蚕丝编织的软甲，刀枪不入。',                   value: 80,  stealDiff: 70, category: 'armor', slot: 'upperBody', tier: 'purple' },
     necklace_gold:   { id: 'necklace_gold',   name: '金项链',    desc: '纯金打造的项链，坠着红宝石，光彩夺目。',               value: 40,  stealDiff: 50, category: 'jewelry', slot: 'accessory', tier: 'purple' },
     jade_ring:       { id: 'jade_ring',       name: '翡翠扳指',  desc: '上等翡翠扳指，通体翠绿，无一丝杂质。',                 value: 60,  stealDiff: 60, category: 'jewelry', slot: 'accessory', tier: 'blue' },
@@ -58,7 +58,7 @@ const ITEMS = {
     // ═══ 其他 ═══
     silver_ingot:    { id: 'silver_ingot',    name: '银锭',      desc: '官铸十两银锭，成色十足。',                              value: 10,  stealDiff: 25, category: 'currency' },
     gold_ingot:      { id: 'gold_ingot',      name: '金锭',      desc: '官铸五两金锭，价值不菲。',                               value: 50,  stealDiff: 50, category: 'currency' },
-    dagger:          { id: 'dagger',          name: '匕首',      desc: '短小锋利的匕首，可防身也可作为副手武器。',             value: 5,   stealDiff: 12, category: 'weapon', slot: 'leftHand', tier: 'white' },
+    dagger:          { id: 'dagger',          name: '匕首',      desc: '短小锋利的匕首，可防身也可作为副手武器。',             value: 5,   stealDiff: 12, category: 'weapon', slot: 'leftHand', tier: 'white', attackDescs: ['刺', '划', '捅'] },
 
     // ═══ 药品 ═══
     jinchuang:       { id: 'jinchuang',      name: '金疮药',    desc: '上好的金疮药，敷于伤口可止血生肌，恢复30点气血。',       value: 8,   stealDiff: 20, category: 'medicine', use: { healHp: 30 } },
