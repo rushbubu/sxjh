@@ -1146,20 +1146,8 @@ class Game {
                     gamblerAction: () => this.gamblerAction(venue, npc),
                 });
             } },
-            { text: '打听消息（1两）', action: () => this.beggarIntel(venue, npc) },
-            { text: '暴打一顿', action: () => this.beatGambler(venue, npc) },
             { text: '离开', action: () => this.enterVenue(venue) },
         ]);
-    }
-
-    beatGambler(venue, npc) {
-        this.clearChoices();
-        this.player.reputation = Math.max(0, this.player.reputation - 3);
-        this.addMessage('你一把揪住' + npc.npcName + '的衣领，将他提了起来。', 'narrator');
-        this.addMessage(npc.npcName + '吓得连连告饶：「大爷饶命！我说！我什么都说！」', 'narrator');
-        this.addMessage('声望 -3（当前 ' + this.player.reputation + '）', 'system');
-        this.updateStatsBar();
-        this.beggarIntelBeauties(venue, npc, true);
     }
 
     /* ─── 猎人系统 ─── */
