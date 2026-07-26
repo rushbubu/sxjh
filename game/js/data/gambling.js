@@ -42,9 +42,9 @@ function _gambleWinChance(player, gameType) {
     const wit = player.attrs.wit || 10;
     const dex = player.attrs.dexterity || 10;
     if (gameType === 'dice') {
-        return Math.min(0.65, 0.35 + wit * 0.0015 + dex * 0.0005);
+        return Math.min(0.90, 0.40 + wit * 0.003 + dex * 0.001);
     } else {
-        return Math.min(0.65, 0.35 + dex * 0.0015 + wit * 0.0005);
+        return Math.min(0.90, 0.40 + dex * 0.003 + wit * 0.001);
     }
 }
 
