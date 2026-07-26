@@ -546,26 +546,26 @@ body {
 /* ─── 战斗界面 ─── */
 
 #battle-hud {
-    padding: 12px 14px 8px;
-    margin-bottom: 4px;
+    padding: 18px 20px 12px;
+    margin-bottom: 8px;
     background: rgba(10, 10, 10, 0.92);
     border-bottom: 1px solid #3a2020;
 }
 
 .battle-section + .battle-section {
-    margin-top: 10px;
-    padding-top: 8px;
+    margin-top: 14px;
+    padding-top: 12px;
     border-top: 1px solid #2a2a2a;
 }
 
 .battle-names {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .battle-name {
-    font-size: 15px;
+    font-size: 20px;
     font-weight: bold;
     color: #e8d8b0;
     text-shadow: 0 0 4px rgba(200, 160, 100, 0.3);
@@ -578,29 +578,29 @@ body {
 .battle-bar-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin: 2px 0;
+    gap: 8px;
+    margin: 4px 0;
 }
 
 .battle-bar-label {
-    font-size: 12px;
+    font-size: 15px;
     color: #908070;
-    min-width: 28px;
+    min-width: 32px;
 }
 
 .battle-bar-track {
     flex: 1;
-    height: 12px;
+    height: 18px;
     background: #1a1a1a;
     border: 1px solid #3a3a3a;
-    border-radius: 6px;
+    border-radius: 9px;
     overflow: hidden;
 }
 
 .battle-bar-fill {
     height: 100%;
     transition: width 0.3s ease;
-    border-radius: 5px;
+    border-radius: 8px;
 }
 
 .battle-hp-fill { background: linear-gradient(90deg, #c03030, #f05050); }
@@ -609,23 +609,23 @@ body {
 .battle-enemy-hp-fill { background: linear-gradient(90deg, #b03030, #e04040); }
 
 .battle-bar-text {
-    font-size: 11px;
+    font-size: 15px;
     color: #a09080;
-    min-width: 50px;
+    min-width: 60px;
     text-align: right;
 }
 
 #battle-log {
-    padding: 6px 14px 8px;
-    min-height: 40px;
-    font-size: 13px;
+    padding: 10px 20px 12px;
+    min-height: 50px;
+    font-size: 17px;
     color: #c0b898;
-    line-height: 1.6;
+    line-height: 1.8;
     border-top: 1px solid #2a2a2a;
 }
 
 .battle-log-entry {
-    padding: 1px 0;
+    padding: 3px 0;
     animation: battleFadeIn 0.3s ease;
 }
 
@@ -635,12 +635,12 @@ body {
 .battle-log-info { color: #80c080; }
 
 .battle-action-row {
-    margin-top: 6px;
-    gap: 2px;
+    margin-top: 8px;
+    gap: 4px;
 }
 .action-dot {
-    font-size: 10px;
-    margin: 0 1px;
+    font-size: 14px;
+    margin: 0 2px;
     transition: all 0.3s;
 }
 .action-dot-ready {
@@ -649,6 +649,9 @@ body {
 }
 .action-dot-empty {
     color: #3a3a3a;
+}
+.action-dot-locked {
+    color: #1a1a1a;
 }
 
 /* ─── 云雨独立页面 ─── */

@@ -106,6 +106,7 @@ function _renderSexMain(bd, player, callbacks) {
             return _showEjacMenu(bd, player, callbacks);
         }
         s.overClock++;
+    }
 
     callbacks.clearChoices();
     const choices = [];
@@ -559,42 +560,3 @@ function startCloudRain(bd, player, callbacks) {
     startDetailedSexScene(bd, player, callbacks);
 }
 
-function step5(bd, player, callbacks) {
-    callbacks.clearChoices();
-    bd._flirtPoem = POEMS[Math.floor(Math.random() * POEMS.length)];
-    bd._flirtPoemIdx = 0;
-    showPoemLine(bd, player, callbacks);
-}
-
-function showPoemLine(bd, player, callbacks) {
-    callbacks.clearChoices();
-    const poem = bd._flirtPoem;
-    const idx = bd._flirtPoemIdx;
-    if (idx < poem.lines.length) {
-        if (idx === 0 && !bd._flirtIntroShown) {
-            callbacks.addMessage('有道是：', 'narrator');
-            bd._flirtIntroShown = true;
-            callbacks.showChoices([{ text: '……', action: () => showPoemLine(bd, player, callbacks) }]);
-        } else {
-            callbacks.addMessage('　　' + poem.lines[idx], 'poem');
-            bd._flirtPoemIdx = idx + 1;
-            callbacks.showChoices([{ text: '……', action: () => showPoemLine(bd, player, callbacks) }]);
-        }
-    } else {
-        const scene = _crPickScene(bd);
-        callbacks.addMessage(scene.end, 'narrator');
-        bd._hadSex = true;
-        bd.favorability = Math.min(100, bd.favorability + 8);
-        player.neili -= 20;
-        if (callbacks.ensureRedRecord) callbacks.ensureRedRecord(bd);
-        delete bd._flirtPoem;
-        delete bd._flirtIntroShown;
-        callbacks.updateStatsBar();
-        player._sleptWithBeauty = true;
-        callbacks.showChoices([{ text: '沉沉睡去……', action: () => {
-            callbacks.clearChoices();
-            callbacks.sleepToTomorrow(true);
-            callbacks.addMessage(pickWakeDesc(bd._sexVenue, bd.name), 'narrator');
-        } }]);
-    }
-}

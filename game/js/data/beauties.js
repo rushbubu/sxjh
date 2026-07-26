@@ -168,12 +168,12 @@ function getBodyDesc(score, maritalStatus) {
 
 const BEAUTY_TIERS = [
     { min: 0,   key: 'white',  label: '凡品', color: '#cccccc' },
-    { min: 20,  key: 'green',  label: '良品', color: '#66cc66' },
-    { min: 40,  key: 'blue',   label: '精品', color: '#6699ff' },
-    { min: 55,  key: 'purple', label: '上品', color: '#cc66ff' },
-    { min: 65,  key: 'red',    label: '极品', color: '#ff6666' },
-    { min: 75,  key: 'orange', label: '绝品', color: '#ffaa33' },
-    { min: 85,  key: 'black',  label: '神品', color: '#ffd700' },
+    { min: 70,  key: 'purple', label: '上品', color: '#cc66ff' },
+    { min: 75,  key: 'blue',   label: '极品', color: '#6699ff' },
+    { min: 80,  key: 'orange', label: '绝品', color: '#ffaa33' },
+    { min: 85,  key: 'red',    label: '神品', color: '#ff6666' },
+    { min: 90,  key: 'pink',   label: '仙品', color: '#ff69b4' },
+    { min: 95,  key: 'gold',   label: '天仙', color: '#ffd700' },
 ];
 
 function getBeautyTier(score) {

@@ -334,21 +334,7 @@ function _gambleThugCheck(gambler, player, callbacks) {
                 },
                 // onLose
                 () => {
-                    callbacks.clearChoices();
-                    callbacks.addMessage('你寡不敌众，被几个打手按在地上揍了一顿。', 'danger');
-                    const loss = Math.min(s.totalWin, player.gold);
-                    if (loss > 0) {
-                        player.gold -= Math.floor(loss / 2);
-                        s.totalWin -= Math.floor(loss / 2);
-                        callbacks.addMessage('他们抢走了你身上' + Math.floor(loss / 2) + '两银子，骂骂咧咧地走了。', 'danger');
-                    } else {
-                        callbacks.addMessage('他们搜遍了你的口袋，一文钱都没找到，唾了一口就走了。', 'narrator');
-                    }
-                    callbacks.updateStatsBar();
-                    callbacks.addMessage('你挣扎着爬起来，灰头土脸地离开了巷子。', 'narrator');
-                    delete gambler._gamblingSession;
-                    player._gamblingSkillActive = false;
-                    callbacks.gamblerAction(gambler);
+                    callbacks.gameOver('你受伤过重，不治身亡');
                 }
             );
         } },

@@ -29,10 +29,26 @@ function v(name, npcName, npcDesc, itemIds, civilian = true, combatPower = 0, ma
 const WORLD = {
     big_cities: [
         {
+            id: 'shendu', name: '神都',
+            desc: '天下之中，万国来朝。大燕王朝的第一雄城，城墙高逾十丈，街衢宽阔可容八马并行。城中武林盟总舵高耸入云，天下英雄莫不仰望。',
+            population: 3500000, area: 120, areaUnit: 'km²', economy: 'lavish',
+            factions: ['wulin'],
+            venues: [
+                v('武林盟总舵', '上官金虹', '武林盟主，气度沉凝，一双眼睛仿佛能看透人心。他是天下武林的仲裁者。', [], false, 150),
+                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
+                v('天机阁', '无名老人', '神秘的情报商人，没有他打听不到的消息。', ['qin_bamboo', 'moon_poem', 'incense'], false, 60),
+                v('聚宝楼', '沈万三', '天下首富，据说他的财产比国库还多。', ['jade_ring', 'necklace_gold', 'silver_ingot', 'bangle_jade', 'nine_dragon_cup']),
+                v('百草堂', '药王', '白发如雪的神医，据说能活死人肉白骨。', ['jinchuang', 'huisheng', 'neili_dan', 'jiedu_san', 'qingxin_wan', 'ginseng_100', 'powder_clear', 'herb_bandage'], false, 40),
+                v('沉香阁', '花弄影', '神都第一美人，琴棋书画无一不精。', ['dragon_tea', 'wine_bamboo', 'pastry', 'incense']),
+                v('万象楼', '百晓生', '武林百晓生，天下武学无所不知。', ['stationary', 'writing_brush', 'ink_stick', 'moon_poem'], false, 45),
+                v('神兵阁', '欧冶无名', '铸造神兵的大师，阁中陈列着无数名剑宝刀。', ['blue_sword', 'gold_silk_armor', 'steel_blade', 'chest_mirror', 'dagger'], false, 80),
+            ],
+        },
+        {
             id: 'jingcheng', name: '京城',
             desc: '大燕王朝的都城，天子脚下。街道宽阔，商铺林立，往来的无不是达官显贵、豪商巨贾。',
             population: 2100000, area: 85, areaUnit: 'km²', economy: 'lavish',
-            factions: [],
+            factions: ['sunmoon', 'beggar'],
             venues: [
                 v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('醉仙楼', '莫三千', '笑眯眯的掌柜，一手"醉拳"出神入化，柜台下藏着一坛坛好酒。', ['wine_daughter', 'dragon_tea', 'wine_bamboo', 'nine_dragon_cup'], false, 60),
@@ -48,7 +64,7 @@ const WORLD = {
             id: 'suzhou', name: '姑苏',
             desc: '江南水乡的中心城市，河流纵横，画舫穿梭。以丝绸、茶叶、瓷器闻名天下。',
             population: 1500000, area: 62, areaUnit: 'km²', economy: 'very_wealthy',
-            factions: [],
+            factions: ['money', 'wudang'],
             venues: [
                 v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('听雨楼', '花想容', '神秘的美人楼主，武功深不可测，消息灵通。', ['dragon_tea', 'wine_bamboo', 'tang_painting', 'screen_2side'], false, 70),
@@ -64,7 +80,7 @@ const WORLD = {
             id: 'changan', name: '长安',
             desc: '千年古都，武林圣地。大光明寺是天下武学正宗源头。',
             population: 1200000, area: 90, areaUnit: 'km²', economy: 'wealthy',
-            factions: [],
+            factions: ['shaolin', 'xiyue'],
             venues: [
                 v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('古玩店', '司徒明', '留着山羊胡的古董商人，店内古物琳琅满目。', ['qin_bamboo', 'peony_painting', 'writing_brush', 'ink_stick']),
@@ -99,7 +115,7 @@ const WORLD = {
             id: 'chengdu', name: '成都',
             desc: '天府之国的中心，茶馆遍布，蜀中江湖人士聚集之地。',
             population: 480000, area: 30, areaUnit: 'km²', economy: 'wealthy',
-            factions: [],
+            factions: ['emei', 'tang'],
             venues: [
                 v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('蜀绣坊', '云锦绣', '灵巧的绣娘，店内挂满精美绣品。', ['shu_embroidery', 'silk_robe', 'silk_scarf']),
@@ -321,7 +337,7 @@ getAllLocations().forEach(loc => {
 const REGIONS = {
     xibei: { name: '西北', color: '#d4a050' },
     dongbei: { name: '东北', color: '#50a0d4' },
-    xinan: { name: '西南', color: '#50d480' },
+    xinan: { name: '南部', color: '#50d480' },
     dongnan: { name: '东南', color: '#d48050' },
     zhongbu: { name: '中部', color: '#c0c050' },
 };
