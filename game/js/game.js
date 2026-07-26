@@ -131,6 +131,7 @@ class Game {
             villageBlacklist: {},
         };
 
+        setupStreetGamblers(WORLD);
         const sv = WORLD.villages[Math.floor(Math.random() * WORLD.villages.length)];
         this.player.locationId = sv.id;
         this.player.startingVillage = sv.id;
@@ -985,7 +986,10 @@ class Game {
         if (npc.isBeauty) { this.interactBeauty(venue, npc); return; }
         if (npc.isChief) { this.chiefAction(venue, npc); return; }
         if (this.isBrothelVenue(venue)) { this.interactBrothel(venue, npc); return; }
-        if (venue.name === '街角') { this.beggarAction(venue, npc); return; }
+        if (venue.name === '街角') {
+            if (npc.gamblerLevel) { this.gamblerAction(venue, npc); return; }
+            this.beggarAction(venue, npc); return;
+        }
         this.clearChoices();
         if (!npc._introduced) {
             this.addMessage(`${npc.npcName}：「${npc.npcDesc}」`, 'info');
@@ -1123,6 +1127,39 @@ class Game {
                 { text: `乞丐：${intro}`, type: 'html' },
             ], showList);
         }
+    }
+
+    /* ─── 赌徒系统 ─── */
+
+    gamblerAction(venue, npc) {
+        this.clearChoices();
+        this.addMessage(npc.npcName + '抬眼看了看你，咧嘴一笑：「来两把？」他拍了拍面前的破碗，三颗骰子叮当作响。', 'narrator');
+        this.showChoices([
+            { text: '赌两把', action: () => {
+                this.clearChoices();
+                startGambling(npc, this.player, {
+                    addMessage: (t, type) => this.addMessage(t, type),
+                    clearChoices: () => this.clearChoices(),
+                    showChoices: (c) => this.showChoices(c),
+                    updateStatsBar: () => this.updateStatsBar(),
+                    startBattle: (enemy, onWin, onLose) => this.startBattle(enemy, onWin, onLose),
+                    gamblerAction: () => this.gamblerAction(venue, npc),
+                });
+            } },
+            { text: '打听消息（1两）', action: () => this.beggarIntel(venue, npc) },
+            { text: '暴打一顿', action: () => this.beatGambler(venue, npc) },
+            { text: '离开', action: () => this.enterVenue(venue) },
+        ]);
+    }
+
+    beatGambler(venue, npc) {
+        this.clearChoices();
+        this.player.reputation = Math.max(0, this.player.reputation - 3);
+        this.addMessage('你一把揪住' + npc.npcName + '的衣领，将他提了起来。', 'narrator');
+        this.addMessage(npc.npcName + '吓得连连告饶：「大爷饶命！我说！我什么都说！」', 'narrator');
+        this.addMessage('声望 -3（当前 ' + this.player.reputation + '）', 'system');
+        this.updateStatsBar();
+        this.beggarIntelBeauties(venue, npc, true);
     }
 
     /* ─── 猎人系统 ─── */
@@ -2993,11 +3030,38 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
         this.clearChoices();
         const bd = beauty._beautyData;
         const scene = this.getKissScene(bd);
-        this.addMessage(scene.narrator, 'narrator');
-        this.addMessage(scene.line, 'narrator');
-        bd.favorability = Math.min(100, bd.favorability + 3);
-        this.updateStatsBar();
-        setTimeout(() => this.interactBeauty(venue, beauty), 500);
+        const segs = this._splitKissDesc(scene.narrator);
+        const showNext = (i) => {
+            if (i < segs.length) {
+                this.clearChoices();
+                this.addMessage(segs[i], 'narrator');
+                this.showChoices([{ text: '继续', action: () => showNext(i + 1) }]);
+            } else {
+                this.addMessage(scene.line, 'narrator');
+                bd.favorability = Math.min(100, bd.favorability + 3);
+                this.updateStatsBar();
+                setTimeout(() => this.interactBeauty(venue, beauty), 500);
+            }
+        };
+        showNext(0);
+    }
+
+    _splitKissDesc(text) {
+        const segs = [];
+        let buf = '';
+        for (let i = 0; i < text.length; i++) {
+            buf += text[i];
+            if (text[i] === '。' || text[i] === '！' || text[i] === '？') {
+                const next = text[i + 1] || '';
+                if (next === '」' || next === '』') {
+                    buf += next; i++;
+                }
+                segs.push(buf.trim());
+                buf = '';
+            }
+        }
+        if (buf.trim()) segs.push(buf.trim());
+        return segs.length > 1 ? segs : [text];
     }
 
     gropeBeauty(venue, beauty) {
