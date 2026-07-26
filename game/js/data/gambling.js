@@ -54,6 +54,14 @@ function _cheatDetectChance(player) {
     return Math.min(0.95, (wit + dex) / 200);
 }
 
+// ─── 入口 ───
+
+function startGambling(gambler, player, callbacks) {
+    delete gambler._gamblingSession;
+    delete gambler._thugTriggered;
+    _gambleShowMenu(gambler, player, callbacks);
+}
+
 // ─── 押注金额选择 ───
 
 function _gambleBetSelect(gambler, player, callbacks, gameType) {
