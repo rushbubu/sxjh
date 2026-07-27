@@ -11,7 +11,8 @@
         <div id="header">
             <span id="header-title">率性江湖</span>
             <span id="header-inv" onclick="game.showInventory()">背包</span>
-            <span id="header-menu" onclick="game.toggleMenu()">≡</span>
+            <span id="header-menu" onclick="game.toggleMenu()">☺</span>
+            <span id="header-equip" onclick="game.showEquipment()">⚔</span>
         </div>
         <div id="scene-bg"></div>
         <div id="main-area">
@@ -31,29 +32,33 @@
                 <span class="stat-num" id="mp-text">100/100</span>
             </div>
             <div class="stat-row info-row">
-                <span class="stat-icon">◈</span>
-                <span class="info-label">Lv.</span>
-                <span class="info-value" id="level-text">1</span>
-                <span class="info-sep"></span>
-                <span class="stat-icon">●</span>
-                <span class="info-label">银两</span>
-                <span class="info-value" id="gold-text">0</span>
-                <span class="info-sep"></span>
-                <span class="stat-icon">★</span>
-                <span class="info-label">声望</span>
-                <span class="info-value" id="rep-text">初入江湖</span>
-                <span class="info-sep"></span>
-                <span class="stat-icon">◆</span>
-                <span class="info-label">财富</span>
-                <span class="info-value" id="wealth-text">穷困潦倒</span>
-                <span class="info-sep"></span>
-                <span class="stat-icon">☀</span>
-                <span class="info-label">第</span>
-                <span class="info-value" id="day-text">1</span>
-                <span class="info-label">天</span>
-                <span class="info-sep"></span>
-                <span class="stat-icon">☾</span>
-                <span class="info-value" id="time-text">清晨</span>
+                <span style="display:flex;align-items:center;gap:4px">
+                    <span class="stat-icon">◈</span>
+                    <span class="info-label">Lv.</span>
+                    <span class="info-value" id="level-text">1</span>
+                    <span class="info-sep"></span>
+                    <span class="stat-icon">●</span>
+                    <span class="info-label">银两</span>
+                    <span class="info-value" id="gold-text">0</span>
+                </span>
+                <span style="flex:1;text-align:center;display:flex;align-items:center;justify-content:center;gap:4px">
+                    <span class="stat-icon">★</span>
+                    <span class="info-label">声望</span>
+                    <span class="info-value" id="rep-text">初入江湖</span>
+                    <span class="info-sep"></span>
+                    <span class="stat-icon">◆</span>
+                    <span class="info-label">财富</span>
+                    <span class="info-value" id="wealth-text">穷困潦倒</span>
+                </span>
+                <span style="display:flex;align-items:center;gap:4px">
+                    <span class="stat-icon">☀</span>
+                    <span class="info-label">第</span>
+                    <span class="info-value" id="day-text">1</span>
+                    <span class="info-label">天</span>
+                    <span class="info-sep"></span>
+                    <span class="stat-icon">☾</span>
+                    <span class="info-value" id="time-text">清晨</span>
+                </span>
             </div>
         </div>
 
@@ -81,6 +86,16 @@
             </div>
         </div>
 
+        <!-- 装备面板 -->
+        <div id="equip-overlay" class="hidden" onclick="game.hideEquipment()">
+            <div id="equip-panel" onclick="event.stopPropagation()">
+                <h2>—— 装备 ——</h2>
+                <div id="equip-slots"></div>
+                <div id="equip-sub" class="hidden"></div>
+                <button onclick="game.hideEquipment()">关闭</button>
+            </div>
+        </div>
+
         <!-- 游戏结束界面 -->
         <div id="gameover-overlay" class="hidden">
             <div id="gameover-panel">
@@ -100,6 +115,13 @@
     <script src="js/data/flirt.js"></script>
     <script src="js/data/beauty_scenes.js"></script>
     <script src="js/data/combat.js"></script>
+    <script src="js/data/special_beauties.js"></script>
+    <script src="js/data/sex_scenes.js"></script>
+    <script src="js/data/cloud_rain.js"></script>
+    <script src="js/data/rape_system.js"></script>
+    <script src="js/data/brothel_cloud_rain.js"></script>
+    <script src="js/data/factions.js"></script>
+    <script src="js/data/gambling.js"></script>
     <script src="js/game.js"></script>
 </body>
 </html>

@@ -79,6 +79,7 @@ function generateChiefSonEnemy(sonName, sonPower) {
         name: sonName, hp, maxHp: hp,
         neili: Math.floor(sonPower * 2), maxNeili: Math.floor(sonPower * 2),
         combatPower: sonPower,
+        dexterity: 10,
         moves: [
             { name: '直拳',       power: Math.max(4, Math.floor(sonPower * 0.3)),  neiliCost: 0, type: 'basic' },
             { name: '蛮力冲撞',   power: Math.max(6, Math.floor(sonPower * 0.55)), neiliCost: Math.max(3, Math.floor(sonPower * 0.15)), type: 'special' },

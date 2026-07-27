@@ -1,9 +1,9 @@
 const SURNAMES = ['李','王','张','柳','花','苏','林','白','云','夏','秋','冬','梅','兰','竹','桃','莲','荷','月','水','谢','叶','沈','秦','顾','唐','萧'];
-const GIVEN_NAMES = ['娘','儿','姐','姑','莲','荷','梅','兰','竹','菊','桃','杏','薇','蕾','翠','香','秀','英','瑶','雪','晴','霜','露','烟','霞','蝶','燕','莺','凤','凰','娥','婵','姬','妃','媛'];
+const GIVEN_NAMES = ['娘','杏儿','姐','姑','莲儿','荷','梅','兰','竹','菊','桃','杏','薇','蕾','翠','香','秀','英','瑶','雪','晴','霜','露','烟','霞','蝶','燕','莺','凤','凰','娥','婵','姬','妃','媛'];
 const GIVEN_NAMES_2CHAR = [
     '师师','小小','如是','想容','诗音','若曦','紫嫣','婉清','语嫣','梦琪',
     '清漪','浣纱','拂柳','映雪','含烟','如霜','画眉','知秋','怜月','惜花',
-    '采莲','听荷','问柳','寻梅','踏雪','吟霜','弄影','飞燕','惊鸿','倾城',
+    '采莲','听荷','问柳','寻梅','踏雪','吟霜','弄影','飞燕','越云','晶晶',
     '寄萍','浣青','芷柔','若兰','清荷','晓蕾','冰月','寒烟','素心','凝霜',
     '相思','莫愁','无双','如梦','依依','楚楚','纤纤','翩翩','冉冉','泠泠',
 ];
@@ -133,6 +133,23 @@ function generateRequirements(type) {
     return reqs;
 }
 
+function getHeightLabel(height) {
+    if (height < 155) return '萝莉';
+    if (height < 160) return '娇小';
+    if (height < 165) return '中等';
+    if (height < 170) return '高挑';
+    if (height < 178) return '高挑出众';
+    return '过高';
+}
+function getHeightModifier(height) {
+    if (height < 155) return 4;
+    if (height < 160) return -3;
+    if (height < 165) return 0;
+    if (height < 170) return 4;
+    if (height < 178) return 7;
+    return -3;
+}
+
 function getScoreTierKey(score) {
     if (score >= 93) return 'top';
     if (score >= 83) return 'high';
@@ -151,12 +168,12 @@ function getBodyDesc(score, maritalStatus) {
 
 const BEAUTY_TIERS = [
     { min: 0,   key: 'white',  label: '凡品', color: '#cccccc' },
-    { min: 20,  key: 'green',  label: '良品', color: '#66cc66' },
-    { min: 40,  key: 'blue',   label: '精品', color: '#6699ff' },
-    { min: 55,  key: 'purple', label: '上品', color: '#cc66ff' },
-    { min: 65,  key: 'red',    label: '极品', color: '#ff6666' },
-    { min: 75,  key: 'orange', label: '绝品', color: '#ffaa33' },
-    { min: 85,  key: 'black',  label: '神品', color: '#ffd700' },
+    { min: 70,  key: 'purple', label: '上品', color: '#cc66ff' },
+    { min: 75,  key: 'blue',   label: '极品', color: '#6699ff' },
+    { min: 80,  key: 'orange', label: '绝品', color: '#ffaa33' },
+    { min: 85,  key: 'red',    label: '神品', color: '#ff6666' },
+    { min: 90,  key: 'pink',   label: '仙品', color: '#ff69b4' },
+    { min: 95,  key: 'gold',   label: '天仙', color: '#ffd700' },
 ];
 
 function getBeautyTier(score) {
@@ -253,15 +270,25 @@ function generateBeauties(locationId, type, usedNames) {
         }
         const scores = generateBeautyScores(type);
         const faceScore = scores.face;
-        const bodyScore = scores.body;
+        const height = rand(155, type === 'big_city' ? 175 : 170);
+        const heightMod = getHeightModifier(height);
+        const bodyScore = Math.min(99, Math.max(65, scores.body + heightMod));
         const faceDesc = getFaceDesc(faceScore);
         const bodyDesc = getBodyDesc(bodyScore, ms);
+        let bust, waist, hips;
+        if (ms === 'unmarried') {
+            bust = rand(30, 35); waist = rand(20, 24); hips = rand(30, 35);
+        } else if (ms === 'widow') {
+            bust = rand(33, 38); waist = rand(23, 28); hips = rand(33, 38);
+        } else {
+            bust = rand(34, 40); waist = rand(24, 30); hips = rand(34, 40);
+        }
         const b = {
             id: `beauty_${locationId}_${i}`,
             name, age, faceScore, bodyScore,
             surface: ms, inner: ms,
-            height: rand(155, type === 'big_city' ? 175 : 170),
-            bust: rand(32, 38), waist: rand(22, 28), hips: rand(32, 38),
+            height, bust, waist, hips,
+            heightLabel: getHeightLabel(height),
             faceDesc, bodyDesc,
             clothing: ms === 'widow' ? pick(CLOTHING_WIDOW) : pick(type === 'big_city' ? CLOTHING_BIG : type === 'small_city' ? CLOTHING_CITY : CLOTHING_VILLAGE),
             favorability: 0,
@@ -306,15 +333,18 @@ function generateProstitutes(locationId, type, usedNames) {
         const name = generateBeautyName(type, usedNames);
         const scores = generateBeautyScores(type);
         const faceScore = scores.face;
-        const bodyScore = scores.body;
+        const height = rand(158, type === 'big_city' ? 172 : 168);
+        const heightMod = getHeightModifier(height);
+        const bodyScore = Math.min(99, Math.max(65, scores.body + heightMod));
         const faceDesc = getFaceDesc(faceScore);
         const bodyDesc = getBodyDesc(bodyScore, 'unmarried');
         const p = {
             id: `prostitute_${locationId}_${i}`,
             name, age: rand(18, 28), faceScore, bodyScore,
             surface: 'unmarried', inner: 'unmarried',
-            height: rand(158, type === 'big_city' ? 172 : 168),
-            bust: rand(33, 38), waist: rand(22, 27), hips: rand(33, 38),
+            height,
+            heightLabel: getHeightLabel(height),
+            bust: rand(31, 37), waist: rand(21, 25), hips: rand(31, 36),
             faceDesc, bodyDesc,
             clothing: pick(type === 'big_city' ? CLOTHING_BIG : CLOTHING_CITY),
             favorability: 30,

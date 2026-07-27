@@ -14,7 +14,7 @@ body {
 }
 
 #app {
-    max-width: 480px;
+    max-width: 576px;
     margin: 0 auto;
     height: 100vh;
     display: flex;
@@ -58,6 +58,16 @@ body {
 
 #header-inv:hover {
     color: #a0c0e0;
+}
+
+#header-equip {
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 6px;
+    color: #c0a080;
+}
+#header-equip:hover {
+    color: #e0c0a0;
 }
 
 #scene-bg {
@@ -211,6 +221,7 @@ body {
     color: #8a9aba;
     gap: 0;
     flex-shrink: 0;
+    justify-content: space-between;
 }
 
 .info-label {
@@ -545,26 +556,26 @@ body {
 /* ─── 战斗界面 ─── */
 
 #battle-hud {
-    padding: 12px 14px 8px;
-    margin-bottom: 4px;
+    padding: 18px 20px 12px;
+    margin-bottom: 8px;
     background: rgba(10, 10, 10, 0.92);
     border-bottom: 1px solid #3a2020;
 }
 
 .battle-section + .battle-section {
-    margin-top: 10px;
-    padding-top: 8px;
+    margin-top: 14px;
+    padding-top: 12px;
     border-top: 1px solid #2a2a2a;
 }
 
 .battle-names {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .battle-name {
-    font-size: 15px;
+    font-size: 20px;
     font-weight: bold;
     color: #e8d8b0;
     text-shadow: 0 0 4px rgba(200, 160, 100, 0.3);
@@ -577,29 +588,29 @@ body {
 .battle-bar-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin: 2px 0;
+    gap: 8px;
+    margin: 4px 0;
 }
 
 .battle-bar-label {
-    font-size: 12px;
+    font-size: 15px;
     color: #908070;
-    min-width: 28px;
+    min-width: 32px;
 }
 
 .battle-bar-track {
     flex: 1;
-    height: 12px;
+    height: 18px;
     background: #1a1a1a;
     border: 1px solid #3a3a3a;
-    border-radius: 6px;
+    border-radius: 9px;
     overflow: hidden;
 }
 
 .battle-bar-fill {
     height: 100%;
     transition: width 0.3s ease;
-    border-radius: 5px;
+    border-radius: 8px;
 }
 
 .battle-hp-fill { background: linear-gradient(90deg, #c03030, #f05050); }
@@ -608,23 +619,23 @@ body {
 .battle-enemy-hp-fill { background: linear-gradient(90deg, #b03030, #e04040); }
 
 .battle-bar-text {
-    font-size: 11px;
+    font-size: 15px;
     color: #a09080;
-    min-width: 50px;
+    min-width: 60px;
     text-align: right;
 }
 
 #battle-log {
-    padding: 6px 14px 8px;
-    min-height: 40px;
-    font-size: 13px;
+    padding: 10px 20px 12px;
+    min-height: 50px;
+    font-size: 17px;
     color: #c0b898;
-    line-height: 1.6;
+    line-height: 1.8;
     border-top: 1px solid #2a2a2a;
 }
 
 .battle-log-entry {
-    padding: 1px 0;
+    padding: 3px 0;
     animation: battleFadeIn 0.3s ease;
 }
 
@@ -633,7 +644,232 @@ body {
 .battle-log-self { color: #f06060; }
 .battle-log-info { color: #80c080; }
 
+.battle-action-row {
+    margin-top: 8px;
+    gap: 4px;
+}
+.action-dot {
+    font-size: 14px;
+    margin: 0 2px;
+    transition: all 0.3s;
+}
+.action-dot-ready {
+    color: #ffd700;
+    text-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
+}
+.action-dot-empty {
+    color: #3a3a3a;
+}
+.action-dot-locked {
+    color: #1a1a1a;
+}
+
+/* ─── 云雨独立页面 ─── */
+
+#sex-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    animation: fadeIn 0.3s ease;
+}
+
+#sex-scene-log {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+#sex-panel {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    padding: 10px 14px;
+    background: rgba(60, 20, 40, 0.9);
+    border: 1px solid #6a3a4a;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.sex-arousal-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+}
+.sex-a-label {
+    width: 20px;
+    text-align: center;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+.sex-female-label { color: #f080a0; }
+.sex-male-label { color: #80a0f0; }
+
+.sex-a-track {
+    flex: 1;
+    height: 12px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 6px;
+    overflow: hidden;
+    min-width: 60px;
+}
+.sex-a-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.3s;
+}
+.sex-fa-fill { background: linear-gradient(90deg, #803050, #e04080); }
+.sex-ma-fill { background: linear-gradient(90deg, #304080, #4080e0); }
+
+.sex-a-val {
+    width: 28px;
+    text-align: right;
+    font-size: 13px;
+    color: #c0a8b8;
+    flex-shrink: 0;
+}
+
+.sex-clothes {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+    font-size: 12px;
+}
+.sex-c-icon {
+    padding: 1px 6px;
+    border: 1px solid #5a4a5a;
+    border-radius: 4px;
+    color: #c0a8b8;
+    background: rgba(60, 30, 50, 0.3);
+}
+.sex-c-off {
+    border-color: #3a2a3a;
+    color: #4a3a4a;
+    text-decoration: line-through;
+    background: rgba(30, 20, 30, 0.3);
+}
+
 @keyframes battleFadeIn {
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ─── 装备面板 ─── */
+#equip-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+#equip-overlay.hidden { display: none; }
+#equip-panel {
+    background: linear-gradient(180deg, #1a1e38, #141830);
+    border: 1px solid #3a4a7a;
+    border-radius: 16px;
+    padding: 20px 18px;
+    width: 100%;
+    max-width: 420px;
+    max-height: 92vh;
+    overflow-y: auto;
+}
+#equip-panel h2 {
+    text-align: center;
+    color: #e8d5a3;
+    margin: 0 0 14px 0;
+    font-size: 18px;
+    letter-spacing: 3px;
+}
+#equip-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.equip-row {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+}
+.equip-slot {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 4px;
+    background: rgba(30, 40, 80, 0.5);
+    border: 1px solid #3a4a7a;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 13px;
+    color: #8a9aba;
+    transition: border-color 0.15s;
+}
+.equip-slot:hover { border-color: #6a8ada; }
+.equip-slot.eq-filled { color: #c8d8f0; border-color: #5a7aaa; background: rgba(40, 60, 120, 0.4); }
+.equip-slot .eq-label { font-size: 11px; color: #6a7a9a; display: block; }
+.equip-slot .eq-name { font-size: 13px; display: block; margin-top: 2px; }
+.equip-slot .eq-tier-white { color: #c8c8c8; }
+.equip-slot .eq-tier-green { color: #80c080; }
+.equip-slot .eq-tier-blue  { color: #80a0ff; }
+.equip-slot .eq-tier-purple { color: #c080ff; }
+
+#equip-sub {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(20, 24, 48, 0.7);
+    border: 1px solid #3a4a7a;
+    border-radius: 10px;
+    max-height: 240px;
+    overflow-y: auto;
+}
+.equip-item-choice {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 4px;
+    background: rgba(40, 50, 100, 0.3);
+    border: 1px solid #4a5a7a;
+    border-radius: 6px;
+    color: #c8d8f0;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: left;
+}
+.equip-item-choice:hover { border-color: #6a8ada; }
+.equip-item-choice:last-child { margin-bottom: 0; }
+
+#equip-panel > button {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px;
+    background: rgba(60, 70, 120, 0.3);
+    border: 1px solid #4a5a7a;
+    border-radius: 8px;
+    color: #d4c9a8;
+    font-size: 15px;
+    cursor: pointer;
+}
+#equip-panel > button:hover { background: rgba(60, 70, 140, 0.5); }
+
+.equip-loadout-btn {
+    flex: 1;
+    padding: 8px;
+    background: rgba(50, 60, 110, 0.4);
+    border: 1px solid #4a5a7a;
+    border-radius: 8px;
+    color: #d4c9a8;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: center;
+}
+.equip-loadout-btn:hover { background: rgba(50, 60, 140, 0.5); }
