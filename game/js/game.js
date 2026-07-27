@@ -24,7 +24,7 @@ function getTierInfo(tier) {
     return TIERS[tier] || TIERS.white;
 }
 
-const ITEM_TIER_LABELS = { blue:'蓝色', purple:'紫色', orange:'橙色', gold:'金色' };
+const ITEM_TIER_LABELS = { white:'凡品', green:'良品', blue:'精品', purple:'上品', orange:'绝品', gold:'神品' };
 
 class Game {
     constructor() {
@@ -2991,7 +2991,7 @@ class Game {
             const hasMat = Object.entries(r.ings).every(([id, qty]) => countItem(id) >= qty);
             const hasGold = p.gold >= r.cost;
             const canForge = hasMat && hasGold;
-            const label = (canForge ? '' : '⚠ ') + r.name + (r.tier !== 'white' ? `（${r.tier}）` : '') + ` — ${r.desc} 需：` +
+            const label = (canForge ? '' : '⚠ ') + '【' + (ITEM_TIER_LABELS[r.tier] || r.tier) + '】' + r.name + ' — ' + r.desc + '  |  ' +
                 Object.entries(r.ings).map(([id, qty]) => `${ingName(id)}×${qty}`).join('、') + ` + ${r.cost}两`;
             return {
                 text: label,
