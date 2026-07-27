@@ -287,10 +287,10 @@ class Game {
         this.clearChoices();
         this.addMessage(ev.text, 'narrator');
 
-        // 查找背包中可吃的物品
+        // 查找背包中可使用（有 use 属性）的食物或酒
         const foodItems = this.player.items.filter(i => {
             const def = getItem(i.id);
-            return def && (def.category === 'food' || def.category === 'wine');
+            return def && (def.category === 'food' || def.category === 'wine') && def.use;
         });
         const hasFood = foodItems.length > 0;
 
@@ -338,28 +338,38 @@ class Game {
                 });
             }
             if (ev.ask === 'food' || ev.ask === 'both') {
-                const foodLabel = hasFood ? `给些干粮（现有${foodItems.length}份）` : '给些干粮（没有吃的）';
-                choices.push({
-                    text: foodLabel,
-                    action: () => {
-                        if (!hasFood) {
+                if (hasFood) {
+                    choices.push({
+                        text: `给些吃的（${foodItems.length}件可用）`,
+                        action: () => {
                             this.clearChoices();
-                            this.addMessage('你翻遍了包裹，一样能吃的东西都没有。', 'narrator');
+                            this.addMessage('你翻出背包里的吃食：', 'narrator');
+                            const foodChoices = foodItems.map(fi => ({
+                                text: fi.name,
+                                action: () => {
+                                    this.clearChoices();
+                                    const idx = this.player.items.indexOf(fi);
+                                    if (idx !== -1) this.player.items.splice(idx, 1);
+                                    doHelp();
+                                    const msg = ev.helpFood || ev.help || '';
+                                    if (msg) this.addMessage(msg, 'event');
+                                },
+                            }));
+                            foodChoices.push({ text: '算了', action: () => { this.clearChoices(); this.addMessage('你收起了食物。', 'narrator'); this.showChoices([{ text: '继续赶路', action: () => this.showOutdoorChoices() }]); } });
+                            this.showChoices(foodChoices);
+                        },
+                    });
+                } else {
+                    choices.push({
+                        text: '给些吃的（你也无能为力）',
+                        action: () => {
+                            this.clearChoices();
+                            this.addMessage('你翻遍了包裹，没有一样能给人吃的东西。', 'narrator');
+                            this.addMessage('你也无能为力，只能叹息着离开。', 'narrator');
                             this.showChoices([{ text: '继续赶路', action: () => this.showOutdoorChoices() }]);
-                        } else {
-                            // 消耗第一份食物
-                            const eaten = foodItems[0];
-                            const idx = this.player.items.indexOf(eaten);
-                            if (idx !== -1) this.player.items.splice(idx, 1);
-                            doHelp();
-                            if (ev.helpFood) {
-                                this.addMessage(ev.helpFood, 'event');
-                            } else if (ev.help) {
-                                this.addMessage(ev.help, 'event');
-                            }
-                        }
-                    },
-                });
+                        },
+                    });
+                }
             }
         }
 
@@ -1015,6 +1025,9 @@ class Game {
                         } else {
                             this.addMessage('你抡起柴刀劈了半个时辰的柴，但筋骨已到瓶颈，再砍也无寸进。', 'narrator');
                         }
+                        this.player.items.push({ ...getItem('firewood') });
+                        this.player.items.push({ ...getItem('firewood') });
+                        this.addMessage('获得柴火×2', 'system');
                         this.advanceTime();
                         this.updateStatsBar();
                         setTimeout(() => this.enterVenueInner(venue), 400);
@@ -1044,6 +1057,9 @@ class Game {
                 } else {
                     this.addMessage('你抡起柴刀劈了半个时辰的柴，但筋骨已到瓶颈，再砍也无寸进。', 'narrator');
                 }
+                this.player.items.push({ ...getItem('firewood') });
+                this.player.items.push({ ...getItem('firewood') });
+                this.addMessage('获得柴火×2', 'system');
                 this.advanceTime();
                 this.updateStatsBar();
                 setTimeout(() => this.enterVenueInner(venue), 400);
@@ -1954,6 +1970,9 @@ class Game {
         this.advanceTime();
         this.player.items.push({ ...getItem('wood_hard') });
         this.addMessage('获得硬木×1', 'system');
+        this.player.items.push({ ...getItem('firewood') });
+        this.player.items.push({ ...getItem('firewood') });
+        this.addMessage('获得柴火×2', 'system');
         const chopRoot = this.player._chopRootBonus || 0;
         if (chopRoot < 10) {
             this.player.attrs.root += 1;
@@ -3403,9 +3422,60 @@ class Game {
         this.showChoices([
             { text: '练习外功', action: () => this.showExternalPractice() },
             { text: '练习心法', action: () => this.practiceInternal() },
+            { text: '生火做饭', action: () => this.showCooking() },
             { text: '睡到明天', action: () => this.sleepToTomorrow() },
             { text: '回去', action: () => this.showLocationChoices() },
         ]);
+    }
+
+    showCooking() {
+        this.clearChoices();
+        const rawMeats = [
+            { id: 'meat_rabbit', name: '兔肉', cookedId: 'meat_rabbit_cooked', cookedName: '烤兔肉' },
+            { id: 'meat_snake',  name: '蛇肉', cookedId: 'meat_snake_cooked',  cookedName: '烤蛇肉' },
+            { id: 'meat_goat',   name: '羊肉', cookedId: 'meat_goat_cooked',   cookedName: '烤羊肉' },
+            { id: 'meat_boar',   name: '野猪肉', cookedId: 'meat_boar_cooked', cookedName: '烤野猪肉' },
+        ];
+        const available = rawMeats.filter(m => this.player.items.some(i => i.id === m.id));
+        const firewoodCount = this.player.items.filter(i => i.id === 'firewood').length;
+
+        if (available.length === 0) {
+            this.addMessage('你翻了翻背包——没有任何可以烹饪的肉类。', 'narrator');
+            this.addMessage('去打猎弄些肉来，再找些柴火，就能生火做饭了。', 'narrator');
+            this.showChoices([{ text: '回去', action: () => this.showHomeChoices() }]);
+            return;
+        }
+        if (firewoodCount < 1) {
+            this.addMessage('你架好锅，却发现没有柴火。', 'narrator');
+            this.addMessage('去小树林砍些柴火回来吧。', 'narrator');
+            this.showChoices([{ text: '回去', action: () => this.showHomeChoices() }]);
+            return;
+        }
+
+        this.addMessage(`你拾来柴火，架起铁锅，准备生火做饭。（柴火剩余：${firewoodCount}）`, 'narrator');
+        const choices = available.map(m => ({
+            text: `烤${m.name}`,
+            action: () => {
+                this.clearChoices();
+                const idx = this.player.items.findIndex(i => i.id === m.id);
+                if (idx === -1) { this.addMessage('没有这个食材了。', 'narrator'); this.showChoices([{ text: '回去', action: () => this.showHomeChoices() }]); return; }
+                this.player.items.splice(idx, 1);
+                const fwIdx = this.player.items.findIndex(i => i.id === 'firewood');
+                if (fwIdx === -1) { this.addMessage('柴火不够了。', 'narrator'); this.showChoices([{ text: '回去', action: () => this.showHomeChoices() }]); return; }
+                this.player.items.splice(fwIdx, 1);
+                this.player.items.push({ ...getItem(m.cookedId) });
+                this.addMessage(`你将${m.name}放在火上慢慢烤制，香气四溢。`, 'narrator');
+                this.addMessage(`${m.name}烤好了！获得 ${m.cookedName}`, 'event');
+                this.advanceTime();
+                this.updateStatsBar();
+                this.showChoices([
+                    { text: '再烤一份', action: () => this.showCooking() },
+                    { text: '回去', action: () => this.showHomeChoices() },
+                ]);
+            },
+        }));
+        choices.push({ text: '回去', action: () => this.showHomeChoices() });
+        this.showChoices(choices);
     }
 
     showExternalPractice() {

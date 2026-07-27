@@ -79,11 +79,16 @@ const ITEMS = {
     leather_raw:     { id: 'leather_raw',     name: '兽皮',      desc: '处理过的兽皮，可用于制作皮具铠甲。',                     value: 3,   stealDiff: 10, category: 'material' },
     wood_hard:       { id: 'wood_hard',       name: '硬木',      desc: '坚硬耐用的木材，适合做兵器握柄或盾牌。',                 value: 2,   stealDiff: 8,  category: 'material' },
 
-    // ═══ 猎物 ═══
+    // ═══ 猎物与烹饪 ═══
     meat_rabbit:      { id: 'meat_rabbit',    name: '兔肉',      desc: '新鲜的兔肉，烤着吃很香。',                                value: 2,   stealDiff: 3,  category: 'food' },
     meat_snake:       { id: 'meat_snake',     name: '蛇肉',      desc: '蛇肉细嫩，煲汤极鲜。',                                   value: 3,   stealDiff: 4,  category: 'food' },
     meat_goat:        { id: 'meat_goat',      name: '羊肉',      desc: '山羊肉质紧实，适合烤制。',                                value: 4,   stealDiff: 5,  category: 'food' },
     meat_boar:        { id: 'meat_boar',      name: '野猪肉',    desc: '野猪肉腥膻味重，但极有嚼劲。',                             value: 6,   stealDiff: 8,  category: 'food' },
+    firewood:         { id: 'firewood',       name: '柴火',      desc: '干燥的柴火，适合生火做饭。',                              value: 1,   stealDiff: 2,  category: 'material' },
+    meat_rabbit_cooked:{ id: 'meat_rabbit_cooked', name: '烤兔肉',  desc: '外焦里嫩的烤兔肉，香气四溢，可恢复15点气血。',          value: 5,   stealDiff: 5,  category: 'food', use: { healHp: 15 } },
+    meat_snake_cooked: { id: 'meat_snake_cooked',  name: '烤蛇肉',  desc: '烤得滋滋冒油的蛇肉，细嫩鲜美，可恢复20点气血。',       value: 7,   stealDiff: 6,  category: 'food', use: { healHp: 20 } },
+    meat_goat_cooked:  { id: 'meat_goat_cooked',   name: '烤羊肉',  desc: '炭火烤制的山羊肉，撒上盐巴，滋味十足，可恢复25点气血。',value: 9,   stealDiff: 7,  category: 'food', use: { healHp: 25 } },
+    meat_boar_cooked:  { id: 'meat_boar_cooked',   name: '烤野猪肉',desc: '烤得金黄的野猪肉，外皮酥脆，可恢复35点气血。',          value: 12,  stealDiff: 10, category: 'food', use: { healHp: 35 } },
     gall_snake:       { id: 'gall_snake',     name: '蛇胆',      desc: '巨蟒之胆，服用可增内力。',                                value: 10,  stealDiff: 15, category: 'medicine' },
     gall_bear:        { id: 'gall_bear',      name: '熊胆',      desc: '黑熊之胆，大补内力。',                                    value: 20,  stealDiff: 25, category: 'medicine' },
     gall_tiger:       { id: 'gall_tiger',     name: '虎胆',      desc: '猛虎之胆，稀世珍品，可大幅提升内力。',                    value: 40,  stealDiff: 40, category: 'medicine' },
