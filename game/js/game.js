@@ -1754,6 +1754,33 @@ class Game {
             '街角的乞丐消息灵通，想打听什么事找他准没错。', '赌博有风险，输光了可别怪我没提醒你。',
         ];
         this.addMessage(npc.npcName + '：「' + lines[Math.floor(Math.random() * lines.length)] + '」', 'narrator');
+        // 主线任务提示
+        if (Math.random() < 0.3 && this.currentLocation && this.player.startingVillage === this.currentLocation.id) {
+            const loc = this.currentLocation;
+            if (this.player.mainQuest === 0) {
+                const chiefVenue = loc.venues.find(v => v.name === '村长家');
+                if (chiefVenue) {
+                    const chief = chiefVenue.npcs[0];
+                    const chiefHints = [
+                        `你顺势问起${chief.npcName}的为人，${npc.npcName}压低声音道：「${chief.npcName}这人势利得很，一般人根本见不到他。」`,
+                        `你打听${chief.npcName}的消息，${npc.npcName}撇了撇嘴：「那老东西眼睛长在头顶上，没点名声他都不带正眼看你的。」`,
+                        `你提起${chief.npcName}，${npc.npcName}摇了摇头：「他眼光高着呢，没几分本事可入不了他的眼。」`,
+                    ];
+                    this.addMessage(chiefHints[Math.floor(Math.random() * chiefHints.length)], 'info');
+                }
+            } else if (this.player.mainQuest === 1) {
+                const landlordVenue = loc.venues.find(v => v.name.endsWith('府'));
+                if (landlordVenue) {
+                    const landlord = landlordVenue.npcs[0];
+                    const landlordHints = [
+                        `你问起${landlord.npcName}，${npc.npcName}啧啧道：「那可是咱们村最有钱的主儿，宅子深着呢，寻常人可进不去。」`,
+                        `你打听${landlord.npcName}的消息，${npc.npcName}压低嗓门：「他家里阔得很，就是门禁严，没点门路见不着。」`,
+                        `你提到${landlord.npcName}，${npc.npcName}笑道：「那大户人家规矩多，你要是想去，先把自己名声闯出来再说。」`,
+                    ];
+                    this.addMessage(landlordHints[Math.floor(Math.random() * landlordHints.length)], 'info');
+                }
+            }
+        }
         this.player.neili -= 2;
         this.updateStatsBar();
         setTimeout(() => this.interactNpc(venue, npc), 400);
