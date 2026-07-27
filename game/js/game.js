@@ -215,7 +215,7 @@ class Game {
     /* ─── 双声望辅助 ─── */
 
     _adjInnerRep(delta, label) {
-        this.player._innerRep = Math.max(0, Math.min(100, (this.player._innerRep || 100) + delta));
+        this.player._innerRep = Math.max(0, (this.player._innerRep || 0) + delta);
     }
 
     _adjWorldHelp(delta, label) {
@@ -795,11 +795,11 @@ class Game {
         const isVillage = !!loc.nearestCity;
         if (isVillage) {
             const groups = {
-                '市集': this.player.locationVenues.filter(v => ['草药铺', '铁匠铺', '酒馆'].includes(v.name)),
+                '市集': this.player.locationVenues.filter(v => ['草药铺', '铁匠铺', '酒馆', '肉铺'].includes(v.name)),
                 '村外': this.player.locationVenues.filter(v => ['小树林', '断桥', '小溪', '田埂'].includes(v.name)),
             };
             const others = this.player.locationVenues.filter(v =>
-                !['草药铺', '铁匠铺', '酒馆', '断桥', '小溪', '田埂', '小树林'].includes(v.name)
+                !['草药铺', '铁匠铺', '酒馆', '肉铺', '断桥', '小溪', '田埂', '小树林'].includes(v.name)
             );
             for (const [label, list] of Object.entries(groups)) {
                 if (list.length > 0) choices.push({ text: label, action: () => this.showGroupVenues(label, list) });
@@ -961,13 +961,13 @@ class Game {
             this.addMessage(`其中一个家丁上前一步，横臂拦住去路：「站住！你是何人？我家老爷岂是你想见就见的？」`, 'narrator');
             const loc = this.currentLocation;
             const repNeed = 20 + Math.floor(Math.random() * 6);
-            const goldNeed = Math.max(50, 80 + (loc.economy === 'moderate' ? 50 : 0));
+            const goldNeed = 30 + Math.floor(Math.random() * 21); // 30-50 两
             this.showChoices([
                 { text: `报上名号（需要${repNeed}点声望）`, action: () => {
                     if (this.player.reputation >= repNeed) {
                         this.addMessage(`你朗声道：「在下华山${this.player.attrs.name || '无名'}，有事求见你家老爷。」`, 'narrator');
                         this.addMessage(`家丁上下打量了你一番，态度缓和了些：「原来是江湖上的朋友，失敬失敬！快请进！」`, 'narrator');
-                        this.landlordQuestGrant(venue);
+                        this.landlordQuestGrant(venue, false);
                     } else {
                         this.addMessage(`家丁嗤笑一声：「就你这无名小卒，也配提我家老爷的名号？滚！」`, 'narrator');
                         this.addMessage(`你咬了咬牙，只得转身离开。`, 'narrator');
@@ -979,7 +979,7 @@ class Game {
                         this.player.gold -= goldNeed;
                         this.addMessage(`你掏出${goldNeed}两银子塞到家丁手里。家丁掂了掂，眉开眼笑。`, 'narrator');
                         this.addMessage(`「原来是贵客！里面请里面请！」`, 'narrator');
-                        this.landlordQuestGrant(venue);
+                        this.landlordQuestGrant(venue, true);
                     } else {
                 const short = goldNeed - this.player.gold;
                 this.addMessage(`你摸了摸钱袋，还差${short}两。家丁冷笑一声：「没钱还想见我家老爷？打发叫花子呢！」`, 'narrator');
@@ -1179,39 +1179,73 @@ class Game {
         ]);
     }
 
-    landlordQuestGrant(venue) {
+    landlordQuestGrant(venue, paidEntry) {
         this.clearChoices();
         const landlord = venue.npcs[0];
         const loc = this.currentLocation;
         const gift = Math.max(30, 50 + (loc.economy === 'moderate' ? 30 : 0));
-        this.player.gold += gift;
-        this.updateStatsBar();
-        this.player.mainQuest = 2;
-        this.showMessageSequence([
+        const seq = [
             { text: `你走进${venue.name}，${landlord.npcName}正端坐在太师椅上喝茶。`, type: 'narrator' },
             { text: `${landlord.npcName}见你进来，放下茶盏：「你就是他们说的那位少侠？不知找老夫有何贵干？」`, type: 'narrator' },
             { text: `你拱手道：「晚辈想打听一个人——沈清寒。」`, type: 'narrator' },
-            { text: `${landlord.npcName}沉吟片刻：「沈清寒……这个名字老夫倒是在一次商旅中听人提过。」`, type: 'narrator' },
+            { text: `${landlord.npcName}沉吟片刻：「沈清寒……这个名字老夫似乎有所耳闻，不过未曾在意。」`, type: 'narrator' },
             { text: `${landlord.npcName}：「此人似乎与中原武林的一些大人物有来往，具体的老夫也不甚清楚。」`, type: 'narrator' },
             { text: `${landlord.npcName}：「老夫建议你去城里打听打听，那些酒楼茶肆里三教九流的人多，消息比我这小地方灵通得多。」`, type: 'narrator' },
-            { text: `${landlord.npcName}：「这点盘缠你拿着，就当老夫结个善缘。」`, type: 'narrator' },
-            { text: `获得了 ${gift} 两银子。`, type: 'system' },
-            { text: `你现在可以离开村庄，前往其他地方打探消息了。`, type: 'info' },
-        ], () => {
-            this.showChoices([
-                { text: '多谢老员外', action: () => {
-                    this.addMessage('你辞别了员外，走出了大门。', 'narrator');
-                    setTimeout(() => {
-                        if (typeof this._triggerRescueOx === 'function') {
-                            this._triggerRescueOx();
-                        } else {
-                            this.addMessage('（支线系统未就绪）', 'danger');
-                            this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices();
-                        }
-                    }, 400);
-                } },
-            ]);
-        });
+        ];
+        if (paidEntry) {
+            // 塞钱进来的，没有盘缠
+            seq.push(
+                { text: `${landlord.npcName}：「天色不早了，少侠请便吧。」`, type: 'narrator' },
+            );
+            this.player.mainQuest = 2;
+            this.showMessageSequence(seq, () => {
+                this.showChoices([
+                    { text: '告辞', action: () => {
+                        this.addMessage('你辞别了员外，走出了大门。', 'narrator');
+                        setTimeout(() => this._afterLandlordQuest(), 400);
+                    } },
+                ]);
+            });
+        } else {
+            // 凭声望或硬闯进来的，可以索要盘缠
+            this.showMessageSequence(seq, () => {
+                this.showChoices([
+                    { text: '「晚辈初入江湖，盘缠不足，不知老员外能否资助一二？」', action: () => {
+                        this.clearChoices();
+                        this.player.gold += gift;
+                        this.updateStatsBar();
+                        this.player.mainQuest = 2;
+                        this.showMessageSequence([
+                            { text: `${landlord.npcName}哈哈一笑：「区区小事，何足挂齿。」`, type: 'narrator' },
+                            { text: `${landlord.npcName}：「这点盘缠你拿着，就当老夫结个善缘。」`, type: 'narrator' },
+                            { text: `获得了 ${gift} 两银子。`, type: 'system' },
+                            { text: `你现在可以离开村庄，前往其他地方打探消息了。`, type: 'info' },
+                        ], () => {
+                            this.showChoices([
+                                { text: '多谢老员外', action: () => {
+                                    this.addMessage('你辞别了员外，走出了大门。', 'narrator');
+                                    setTimeout(() => this._afterLandlordQuest(), 400);
+                                } },
+                            ]);
+                        });
+                    } },
+                    { text: '告辞', action: () => {
+                        this.player.mainQuest = 2;
+                        this.addMessage('你辞别了员外，走出了大门。', 'narrator');
+                        setTimeout(() => this._afterLandlordQuest(), 400);
+                    } },
+                ]);
+            });
+        }
+    }
+
+    _afterLandlordQuest() {
+        if (typeof this._triggerRescueOx === 'function') {
+            this._triggerRescueOx();
+        } else {
+            this.addMessage('（支线系统未就绪）', 'danger');
+            this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices();
+        }
     }
 
     landlordFightGuards(venue) {
@@ -1225,7 +1259,7 @@ class Game {
                     { text: `三拳两脚，两个家丁便躺在地上哀嚎不止。`, type: 'narrator' },
                     { text: `大门「吱呀」一声开了，${venue.npcs[0].npcName}站在门口，面色不悦。`, type: 'narrator' },
                     { text: `管家：「少侠好身手，既然能打到这来，那就进来说话吧。」`, type: 'narrator' },
-                ], () => this.landlordQuestGrant(venue));
+                ], () => this.landlordQuestGrant(venue, false));
             },
             () => this.gameOver('你受伤过重，不治身亡')
         );
@@ -1521,6 +1555,9 @@ class Game {
                         quality: sk.quality,
                         level: 1,
                         maxLevel: (SKILL_QUALITIES[sk.quality] || SKILL_QUALITIES.white).maxLevel,
+                        rootReq: sk.rootReq,
+                        agileReq: sk.agileReq,
+                        intelReq: sk.intelReq,
                     });
                     this.addMessage(`你潜心研习，习得了「${sk.name}」！`, 'event');
                     this.player.day += 3;
@@ -1692,7 +1729,7 @@ class Game {
         if (reward.type === 'skill') {
             const sk = getFactionSkill(reward.skillId);
             if (sk && !p.externalSkills.some(e => e.id === reward.skillId)) {
-                p.externalSkills.push({ id: reward.skillId, name: sk.name, desc: sk.desc, type: sk.type, quality: sk.quality, level: 1 });
+                p.externalSkills.push({ id: reward.skillId, name: sk.name, desc: sk.desc, type: sk.type, quality: sk.quality, level: 1, rootReq: sk.rootReq, agileReq: sk.agileReq, intelReq: sk.intelReq });
                 this.addMessage(`你获得「${reward.label}」，习得了「${sk.name}」！`, 'event');
             } else if (sk) {
                 // 已有则升级
@@ -1807,7 +1844,6 @@ class Game {
                 }
             }
         }
-        this.player.neili -= 2;
         this.updateStatsBar();
         setTimeout(() => this.interactNpc(venue, npc), 400);
     }
@@ -1815,6 +1851,11 @@ class Game {
     /* ─── 乞丐系统 ─── */
 
     beggarAction(venue, npc) {
+        // 瘸子李：满足条件时触发
+        if (this.player.completedQuests && this.player.completedQuests.rescue_ox && !this.player._metCrippleLi && (this.player._innerRep || 0) === 0 && (this.player._chopCount || 0) >= 5 && (this.player._huntCount || 0) >= 5) {
+            this.crippleLiAction(venue, npc);
+            return;
+        }
         this.clearChoices();
         this.addMessage(`墙角的老乞丐缩了缩脖子，咧嘴露出一口黄牙：「爷，赏口饭吃吧……」`, 'narrator');
         const choices = [
@@ -1861,13 +1902,99 @@ class Game {
     beatBeggar(venue, npc) {
         this.clearChoices();
         this.player.reputation -= 3;
-        this._adjInnerRep(-2, '欺压乞丐');
+        this._adjInnerRep(2, '欺压乞丐');
         this._adjWorldHelp(-1, '欺压乞丐');
         this.addMessage(`你揪起乞丐的衣领，恶狠狠地瞪了他一眼。`, 'narrator');
         this.addMessage(`乞丐吓得瑟瑟发抖：「大爷饶命！我说！我什么都说！」`, 'narrator');
         this.addMessage(`声望 -3（当前 ${this.player.reputation}）`, 'system');
         this.updateStatsBar();
         this.beggarIntelBeauties(venue, npc, true);
+    }
+
+    crippleLiAction(venue, npc) {
+        this.clearChoices();
+        this.player._metCrippleLi = true;
+        this.addMessage('街角蜷缩着一个衣衫褴褛的老乞丐，他一条腿瘸着，身旁靠着一根黑黝黝的竹棒。', 'narrator');
+        this.addMessage('你走近时，他缓缓抬起头，一双眼睛却精光四射，与那副落魄模样毫不相称。', 'narrator');
+        this.addMessage('「这位爷……行行好，给点赏钱让老瘸子吃口饭吧。」他咧嘴笑道，露出一口黄牙。', 'narrator');
+        this.showChoices([
+            { text: '给几两银子', action: () => this.crippleLiGiveMoney(venue, npc) },
+            { text: '不予理会', action: () => { this.addMessage('你转身离开，老瘸子在身后叹了口气。', 'narrator'); setTimeout(() => this.enterVenue(venue), 400); } },
+        ]);
+    }
+
+    crippleLiGiveMoney(venue, npc) {
+        if (this.player.gold < 5) {
+            this.addMessage('你摸了摸钱袋，窘迫地发现连五两碎银都拿不出来。老瘸子摆摆手：「无妨无妨，有心就好。」', 'narrator');
+            this.addMessage('他顿了顿，忽然道：「你虽穷，却有一副侠义心肠。我那不成器的徒子徒孙传了我一套棒法，留在我这儿也是浪费——拿去！」', 'narrator');
+            this.addMessage('他将身旁那根黑黝黝的竹棒抛给你。', 'narrator');
+            this.teachCrippleLiSkill();
+            return;
+        }
+        this.player.gold -= 5;
+        this.updateStatsBar();
+        this.addMessage('你掏出五两碎银放进他碗里。', 'narrator');
+        this.addMessage('老瘸子看了一眼银子，又抬头看了看你，忽然哈哈大笑。', 'narrator');
+        this.addMessage('「好！好心有好报！老瘸子我漂泊半生，也没什么值钱家当——这套棒法，你收着！」', 'narrator');
+        this.teachCrippleLiSkill();
+    }
+
+    teachCrippleLiSkill() {
+        const skId = 'f_beggar_palm';
+        if (this.player.externalSkills.some(s => s.id === skId)) {
+            this.addMessage('你早已习得此功，老瘸子赞赏地点了点头。', 'info');
+            setTimeout(() => this.enterVenue(this.currentLocation.venues.find(v => v.name === '街角')), 400);
+            return;
+        }
+        const sk = getFactionSkill(skId);
+        if (!sk) {
+            this.addMessage('老瘸子一拍脑袋：「哎呀，老糊涂了，功夫都忘光了！」', 'narrator');
+            setTimeout(() => this.enterVenue(this.currentLocation.venues.find(v => v.name === '街角')), 400);
+            return;
+        }
+        this.player.externalSkills.push({
+            id: skId,
+            name: sk.name,
+            desc: sk.desc,
+            type: sk.type,
+            quality: sk.quality,
+            level: 1,
+            maxLevel: (SKILL_QUALITIES[sk.quality] || SKILL_QUALITIES.white).maxLevel,
+            rootReq: sk.rootReq,
+            agileReq: sk.agileReq,
+            intelReq: sk.intelReq,
+        });
+        this.addMessage(`老瘸子站起身来，拍了拍你的肩膀，沉声道：「此乃丐帮不传之秘——「${sk.name}」，今日传你，望你善用。」`, 'event');
+        this.addMessage(`你领悟了「${sk.name}」！`, 'event');
+        this.player.exp += 30;
+        this.checkLevelUp();
+        this.updateStatsBar();
+
+        // 拜谢与对话
+        this._questSeq([
+            '你心中一震——前世记忆中，这降龙十八掌乃是丐帮镇帮绝学，至刚至阳，天下无双。',
+            '这位不起眼的瘸腿老丐，竟是丐帮帮主？',
+            '你当即躬身抱拳：「前辈传此绝学，晚辈感激不尽！只是……晚辈一介无名之辈，前辈为何如此厚赠？」',
+            '瘸子李嗤笑一声，摆了摆手：',
+            '「哈哈哈！无名之辈？老子这辈子见过太多有名之辈——满口仁义道德，一肚子男盗女娼！」',
+            '「我辈习武之人，求的不是青史留名、不是万人景仰，是——」',
+            '他目光陡然锐利，一字一顿：',
+            '「脚下这块土地，饿了有粮；身边这些百姓，苦了有人管；天下不平事，有人敢拔刀！」',
+            '「至于你叫什么名字、什么出身……谁他娘在乎！」',
+        ], () => {
+            this.addMessage('一番话掷地有声，如雷贯耳。你怔在原地，只觉得胸中一股热流翻涌，久久说不出话来。', 'narrator');
+            this._questSeq([
+                '良久，你才郑重拱手：「前辈教诲，晚辈铭记在心。」',
+                '瘸子李摆了摆手，拎起地上的竹棒，一瘸一拐地朝巷外走去。',
+                '走出几步，他忽然回头，目光如电：',
+                '「小子——记住。日后你若恃此武行不义之事，我亲自废了你的武功！」',
+                '说罢，他头也不回地消失在巷口。',
+                '你站在原地，望着他远去的方向，久久未动。',
+            ], () => {
+                this.addMessage('你默默记住了那个佝偻的背影。', 'narrator');
+                setTimeout(() => this.enterVenue(this.currentLocation.venues.find(v => v.name === '街角')), 400);
+            });
+        });
     }
 
     beggarIntelBeauties(venue, npc, beat, skipIntro = false) {
@@ -2058,7 +2185,7 @@ class Game {
                 this.addMessage(`${npc.npcName}满意地点点头：「你人不错，又肯下力气。我这几手砍柴的功夫，你想学吗？」`, 'narrator');
                 const art = getMartialArt('caidao');
                 if (art) {
-                    const skillObj = { id: 'caidao', name: art.name, desc: art.desc, type: art.type, quality: art.quality, level: 1, maxLevel: 4, element: art.element };
+                    const skillObj = { id: 'caidao', name: art.name, desc: art.desc, type: art.type, quality: art.quality, level: 1, maxLevel: 4, element: art.element, rootReq: art.rootReq, agileReq: art.agileReq, intelReq: art.intelReq };
                     this.player.externalSkills.push(skillObj);
                     this.addMessage(`你领悟了「${art.name}」！`, 'event');
                 }
@@ -2407,7 +2534,7 @@ class Game {
         if (initRepCost > 0) {
             this.player.reputation -= initRepCost;
             this.addMessage(`声望 -${initRepCost}（当前 ${this.player.reputation}）`, 'system');
-            if (this.player.reputation < 0) {
+            if (this.player.reputation <= -40) {
                 this.updateStatsBar();
                 this.gameOver(`你名声已臭，连对${npc.npcName}下黑手的资格都没有了……`);
                 return;
@@ -2441,7 +2568,7 @@ class Game {
                     this.killedNpcs.add(this.currentLocation.id + ':' + venue.name + ':' + npc.npcName);
                     this.addMessage(`${npc.npcName}缓缓倒下，再无声息……`, 'danger');
                     this.player._assassinationCount = (this.player._assassinationCount || 0) + 1;
-                    this._adjInnerRep(-5, '暗杀');
+                    this._adjInnerRep(5, '暗杀');
                     this._adjWorldHelp(-3, '暗杀');
                 }
                 if (winGetAllItems) {
@@ -2455,7 +2582,12 @@ class Game {
                 this.updateStatsBar();
                 setTimeout(() => npc._killed ? this.enterVenue(venue) : this.interactNpc(venue, npc), 500);
             },
-            () => this.gameOver('你受伤过重，不治身亡')
+            () => {
+                this.player.hp = 1;
+                this.addMessage('你力不能敌，败下阵来，捡回一条命。', 'danger');
+                this.updateStatsBar();
+                setTimeout(() => this.interactNpc(venue, npc), 400);
+            }
         );
     }
 
@@ -2566,7 +2698,7 @@ class Game {
             const luckLabel = this.player.attrs.luck >= art.luckReq ? '福缘深厚' : '勉强够格';
             this.addMessage(`你${luckLabel}（福缘 ${this.player.attrs.luck}），${npc.npcName}对你另眼相看！`, 'event');
             const qData = SKILL_QUALITIES[art.quality] || SKILL_QUALITIES.white;
-            this.player.externalSkills.push({ id: npc.martialArt, name: art.name, desc: art.desc, type: art.type, quality: art.quality, level: 1, maxLevel: qData.maxLevel, element: art.element });
+            this.player.externalSkills.push({ id: npc.martialArt, name: art.name, desc: art.desc, type: art.type, quality: art.quality, level: 1, maxLevel: qData.maxLevel, element: art.element, rootReq: art.rootReq, agileReq: art.agileReq, intelReq: art.intelReq });
             this.addMessage(`${npc.npcName}将${art.name}倾囊相授！你领悟了「${art.name}」的奥义！`, 'event');
             this.player.exp += 20;
             this.checkLevelUp();
@@ -2761,6 +2893,14 @@ class Game {
             const enoughAction = remaining >= actionCost;
             const canUse = enoughNeili && enoughAction;
             let label = `${sk.name} Lv.${sk.level}（内力${neiliCost} 行动${actionCost}）`;
+            // 属性不足提示
+            if (sk.quality === 'purple' || sk.quality === 'orange' || sk.quality === 'gold') {
+                const reqs = [];
+                if (sk.rootReq) reqs.push(`根骨${sk.rootReq}`);
+                if (sk.agileReq) reqs.push(`灵巧${sk.agileReq}`);
+                if (sk.intelReq) reqs.push(`悟性${sk.intelReq}`);
+                if (reqs.length > 0) label += ` [需${reqs.join('/')}]`;
+            }
             if (!enoughNeili) label += ' [内力不足]';
             else if (!enoughAction) label += ' [行动不足]';
             return {
@@ -2792,8 +2932,25 @@ class Game {
         const fixedPower = getSkillFixedPower(sk.quality, sk.level);
         const coeff = getSkillCoefficient(sk.quality, sk.level);
         const combatPwr = getSkillPowerTotal(basePower, weaponPower, fixedPower, coeff);
-        const dmg = Math.max(1, Math.floor(combatPwr * 0.55 + Math.floor(Math.random() * 3) - 1));
+        let dmg = Math.max(1, Math.floor(combatPwr * 0.55 + Math.floor(Math.random() * 3) - 1));
         const neiliCost = Math.max(1, Math.floor(fixedPower * 0.4));
+
+        // 根骨/灵巧/悟性不足时威力减半
+        let penaltyNote = '';
+        if (sk.rootReq && (this.player.attrs.root || 0) < sk.rootReq) {
+            penaltyNote = `根骨不足（${this.player.attrs.root}/${sk.rootReq}）`;
+        }
+        if (sk.agileReq && (this.player.attrs.dexterity || 0) < sk.agileReq) {
+            penaltyNote = (penaltyNote ? penaltyNote + '，' : '') + `灵巧不足（${this.player.attrs.dexterity}/${sk.agileReq}）`;
+        }
+        if (sk.intelReq && (this.player.attrs.wit || 0) < sk.intelReq) {
+            penaltyNote = (penaltyNote ? penaltyNote + '，' : '') + `悟性不足（${this.player.attrs.wit}/${sk.intelReq}）`;
+        }
+        if (penaltyNote) {
+            dmg = Math.max(1, Math.floor(dmg * 0.5));
+            bs.log.push({ text: `你的${penaltyNote}，尚不能发挥此招的全部威力！伤害减半！`, cls: 'battle-log-warning' });
+        }
+
         this.player.neili -= neiliCost;
 
         const e = bs.enemy;
@@ -3020,25 +3177,39 @@ class Game {
             return;
         }
         this.addMessage(`—— 你的行囊 ——`, 'system');
-        const choices = p.items.map((item, idx) => {
-            const price = Math.max(1, Math.floor(item.value * 0.5));
+        // 按 id 合并同类物品
+        const groups = {};
+        for (let i = 0; i < p.items.length; i++) {
+            const item = p.items[i];
+            const key = item.id || item.name;
+            if (!groups[key]) groups[key] = { item, indices: [], count: 0 };
+            groups[key].indices.push(i);
+            groups[key].count++;
+        }
+        const choices = Object.values(groups).map(g => {
+            const price = Math.max(1, Math.floor(g.item.value * 0.5));
+            const label = g.count > 1 ? `${g.item.name} ×${g.count} → 共售价 ${price * g.count}两` : `${g.item.name} → 售价 ${price}两`;
             return {
-                text: `${item.name} → 售价 ${price}两`,
-                action: () => this.sellItem(venue, npc, idx, price),
+                text: label,
+                action: () => this.sellItems(venue, npc, g.indices, price, g.count),
             };
         });
         choices.push({ text: '算了', action: () => this.interactNpc(venue, npc) });
         this.showChoices(choices);
     }
 
-    sellItem(venue, npc, idx, price) {
+    sellItems(venue, npc, indices, price, count) {
         this.clearChoices();
         const p = this.player;
-        const item = p.items[idx];
-        p.gold += price;
-        p.items.splice(idx, 1);
-        npc.items.push({ ...item, stock: 1, maxStock: 1 });
-        this.addMessage(`你卖掉了${item.name}，获得 ${price}两。`, 'event');
+        const item = p.items[indices[0]];
+        const totalPrice = price * count;
+        p.gold += totalPrice;
+        // 从后往前删，避免索引偏移
+        for (let i = indices.length - 1; i >= 0; i--) {
+            p.items.splice(indices[i], 1);
+        }
+        npc.items.push({ ...item, stock: count, maxStock: count });
+        this.addMessage(`你卖掉了 ${count} 个${item.name}，获得 ${totalPrice}两。`, 'event');
         this.updateStatsBar();
         setTimeout(() => this.sellToNpc(venue, npc), 400);
     }
@@ -3209,7 +3380,7 @@ class Game {
             this.addMessage('得手了！你迅速将东西藏好。', 'event');
             this.player.shadowRep += 1;
             this.player._theftCount = (this.player._theftCount || 0) + 1;
-            this._adjInnerRep(-2, '偷盗');
+            this._adjInnerRep(2, '偷盗');
             const stolen = { ...item };
             if (!this.autoEquip(stolen)) this.player.items.push(stolen);
             item.stock--;
@@ -3273,8 +3444,15 @@ class Game {
             this.addMessage('你的背包空空如也。', 'narrator');
         } else {
             this.addMessage('—— 背包 ——', 'system');
+            const groups = {};
             for (const item of p.items) {
-                this.addMessage(`${item.name}：${item.desc}（价值 ${item.value}两）`, 'info');
+                const key = item.id || item.name;
+                if (!groups[key]) groups[key] = { name: item.name, desc: item.desc, value: item.value, count: 0 };
+                groups[key].count++;
+            }
+            for (const g of Object.values(groups)) {
+                const label = g.count > 1 ? `${g.name} ×${g.count}` : g.name;
+                this.addMessage(`${label}：${g.desc}（价值 ${g.value}两）`, 'info');
             }
         }
         this.addMessage(`银两：${p.gold}两 | 物品：${p.items.length}件`, 'system');
@@ -3724,6 +3902,7 @@ class Game {
             this.addMessage(`你反复演练${skill.name}，招式已臻化境，再练也无寸进了。`, 'narrator');
             this.player.exp += 5;
             this.player.day += 1;
+            this.player.timePeriod = '清晨';
             this.addMessage('经验 +5', 'system');
             this.addMessage('练完后，你精疲力竭，倒头便睡了过去。', 'narrator');
             this.checkLevelUp();
@@ -3748,6 +3927,7 @@ class Game {
         this.addMessage(msg, 'system');
         this.player.exp += 5;
         this.player.day += 1;
+        this.player.timePeriod = '清晨';
         this.addMessage('经验 +5', 'system');
         this.addMessage('练完后，你精疲力竭，倒头便睡了过去。', 'narrator');
         this.checkLevelUp();
@@ -3772,6 +3952,7 @@ class Game {
         this.player.neili = this.player.maxNeili;
         this.player.exp += 5;
         this.player.day += 1;
+        this.player.timePeriod = '清晨';
         this.addMessage(`内力上限 +1（${this.player.maxNeili}），经验 +5`, 'system');
         // 沿袭赌徒心经解锁赌技
         if (name.endsWith('赌徒心经')) {
@@ -4214,18 +4395,36 @@ class Game {
         const key = enemies[Math.floor(Math.random() * enemies.length)];
         const enemy = createTravelEnemy(key);
         const intro = isWild
-            ? `你正要上前与${bd.name}搭话，忽然${enemy.name}从旁边窜了出来！`
-            : `你正要上前与${bd.name}搭话，几个${enemy.name}围上前来，不怀好意地打量着她。`;
-        this.addMessage(intro, 'danger');
-        this.startBattle(enemy,
-            () => {
-                this.addMessage(`你干净利落地击败了${enemy.name}！`, 'event');
-                this.addMessage(`${bd.name}松了口气，看向你的眼神多了几分感激和敬佩。`, 'narrator');
-                bd.favorability = Math.max(bd.favorability, 5);
-                this._chatFirstMet(venue, beauty);
-            },
-            () => this.gameOver(`你被${enemy.name}打成重伤，不治身亡。`),
-        );
+            ? `你正要上前与${bd.name}搭话，忽然${enemy.name}从旁边窜了出来，直扑${bd.name}！\n${bd.name}吓得花容失色，连连后退。`
+            : `你正要上前与${bd.name}搭话，几个${enemy.name}围上前来，不怀好意地打量着她。\n${bd.name}面露惊慌，下意识地朝你这边靠了靠。`;
+        this._questSeq([
+            intro,
+        ], () => {
+            this.showChoices([
+                { text: '出手相助', action: () => {
+                    this._questSeq([
+                        isWild ? '你大喝一声，挡在' + bd.name + '身前！' : '你冷笑一声，几步挡在' + bd.name + '面前：「活腻了？」',
+                    ], () => {
+                        this.startBattle(enemy,
+                            () => {
+                                this.addMessage(`你干净利落地击败了${enemy.name}！`, 'event');
+                                this.addMessage(`${bd.name}松了口气，看向你的眼神多了几分感激和敬佩。`, 'narrator');
+                                bd.favorability = Math.max(bd.favorability, 5);
+                                this._chatFirstMet(venue, beauty);
+                            },
+                            () => this.gameOver(`你被${enemy.name}打成重伤，不治身亡。`),
+                        );
+                    });
+                } },
+                { text: '袖手旁观', action: () => {
+                    this.addMessage(isWild
+                        ? `你犹豫了一下，没有出手。${bd.name}惊叫着被${enemy.name}逼得步步后退。等你再回过神来，她已经不见了踪影。`
+                        : `你犹豫了一下，没有上前。${bd.name}失望地看了你一眼，转身快步离开了。`, 'narrator');
+                    bd.favorability = Math.max(0, bd.favorability - 2);
+                    this.showChoices([{ text: '离开', action: () => this.showOutdoorChoices() }]);
+                } },
+            ]);
+        });
     }
 
     _chatProgressive(venue, beauty) {
@@ -4634,7 +4833,7 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
         this.clearChoices();
         const bd = beauty._beautyData;
         this.player.reputation -= 2;
-        this._adjInnerRep(-10, '强奸');
+        this._adjInnerRep(10, '强奸');
         this._adjWorldHelp(-5, '强奸');
         bd.favorability = Math.max(0, bd.favorability - 30);
         this.updateStatsBar();
@@ -4653,13 +4852,20 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
     killBeauty(venue, beauty) {
         this.clearChoices();
         const bd = beauty._beautyData;
-        this.player.reputation -= 6;
-        this._adjInnerRep(-8, '杀害美人');
-        this._adjWorldHelp(-5, '杀害美人');
+        // 表声望：-10，大于 100 则扣 20%
+        const repDeduction = this.player.reputation > 100 ? Math.floor(this.player.reputation * 0.2) : 10;
+        this.player.reputation -= repDeduction;
+        // 里声望（恶行累积）：+10，大于 100 则加 20%
+        if (!this.player._innerRep) this.player._innerRep = 0;
+        const innerGain = this.player._innerRep > 100 ? Math.floor(this.player._innerRep * 0.2) : 10;
+        this.player._innerRep += innerGain;
+        // 济苍生：同表声望算法
+        const helpDeduction = this.player.reputation > 100 ? Math.floor(this.player.reputation * 0.2) : 10;
+        this.player._worldHelp = Math.max(0, (this.player._worldHelp || 0) - helpDeduction);
         this.addMessage(`你趁${bd.name}不备，狠狠扼住了她的咽喉！`, 'danger');
         this.addMessage(`${bd.name}挣扎了几下，便不再动弹……`, 'danger');
-        this.addMessage(`声望 -6（当前 ${this.player.reputation}）`, 'system');
-        if (this.player.reputation < 0) {
+        this.addMessage(`声望 -${repDeduction}（当前 ${this.player.reputation}）`, 'system');
+        if (this.player.reputation <= -40) {
             this.updateStatsBar();
             this.gameOver(`你杀害${bd.name}的恶行令人发指，你恶贯满盈，江湖再无容身之处……`);
             return;
@@ -4765,7 +4971,7 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
             ];
             this.addMessage(msgs[Math.floor(Math.random() * msgs.length)], 'event');
             this.addMessage(`（支付${paid}两 + 扣除声望 ${repCost}）`, 'system');
-            this._adjInnerRep(-1, '赊账嫖妓');
+            this._adjInnerRep(1, '赊账嫖妓');
             this.updateStatsBar();
             return this.brothelSexProstitute(prostitute, venue);
         }
@@ -4888,6 +5094,14 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
         }, 3000);
     }
 
+    _syncQuestStage(stage) {
+        if (!this.player.activeQuests) this.player.activeQuests = {};
+        if (!this.player.activeQuests.rescue_ox) {
+            this.player.activeQuests.rescue_ox = { stage, _local: this.player._questRescueOx || {} };
+        }
+        this.player.activeQuests.rescue_ox.stage = stage;
+    }
+
     _triggerRescueOx() {
         if (!this.player._questRescueOx) this.player._questRescueOx = {};
         const q = this.player._questRescueOx;
@@ -4901,6 +5115,7 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
             this.questAdvance('rescue_ox');
             return;
         }
+        this._syncQuestStage(q.stage);
         this._inlineQuestTrigger(q);
     }
 
@@ -4911,7 +5126,7 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
             '似乎是一个年轻人正在殴打老人。',
         ], () => {
             this.showChoices([
-                { text: '过去看看', action: () => { q.stage = 'FIGHT_SCENE'; this._inlineQuestRescueOx(q); } },
+                { text: '过去看看', action: () => { q.stage = 'FIGHT_SCENE'; this._syncQuestStage('FIGHT_SCENE'); this._inlineQuestRescueOx(q); } },
                 { text: '不管闲事', action: () => { q._done = true; this._questSeq_fallback(['你摇了摇头，转身离开。'], () => { this._afterQuestChoices(); }); } },
             ]);
         });
@@ -4934,14 +5149,9 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
                         ], () => {
                             const cp = (this.currentLocation && this.currentLocation.guardianPower || 15) + 8;
                             this.startBattle(createGenericEnemy('愤怒的年轻人', cp), () => {
-                                q._done = true;
-                                this._questSeq_fallback([
-                                    '你三两下便将他制住。',
-                                    '他捂着脸蹲在地上，低声啜泣。',
-                                    '你叹了口气：「年纪轻轻，何必如此？」',
-                                    '他没有回答，只是哭得更厉害了。',
-                                    '你摇了摇头，转身离开。',
-                                ], () => { this._afterQuestChoices(); });
+                                q.stage = 'REVEAL';
+                                this._syncQuestStage('REVEAL');
+                                this._inlineQuestReveal(q);
                             }, () => {
                                 this._questSeq_fallback([
                                     '你竟不是他的对手，被他三拳两脚打翻在地。',
@@ -4953,7 +5163,118 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
                     { text: '离开', action: () => { q._done = true; this._questSeq_fallback(['你转身离开。'], () => { this._afterQuestChoices(); }); } },
                 ]);
             });
+        } else if (s === 'REVEAL') {
+            this._inlineQuestReveal(q);
+        } else if (s === 'BUTCHER') {
+            this._inlineQuestButcher(q);
         }
+    }
+
+    _inlineQuestReveal(q) {
+        this._questSeq_fallback([
+            '你三两下便将他制住，按在地上。',
+            '他挣扎了几下，发现挣不脱，便放弃了抵抗。',
+            '你喝道：「为何殴打老人？」',
+            '他抬起头，你这才看清他满脸泪痕。',
+            '「他是我爷爷……」他的声音哽咽了。',
+            '你松开手，他坐在地上，双手抱头。',
+            '他擦干眼泪，这才缓缓道来。',
+            '「我爹走得早……家里就剩那头老黄牛犁地，撑了三十年……」',
+            '「今年地里没打出多少粮，家里锅都揭不开了……我老婆饿得没奶水，娃儿整夜哭……」',
+            '「爷爷他……背着我，把牛卖了……才卖了十两银子……」',
+            '说到这，他再也忍不住，放声大哭。',
+            '一个大男人，哭得像个孩子。',
+            '「我打小就在那牛背上长大的……那牛老实啊，犁地从来不偷懒，一年到头就指着它吃饭……」',
+            '「冬天它暖窝，夏天它驮柴，我爹在的时候拿它当命根子……」',
+            '「那牛老了……陪了我二十年，就这么让人牵走了……」',
+            '「我去肉铺想赎回来，可那张屠户咬死三十两，少一个子儿都不干！」',
+            '「我没钱……我没法子啊……」他用力捶着自己的头。',
+        ], () => {
+            this.showChoices([
+                { text: '给他三十两', action: () => this._inlineQuestGiveMoney(q) },
+                { text: '我来想办法', action: () => {
+                    this._questSeq_fallback([
+                        '你拍了拍他的肩膀：「你先带爷爷回家治伤，这事我来想办法。」',
+                        '他感激地看着你，扶着爷爷一瘸一拐地走了。',
+                        '你决定去集市找那屠户谈谈。',
+                    ], () => {
+                        q.stage = 'BUTCHER';
+                        this._syncQuestStage('BUTCHER');
+                        if (!this._butcherSpawned && this.currentLocation) {
+                            const v = this.currentLocation.venues.find(vv => vv.name === '肉铺');
+                            if (v && v.npcs[0]) v.npcs[0]._questActive = true;
+                            this._butcherSpawned = true;
+                        }
+                        this._afterQuestChoices();
+                    });
+                } },
+                { text: '不管了', action: () => {
+                    this._questSeq_fallback(['你叹了口气，转身离去。'], () => {
+                        q._done = true;
+                        this._afterQuestChoices();
+                    });
+                } },
+            ]);
+        });
+    }
+
+    _inlineQuestGiveMoney(q) {
+        if (this.player.gold < 30) {
+            this._questSeq_fallback([
+                '你摸了摸钱袋，只有' + this.player.gold + '两银子……不够三十两。',
+                '你惭愧地摇了摇头。',
+            ], () => {
+                this._questSeq_fallback([
+                    '你拍了拍他的肩膀：「你先带爷爷回家治伤，这事我来想办法。」',
+                    '他感激地看着你，扶着爷爷一瘸一拐地走了。',
+                    '你决定去集市找那屠户谈谈。',
+                ], () => {
+                    q.stage = 'BUTCHER';
+                    this._syncQuestStage('BUTCHER');
+                    if (!this._butcherSpawned && this.currentLocation) {
+                        const v = this.currentLocation.venues.find(vv => vv.name === '肉铺');
+                        if (v && v.npcs[0]) v.npcs[0]._questActive = true;
+                        this._butcherSpawned = true;
+                    }
+                    this._afterQuestChoices();
+                });
+            });
+            return;
+        }
+        this.player.gold -= 30;
+        this.updateStatsBar();
+        this._questSeq_fallback([
+            '你掏出三十两银子递给他。',
+            '他瞪大了眼睛，连连摆手：「这……这怎么行！我不能要你的钱！」',
+            '你不由分说，将银子塞进他手里。',
+            '他捧着银子，浑身颤抖，扑通一声跪在地上。',
+            '「恩人！大恩人！」他连连磕头，额头都磕破了。',
+            '他擦干眼泪，飞奔而去。',
+            '过了不久，你听到远处传来一声悠长的牛哞。',
+            '他牵着那头老黄牛回来了，牛尾巴悠闲地甩着。',
+            '老黄牛用头蹭着年轻人的手，像在安慰他。',
+            '年轻人牵着牛，朝你深深一揖。',
+        ], () => {
+            q._done = true;
+            this.player.reputation += 10;
+            this._adjInnerRep(5, '支线');
+            this.updateStatsBar();
+            this.addMessage('声望 +10', 'system');
+            this.addMessage('济苍生 +5', 'system');
+            this._afterQuestChoices();
+        });
+    }
+
+    _inlineQuestButcher(q) {
+        if (!this.currentLocation) { this._afterQuestChoices(); return; }
+        const venue = this.currentLocation.venues.find(v => v.name === '肉铺');
+        if (!venue || !venue.npcs[0]) {
+            this._questSeq_fallback(['屠户不知道去哪儿了。'], () => { this._afterQuestChoices(); });
+            return;
+        }
+        if (venue.npcs[0]) venue.npcs[0]._questActive = true;
+        this._butcherSpawned = true;
+        this._afterQuestChoices();
     }
 
     _questSeq_fallback(messages, onDone) {
@@ -4978,6 +5299,7 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
             } },
         ]);
     }
+
 }
 
 const game = new Game();

@@ -244,12 +244,12 @@ const WORLD = {
                 }
             }
             venues.push({
-                name: '集市·肉铺',
+                name: '肉铺',
                 npcs: [{
                     npcName: '张屠户',
                     npcDesc: '一个满脸横肉的光头大汉，围着一条沾满血污的围裙，正拿着一把剔骨刀在案板上剁肉。',
                     civilian: false,
-                    combatPower: 35,
+                    combatPower: 45,
                     isButcher: true,
                     items: [
                         { id: 'meat_wild', name: '野味肉', value: 5, stock: 10, maxStock: 10, desc: '新鲜的野味肉。' },

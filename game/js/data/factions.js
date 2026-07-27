@@ -55,7 +55,7 @@ const FACTION_SKILLS = {
 
     // ── 丐帮 ──
     f_beggar_staff:    { name: '打狗棒法',     desc: '丐帮镇帮之宝，棒法精妙绝伦，进退自如。',            luckReq: 22, type: 'bludgeon', quality: 'purple'},
-    f_beggar_palm:     { name: '降龙十八掌',   desc: '天下至刚至阳的掌法，一掌既出，有排山倒海之势。',    luckReq: 32, type: 'palm',  quality: 'gold'  },
+    f_beggar_palm:     { name: '降龙十八掌',   desc: '天下至刚至阳的掌法，一掌既出，有排山倒海之势。',    luckReq: 32, rootReq: 40, type: 'palm',  quality: 'orange'  },
     f_beggar_fist:     { name: '逍遥游',       desc: '丐帮身法拳法，如逍遥神仙，来去自如。',              luckReq: 16, type: 'fist',  quality: 'blue'  },
 
     // ── 峨眉 ──

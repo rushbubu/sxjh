@@ -33,7 +33,6 @@ Game.prototype.questComplete = function(questId) {
     this._adjInnerRep(5, '支线');
     this.updateStatsBar();
     this.addMessage('声望 +10', 'system');
-    this.addMessage('济苍生 +5', 'system');
     this.questCleanupButcher();
 };
 
@@ -47,7 +46,7 @@ Game.prototype.questFail = function(questId) {
 
 Game.prototype.questCleanupButcher = function() {
     if (this._butcherSpawned && this.currentLocation) {
-        const venue = this.currentLocation.venues.find(v => v.name === '集市·肉铺');
+        const venue = this.currentLocation.venues.find(v => v.name === '肉铺');
         if (venue && venue.npcs[0]) delete venue.npcs[0]._questActive;
         this._butcherSpawned = false;
     }
@@ -86,6 +85,7 @@ Game.prototype._questRescueOx = function(q) {
                 { text: '过去看看', action: () => { q.stage = 'FIGHT_SCENE'; this._questRescueOx(q); } },
                 { text: '不管闲事', action: () => { this._questSeq(['你摇了摇头，转身离开。多一事不如少一事。'], () => { this.questFail('rescue_ox'); this._showChoicesAfterQuest(); }); } },
         ]);
+        });
     } else if (s === 'FIGHT_SCENE') {
         this._questSeq([
             '你快步走近，只见一个二十出头的年轻人正按着一位花甲老人拳打脚踢。',
@@ -123,6 +123,8 @@ Game.prototype._questRescueOx = function(q) {
             '你喝道：「为何殴打老人？」',
             '他抬起头，你这才看清他满脸泪痕。',
             '「他是我爷爷……」他的声音哽咽了。',
+            '你说：「你叫什么名字？」',
+            '「小虎……村里人都叫我小虎。」',
         ], () => {
             this._questRescueOxReveal(q);
         });
@@ -132,14 +134,17 @@ Game.prototype._questRescueOx = function(q) {
 Game.prototype._questRescueOxReveal = function(q) {
     this._questSeq([
         '你松开手，他坐在地上，双手抱头。',
-        '「我爹死得早……家里就靠那头老黄牛犁地，撑了三十年……」',
-        '「今年粮食欠收，家里揭不开锅……我老婆饿得没奶水……孩子日夜哭……」',
-        '「爷爷他……背着我，把牛卖了……只卖了十两银子……」',
+        '他擦干眼泪，这才缓缓道来。',
+        '「我爹走得早……家里就剩那头老黄牛犁地，撑了三十年……」',
+        '「今年地里没打出多少粮，家里锅都揭不开了……我老婆饿得没奶水，娃儿整夜哭……」',
+        '「爷爷他……背着我，把牛卖了……才卖了十两银子……」',
         '说到这，他再也忍不住，放声大哭。',
         '一个大男人，哭得像个孩子。',
-        '「我从小就在那牛背上长大的……那牛老了……它陪了我二十年……」',
-        '「我去屠户家想买回来，可那姓张的屠户坐地起价，要三十两！」',
-        '「我没钱……我没办法啊……」他用力捶着自己的头。',
+        '「我打小就在那牛背上长大的……那牛老实啊，犁地从来不偷懒，一年到头就指着它吃饭……」',
+        '「冬天它暖窝，夏天它驮柴，我爹在的时候拿它当命根子……」',
+        '「那牛老了……陪了我二十年，就这么让人牵走了……」',
+        '「我去肉铺想赎回来，可那张屠户咬死三十两，少一个子儿都不干！」',
+        '「我没钱……我没法子啊……」他用力捶着自己的头。',
     ], () => {
         this.showChoices([
             { text: '给他三十两', action: () => this._questRescueOxGiveMoney(q) },
@@ -193,7 +198,7 @@ Game.prototype._questRescueOxThink = function(q) {
 Game.prototype._questSpawnButcher = function() {
     if (this._butcherSpawned) return;
     if (!this.currentLocation) return;
-    const venue = this.currentLocation.venues.find(v => v.name === '集市·肉铺');
+    const venue = this.currentLocation.venues.find(v => v.name === '肉铺');
     if (venue && venue.npcs[0]) venue.npcs[0]._questActive = true;
     this._butcherSpawned = true;
 };
@@ -221,14 +226,78 @@ Game.prototype._questButcherNegotiate = function(venue, npc) {
             { text: '出三十两', action: () => this._questButcherPay(venue, npc) },
             { text: '动武', action: () => {
                 this._questSeq(['你冷笑一声：「那我就打到你还！」'], () => {
-                    this.startBattle(createGenericEnemy('张屠户', 35), () => {
+                    this.startBattle(createGenericEnemy('张屠户', 45), () => {
                         this._questSeq([
                             '张屠户被你打倒在地，连声告饶。',
-                            '「好汉饶命！牛你牵走……牵走……」',
-                            '你牵着老黄牛找到年轻人，他千恩万谢，几乎又要跪下。',
+                            '「好汉饶命！」他喘着粗气，抹了把嘴角的血。',
+                            '你冷冷道：「给我个饶你的理由。」',
+                            '「你以为我真是黑心屠户？」他苦笑道，「那牛都四十了，瘦得皮包骨，身上切不出十斤肉，谁家买去？」',
+                            '你冷笑道：「这么说来，你倒是个好人。」',
+                            '「我张屠户是粗人，但也干不出这种缺德事！」',
+                            '你默然。你想起前世在华山派时，有华山派罩着，周遭村庄百姓虽不说大富大贵，却也衣食无忧。',
+                            '想不到这偏僻之地，竟有如此疾苦。',
                         ], () => {
-                            this.questComplete('rescue_ox');
-                            this._showChoicesAfterQuest();
+                            this.showChoices([
+                                { text: '把牛抢走还给小虎', action: () => {
+                                    this._questSeq([
+                                        '你冷哼一声：「你再说也是屠户。牛我带走，你有意见？」',
+                                        '张屠户不敢吭声，眼睁睁看你把牛牵出了肉铺。',
+                                        '你找到小虎，把牛绳塞进他手里。',
+                                        '他不敢相信地看着你，随即抱着牛脖子放声大哭。',
+                                    ], () => { this._completeRescueOx(5); });
+                                } },
+                                { text: '把牛抢走还给小虎，再给三十两', action: () => {
+                                    if (this.player.gold < 30) {
+                                        this.addMessage('你摸了摸钱袋，只有' + this.player.gold + '两银子……连三十两都拿不出。', 'narrator');
+                                        return;
+                                    }
+                                    this.player.gold -= 30;
+                                    this.updateStatsBar();
+                                    this._questSeq([
+                                        '你沉默片刻，沉声道：「牛我带走，银子给你。」',
+                                        '你掏出三十两银子扔在案板上，牵着老黄牛走出肉铺。',
+                                        '你找到小虎，把牛绳和银子一起塞进他手里。',
+                                        '他捧着银子，又看看牛，眼泪夺眶而出，扑通跪了下来。',
+                                    ], () => { this._completeRescueOx(10); });
+                                } },
+                                { text: '不拿牛，回去给小虎三十两', action: () => {
+                                    if (this.player.gold < 30) {
+                                        this.addMessage('你摸了摸钱袋，只有' + this.player.gold + '两银子……连三十两都拿不出。', 'narrator');
+                                        return;
+                                    }
+                                    this.player.gold -= 30;
+                                    this.updateStatsBar();
+                                    this._questSeq([
+                                        '你松开手中的刀，缓缓道：「你说得有理。牛你留着，我给小虎三十两，让他们另谋生计。」',
+                                        '张屠户怔了一下，随即拱手道：「少侠深明大义，我佩服！」',
+                                        '你找到小虎，将三十两银子递给他，告诉他牛已经另有人家了。',
+                                        '他虽难过，但捧着银子终究有了活路，再三道谢后扶着爷爷离开了。',
+                                    ], () => { this._completeRescueOx(20); });
+                                } },
+                                { text: '出十两买下牛，再给小虎三十两', action: () => {
+                                    if (this.player.gold < 40) {
+                                        this.addMessage('你摸了摸钱袋，只有' + this.player.gold + '两银子……凑不出四十两。', 'narrator');
+                                        return;
+                                    }
+                                    this.player.gold -= 40;
+                                    this.updateStatsBar();
+                                    this._questSeq([
+                                        '你叹了口气，掏出十两银子：「牛我买了，这钱你拿着。」',
+                                        '又数出三十两：「这钱给小虎一家，就说牛已经有人买了，让他们安心过日子。」',
+                                        '张屠户愣愣地看着你，半晌才接过银子，点了点头。',
+                                        '你牵着牛找到小虎把牛交给他，又交给他三十两银子。',
+                                        '他抱着牛脖子哭了好一阵，又捧着银子连连道谢。',
+                                        '牛用他浑浊的眼神看着你，似乎在感激你的所作所为。',
+                                        '你叹了口气，只道众生皆苦。',
+                                    ], () => { this._completeRescueOx(25); });
+                                } },
+                                { text: '不管了', action: () => {
+                                    this._questSeq([
+                                        '你松开手中的刀，摇了摇头：「你们家的事，我一个外人掺和不清。」',
+                                        '你转身离开了肉铺。身后传来张屠户一声叹息。',
+                                    ], () => { this.questFail('rescue_ox'); this._showChoicesAfterQuest(); });
+                                } },
+                            ]);
                         });
                     }, () => {
                         this._questSeq([
@@ -267,6 +336,18 @@ Game.prototype._questButcherPay = function(venue, npc) {
         this.questComplete('rescue_ox');
         this._showChoicesAfterQuest();
     });
+};
+
+Game.prototype._completeRescueOx = function(repValue) {
+    delete this.player.activeQuests.rescue_ox;
+    if (!this.player.completedQuests) this.player.completedQuests = {};
+    this.player.completedQuests.rescue_ox = true;
+    this.player.reputation += repValue;
+    this._adjWorldHelp(repValue);
+    this.questCleanupButcher();
+    this.updateStatsBar();
+    this.addMessage('声望 ' + (repValue >= 0 ? '+' : '') + repValue, 'system');
+    this._showChoicesAfterQuest();
 };
 
 Game.prototype._showChoicesAfterQuest = function() {

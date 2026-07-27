@@ -10,7 +10,7 @@ const ITEMS = {
     knife_wood:      { id: 'knife_wood',      name: '柴刀',      desc: '劈柴用的铁刀，刃口有些钝了。',                        value: 3,   stealDiff: 15, category: 'weapon', slot: 'rightHand', tier: 'white', attackDescs: ['砍', '横砍', '劈砍'] },
     hoe_iron:        { id: 'hoe_iron',        name: '铁锄头',    desc: '农夫用的铁锄，也可以当武器使。',                      value: 2,   stealDiff: 10, category: 'weapon', slot: 'rightHand', tier: 'white', attackDescs: ['砸', '挥击', '横扫'] },
     pot_iron:        { id: 'pot_iron',        name: '铁锅',      desc: '生铁铸成的锅，做饭必备。',                            value: 2,   stealDiff: 10, category: 'household' },
-    herb_bandage:    { id: 'herb_bandage',    name: '止血草',    desc: '常见的草药，晒干磨粉可止外伤出血。',                   value: 2,   stealDiff: 10, category: 'medicine' },
+    herb_bandage:    { id: 'herb_bandage',    name: '止血草',    desc: '常见的草药，晒干磨粉可止外伤出血。',                   value: 2,   stealDiff: 10, category: 'medicine', use: { cure: 'bleed' } },
     powder_clear:    { id: 'powder_clear',    name: '清心散',    desc: '清凉解热的药散，可缓解轻微中毒。',                    value: 5,   stealDiff: 20, category: 'medicine' },
     wine_rice:       { id: 'wine_rice',       name: '米酒',      desc: '农家自酿的米酒，度数不高但味道淳朴。',                value: 2,   stealDiff: 8,  category: 'wine', use: { healNeili: 5 } },
 
