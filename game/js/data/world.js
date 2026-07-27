@@ -38,10 +38,11 @@ const WORLD = {
                 v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('天机阁', '无名老人', '神秘的情报商人，没有他打听不到的消息。', ['qin_bamboo', 'moon_poem', 'incense'], false, 60),
                 v('聚宝楼', '沈万三', '天下首富，据说他的财产比国库还多。', ['jade_ring', 'necklace_gold', 'silver_ingot', 'bangle_jade', 'nine_dragon_cup']),
-                v('百草堂', '药王', '白发如雪的神医，据说能活死人肉白骨。', ['jinchuang', 'huisheng', 'neili_dan', 'jiedu_san', 'qingxin_wan', 'ginseng_100', 'powder_clear', 'herb_bandage'], false, 40),
+                v('百草堂', '药王', '白发如雪的神医，据说能活死人肉白骨。', ['jinchuang', 'huisheng', 'neili_dan', 'jiedu_san', 'qingxin_wan', 'ginseng_100', 'powder_clear', 'herb_bandage', 'zhixue_gao'], false, 40),
                 v('沉香阁', '花弄影', '神都第一美人，琴棋书画无一不精。', ['dragon_tea', 'wine_bamboo', 'pastry', 'incense']),
                 v('万象楼', '百晓生', '武林百晓生，天下武学无所不知。', ['stationary', 'writing_brush', 'ink_stick', 'moon_poem'], false, 45),
-                v('神兵阁', '欧冶无名', '铸造神兵的大师，阁中陈列着无数名剑宝刀。', ['blue_sword', 'gold_silk_armor', 'steel_blade', 'chest_mirror', 'dagger'], false, 80),
+                v('神兵阁', '欧冶无名', '铸造神兵的大师，阁中陈列着无数名剑宝刀。', ['blue_sword', 'gold_silk_armor', 'steel_blade', 'chest_mirror', 'dagger', 'fei_shi', 'fei_biao', 'du_biao'], false, 80),
+                v('黑市', '暗影', '一个戴着斗笠的神秘人，斗笠下隐约可见一道刀疤。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 45),
             ],
         },
         {
@@ -52,12 +53,13 @@ const WORLD = {
             venues: [
                 v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('醉仙楼', '莫三千', '笑眯眯的掌柜，一手"醉拳"出神入化，柜台下藏着一坛坛好酒。', ['wine_daughter', 'dragon_tea', 'wine_bamboo', 'nine_dragon_cup'], false, 60),
-                v('兵器铺', '公孙冶', '须发皆白的老铁匠，打造的兵器名动江湖。', ['blue_sword', 'gold_silk_armor', 'steel_blade', 'dagger'], false, 65),
+                v('兵器铺', '公孙冶', '须发皆白的老铁匠，打造的兵器名动江湖。', ['blue_sword', 'gold_silk_armor', 'steel_blade', 'dagger', 'blueprint_blue_sword', 'blueprint_gold_armor', 'fei_shi', 'fei_biao', 'du_biao'], false, 65),
                 v('珠宝行', '周宝山', '手指上戴着五个翡翠扳指的大商人，店内珠光宝气。', ['necklace_gold', 'jade_ring', 'bangle_jade', 'ring_silver']),
                 v('绸缎庄', '赵锦华', '衣饰华贵的绸缎商人，店里的云锦是贡品级别。', ['brocade_robe', 'silk_robe', 'silk_scarf']),
                 v('怡红院', '柳妈妈', '风韵犹存的老鸨，手里的丝绢轻轻一甩便香风四溢。', ['wine_daughter', 'pastry', 'silk_scarf', 'incense']),
                 v('聚宝阁', '钱四海', '坐在柜台后的神秘商人，据说没有他弄不到的东西。', ['qin_bamboo', 'peony_painting', 'moon_poem', 'silver_ingot'], false, 50),
                 v('镇国武馆', '岳啸天', '气度沉凝的武馆总教头，一双铁掌开碑裂石。', ['chest_mirror', 'steel_blade'], false, 70),
+                v('黑市', '夜枭', '披着黑色斗篷的瘦削男子，腰间挂满了瓶瓶罐罐。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 45),
             ],
         },
         {
@@ -72,8 +74,9 @@ const WORLD = {
                 v('绣庄', '苏绣娘', '心灵手巧的绣娘，苏绣技艺冠绝天下。', ['silk_robe', 'silk_scarf', 'screen_2side', 'shu_embroidery']),
                 v('茶庄', '陆羽', '品茶大师，店中茶香四溢，汇集天下名茶。', ['dragon_tea', 'tea_cake', 'pastry']),
                 v('潇湘阁', '云想容', '风韵犹存的女掌柜，年轻时曾是江南名妓。', ['wine_daughter', 'dragon_tea', 'incense']),
-                v('兵器铺', '欧冶子', '自称欧冶子后人，打造的刀剑削铁如泥。', ['blue_sword', 'steel_blade', 'gold_silk_armor'], false, 60),
+                v('兵器铺', '欧冶子', '自称欧冶子后人，打造的刀剑削铁如泥。', ['blue_sword', 'steel_blade', 'gold_silk_armor', 'fei_shi', 'fei_biao', 'du_biao'], false, 60),
                 v('江南武馆', '柳如风', '一袭白衣的武馆馆主，剑法轻灵飘逸，人称"江南第一剑"。', ['steel_blade', 'chest_mirror'], false, 65),
+                v('黑市', '水鬼', '浑身湿漉漉的船夫，实则专做水路上的走私买卖。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 40),
             ],
         },
         {
@@ -84,13 +87,14 @@ const WORLD = {
             venues: [
                 v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('古玩店', '司徒明', '留着山羊胡的古董商人，店内古物琳琅满目。', ['qin_bamboo', 'peony_painting', 'writing_brush', 'ink_stick']),
-                v('铁匠铺', '雷炎', '肌肉虬结的铁匠，炉火烧得比别家旺三分。', ['iron_ore', 'blue_sword', 'gold_silk_armor', 'steel_blade', 'chest_mirror'], false, 55),
-                v('药店', '孙思邈', '白发苍苍的老郎中，药柜里摆满了各种丹药瓶罐。', ['jinchuang', 'huisheng', 'neili_dan', 'jiedu_san', 'qingxin_wan', 'ginseng_100', 'powder_clear', 'herb_bandage']),
+                v('铁匠铺', '雷炎', '肌肉虬结的铁匠，炉火烧得比别家旺三分。', ['iron_ore', 'blue_sword', 'gold_silk_armor', 'steel_blade', 'chest_mirror', 'blueprint_blue_sword', 'blueprint_gold_armor', 'fei_shi', 'fei_biao', 'du_biao'], false, 55),
+                v('药店', '孙思邈', '白发苍苍的老郎中，药柜里摆满了各种丹药瓶罐。', ['jinchuang', 'huisheng', 'neili_dan', 'jiedu_san', 'qingxin_wan', 'ginseng_100', 'powder_clear', 'herb_bandage', 'zhixue_gao']),
                 v('珠宝斋', '胡商', '西域来的珠宝商人，兜售各种奇珍异宝。', ['jade_ring', 'bangle_jade', 'necklace_gold', 'jade_fish']),
                 v('春风楼', '杨玉弦', '长安城最有名的老鸨，人脉极广，手中掌握着长安一半的胭脂行当。', ['wine_bamboo', 'pastry', 'incense']),
                 v('大光明寺', '了尘大师', '白眉垂肩的得道高僧，目光深邃如古井。', ['incense', 'buddha_relic', 'herb_bandage'], false, 80),
                 v('长安武馆', '秦仲', '虎背熊腰的西北硬汉，拳法刚猛霸道，门下弟子数百。', ['steel_blade', 'chest_mirror'], false, 75),
                 v('禅武道场', '无名僧', '来历不明的苦行僧，曾在雪山顶上独坐七日七夜。', ['incense', 'herb_bandage'], false, 110),
+                v('黑市', '驼铃客', '牵着骆驼的西域人，斗篷下藏着违禁货物。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 45),
             ],
         },
     ],
@@ -109,6 +113,7 @@ const WORLD = {
                 v('牡丹院', '花三娘', '手里摇着团扇的中年妇人，眼神精明，洛阳城的风月场都归她说了算。', ['wine_daughter', 'wine_rice', 'pastry']),
                 v('酒楼', '宋厨子', '手艺一绝的大厨，招牌菜是洛阳水席。', ['wine_daughter', 'pastry', 'wine_bamboo', 'ration']),
                 v('洛阳武馆', '周侗', '名震中原的拳师，一双铁拳打遍洛阳无敌手。', ['chest_mirror', 'steel_blade'], false, 50),
+                v('黑市', '地鼠', '贼眉鼠眼的矮个子，专门倒卖见不得光的东西。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 30),
             ],
         },
         {
@@ -123,8 +128,9 @@ const WORLD = {
                 v('首饰铺', '金巧手', '正在打磨银器的工匠，手艺精湛。', ['ring_silver', 'bangle_jade', 'jade_fish']),
                 v('锦官阁', '薛涛笺', '蜀中赫赫有名的女老板，琴棋书画样样精通。', ['dragon_tea', 'stationary', 'incense']),
                 v('茶馆', '竹叶青', '清雅的茶楼老板，泡得一手好茶。', ['dragon_tea', 'tea_cake', 'incense']),
-                v('药店', '白药仙', '背着药箱的郎中，专治疑难杂症，柜中丹药齐全。', ['jinchuang', 'huisheng', 'neili_dan', 'jiedu_san', 'qingxin_wan', 'ginseng_100', 'powder_clear', 'herb_bandage']),
-                v('蜀中武馆', '铁罗汉', '蜀中唐门的外门弟子，一手铁砂掌威震巴蜀。', ['chest_mirror', 'steel_blade'], false, 45),
+                v('药店', '白药仙', '背着药箱的郎中，专治疑难杂症，柜中丹药齐全。', ['jinchuang', 'huisheng', 'neili_dan', 'jiedu_san', 'qingxin_wan', 'ginseng_100', 'powder_clear', 'herb_bandage', 'zhixue_gao']),
+                v('蜀中武馆', '铁罗汉', '蜀中唐门的外门弟子，一手铁砂掌威震巴蜀。', ['chest_mirror', 'steel_blade'], false, 45, 'wudu'),
+                v('黑市', '瘸老三', '一瘸一拐的老头子，背篓里装的都是官府禁售的东西。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 25),
             ],
         },
         {
@@ -140,6 +146,7 @@ const WORLD = {
                 v('汉水楼', '楚红袖', '豪爽的女掌柜，店里的女儿红远近闻名。', ['wine_bamboo', 'wine_daughter', 'ration']),
                 v('酒楼', '刘一刀', '豪爽的掌柜，招牌菜是红烧狮子头。', ['wine_bamboo', 'ration', 'pastry'], false, 25),
                 v('襄阳武馆', '郭威', '守城将领退下来的老兵，教的全是战场上的杀人技。', ['chest_mirror', 'steel_blade'], false, 55),
+                v('黑市', '逃兵', '脸上带刀疤的壮汉，偷偷兜售军需库里的东西。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 35),
             ],
         },
         {
@@ -155,6 +162,7 @@ const WORLD = {
                 v('茶馆', '碧螺春', '茶艺精湛的女子，泡出的龙井香飘满街。', ['dragon_tea', 'tea_cake', 'pastry']),
                 v('烟雨阁', '苏小小', '温婉的江南女子，轻声细语间别有一番风情。', ['dragon_tea', 'pastry', 'silk_scarf']),
                 v('苏州武馆', '顾云飞', '书香门第出身的武师，一手太极拳使得行云流水。', ['steel_blade', 'chest_mirror'], false, 40),
+                v('黑市', '船老大', '撑着乌篷船的船夫，深夜专做水路上的黑市买卖。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 30),
             ],
         },
         {
@@ -169,6 +177,7 @@ const WORLD = {
                 v('银器铺', '金花婆婆', '白族老匠人，打了一辈子银饰。', ['ring_silver', 'jade_fish', 'bangle_jade']),
                 v('酒馆', '风花雪月', '临街的小酒馆，自酿的青梅酒别具风味。', ['wine_rice', 'wine_bamboo', 'ration']),
                 v('大理武馆', '段正淳', '段氏皇族的旁支子弟，一阳指已有三分火候。', ['steel_blade', 'chest_mirror'], false, 50),
+                v('黑市', '蛇贩子', '腰间挂着几个布袋的苗人，袋子里传出嘶嘶声。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 30),
             ],
         },
         {
@@ -183,6 +192,7 @@ const WORLD = {
                 v('书肆', '柳如是', '才女出身的书肆老板，店内书香四溢。', ['moon_poem', 'stationary', 'writing_brush', 'ink_stick']),
                 v('珠宝铺', '波斯客', '远道而来的波斯商人，带来不少异域珍品。', ['jade_ring', 'necklace_gold', 'ring_silver']),
                 v('扬州武馆', '燕云飞', '轻功冠绝淮左的武师，来去如风，人称"燕云十八骑"传人。', ['steel_blade', 'chest_mirror'], false, 45),
+                v('黑市', '夜行商', '黑衣蒙面的神秘商人，只在大雾天出没。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 35),
             ],
         },
     ],
@@ -214,8 +224,8 @@ const WORLD = {
             const villageTier = Math.min(5, Math.floor(pop / 150)); // 1-5 tier
             const baseCp = 12 + villageTier * 3; // 15-27
             const venues = [
-                v('草药铺', herbalNpc, `村里的草药郎中。`, ['herb_bandage', 'powder_clear', 'herb_ginseng_small']),
-                v('铁匠铺', smithNpc, `村里的铁匠，手艺还不错。`, ['iron_ore', 'knife_wood', 'hoe_iron', 'pot_iron', 'dagger', 'band_head', 'pants_coarse', 'bracers_cloth', 'shoes_straw'], false, baseCp),
+                v('草药铺', herbalNpc, `村里的草药郎中。`, ['herb_bandage', 'powder_clear', 'herb_ginseng_small', 'zhixue_gao']),
+                v('铁匠铺', smithNpc, `村里的铁匠，手艺还不错。`, ['iron_ore', 'knife_wood', 'hoe_iron', 'pot_iron', 'dagger', 'band_head', 'pants_coarse', 'bracers_cloth', 'shoes_straw', 'blueprint_steel_blade'], false, baseCp),
                 v('酒馆', tavernNpc, `小酒馆里飘出阵阵酒香。`, ['wine_rice', 'wine_daughter']),
                 v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('村长家', chiefNpc, `村长的家，${chiefNpc}正在院子里忙活。`, ['tea_cake', 'incense']),
@@ -249,7 +259,7 @@ const WORLD = {
 };
 
 // Assign village martial arts (reuse 10 types across all villages)
-const VILLAGE_MARTIAL_ARTS = ['mantis', 'xingyi', 'tantui', 'hongquan', 'tongbi', 'baji', 'tiesha', 'mianzhang', 'fuhu', 'feiyan'];
+const VILLAGE_MARTIAL_ARTS = ['mantis', 'xingyi', 'tantui', 'hongquan', 'tongbi', 'baji', 'tiesha', 'mianzhang', 'fuhu', 'yingzhua', 'hei_hu_tao_xin', 'hu_zhua_shou', 'chang_quan', 'kuai_zhang', 'kai_shan_zhang'];
 WORLD.villages.forEach((v, vi) => {
     v.venues.forEach(ven => {
         ven.npcs.forEach(n => {
@@ -298,7 +308,7 @@ function getAllLocations() {
 // Assign city NPC martial arts
 const CITY_MARTIAL_ARTS = {
     jingcheng: { '莫三千':'zuiquan', '公孙冶':'tiezhang', '聚宝阁·钱四海':'longzhua', '岳啸天':'tiangang' },
-    suzhou: { '花想容':'zhuifeng', '欧冶子':'tiezhang', '柳如风':'taiji' },
+    suzhou: { '花想容':'zhuifeng', '欧冶子':'tiezhang', '柳如风':'wudang_quan' },
     changan: { '雷炎':'tiesha', '了尘大师':'jingang', '秦仲':'baji', '无名僧':'nianhua' },
     luoyang: { '王振威':'baji', '李铁锤':'tantui', '周侗':'tongbi' },
     chengdu: { '铁罗汉':'tiesha', '杜康':null },
@@ -321,7 +331,7 @@ for (const loc of getAllLocations()) {
 }
 
 // Assign 武馆/道场 martial arts
-const ARENA_MARTIAL_ARTS = ['zuiquan', 'wuying', 'tiangang', 'jingang', 'nianhua', 'yiyangzhi', 'longzhua', 'taiji', 'zhuifeng', 'baji', 'tiesha'];
+const ARENA_MARTIAL_ARTS = ['zuiquan', 'wuying', 'tiangang', 'jingang', 'nianhua', 'yiyangzhi', 'longzhua', 'taiji', 'zhuifeng', 'baji', 'tiesha', 'hei_hu_tao_xin', 'hu_zhua_shou', 'long_hu_zhua', 'shaolin_quan', 'wudang_quan', 'wang_ba_quan', 'ye_gou_quan', 'chang_quan', 'wang_ba_zhang', 'kuai_zhang', 'kai_shan_zhang', 'bo_re_zhang', 'han_bing_shen_zhang', 'qian_shou_ru_lai_zhang'];
 getAllLocations().forEach(loc => {
     loc.venues.forEach(ven => {
         if (ven.name.includes('武馆') || ven.name.includes('道场')) {

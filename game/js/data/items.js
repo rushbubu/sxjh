@@ -60,8 +60,14 @@ const ITEMS = {
     gold_ingot:      { id: 'gold_ingot',      name: '金锭',      desc: '官铸五两金锭，价值不菲。',                               value: 50,  stealDiff: 50, category: 'currency' },
     dagger:          { id: 'dagger',          name: '匕首',      desc: '短小锋利的匕首，可防身也可作为副手武器。',             value: 5,   stealDiff: 12, category: 'weapon', slot: 'leftHand', tier: 'white', attackDescs: ['刺', '划', '捅'] },
 
+    // ═══ 暗器 ═══
+    fei_shi:         { id: 'fei_shi',         name: '飞蝗石',    desc: '打磨光滑的飞石，可投掷伤人。',                         value: 1,   stealDiff: 5,  category: 'weapon', slot: 'rightHand', tier: 'white', attackDescs: ['投石', '弹射'] },
+    fei_biao:        { id: 'fei_biao',        name: '飞镖',      desc: '精铁打造的飞镖，锋锐尖利，可远距离伤敌。',             value: 3,   stealDiff: 10, category: 'weapon', slot: 'rightHand', tier: 'white', attackDescs: ['飞掷', '连射'] },
+    du_biao:         { id: 'du_biao',         name: '毒镖',      desc: '淬过剧毒的飞镖，中者毒发攻心。',                       value: 6,   stealDiff: 15, category: 'weapon', slot: 'rightHand', tier: 'green', attackDescs: ['毒掷', '暗射'] },
+
     // ═══ 药品 ═══
-    jinchuang:       { id: 'jinchuang',      name: '金疮药',    desc: '上好的金疮药，敷于伤口可止血生肌，恢复30点气血。',       value: 8,   stealDiff: 20, category: 'medicine', use: { healHp: 30 } },
+    jinchuang:       { id: 'jinchuang',      name: '金疮药',    desc: '上好的金疮药，敷于伤口可止血生肌，恢复30点气血。',       value: 8,   stealDiff: 20, category: 'medicine', use: { healHp: 30, cure: 'bleed' } },
+    zhixue_gao:      { id: 'zhixue_gao',     name: '止血膏',    desc: '专治撕裂伤口的药膏，可治愈撕裂状态。',                   value: 5,   stealDiff: 15, category: 'medicine', use: { cure: 'bleed' } },
     huisheng:         { id: 'huisheng',       name: '回魂丹',    desc: '珍品丹药，有起死回生之效，恢复50点气血。',               value: 15,  stealDiff: 30, category: 'medicine', use: { healHp: 50 } },
     neili_dan:        { id: 'neili_dan',      name: '养气丹',    desc: '培元固本的丹药，可恢复20点内力。',                       value: 10,  stealDiff: 25, category: 'medicine', use: { healNeili: 20 } },
     jiedu_san:        { id: 'jiedu_san',      name: '解毒散',    desc: '专解百毒的药散，可解除中毒状态。',                       value: 6,   stealDiff: 18, category: 'medicine', use: { cure: 'poison' } },
@@ -79,6 +85,14 @@ const ITEMS = {
     leather_raw:     { id: 'leather_raw',     name: '兽皮',      desc: '处理过的兽皮，可用于制作皮具铠甲。',                     value: 3,   stealDiff: 10, category: 'material' },
     wood_hard:       { id: 'wood_hard',       name: '硬木',      desc: '坚硬耐用的木材，适合做兵器握柄或盾牌。',                 value: 2,   stealDiff: 8,  category: 'material' },
 
+    // ═══ 稀有材料 ═══
+    essence_iron:    { id: 'essence_iron',    name: '精铁',      desc: '百炼精铁，质地纯净，是打造神兵利器的上等材料。',        value: 15,  stealDiff: 25, category: 'material' },
+    silk_gold:       { id: 'silk_gold',       name: '金蚕丝',    desc: '罕见的天山金蚕所吐之丝，坚韧无比，可织入软甲。',        value: 20,  stealDiff: 30, category: 'material' },
+
+    // ═══ 毒药 ═══
+    poison_powder:   { id: 'poison_powder',   name: '毒粉',      desc: '用蛇毒和草药调配的毒粉，可下毒暗算。',                   value: 8,   stealDiff: 20, category: 'poison' },
+    he_ding_hong:    { id: 'he_ding_hong',    name: '鹤顶红',    desc: '天下奇毒，点滴封喉，见血即亡。',                         value: 30,  stealDiff: 45, category: 'poison' },
+
     // ═══ 猎物与烹饪 ═══
     meat_rabbit:      { id: 'meat_rabbit',    name: '兔肉',      desc: '新鲜的兔肉，烤着吃很香。',                                value: 2,   stealDiff: 3,  category: 'food' },
     meat_snake:       { id: 'meat_snake',     name: '蛇肉',      desc: '蛇肉细嫩，煲汤极鲜。',                                   value: 3,   stealDiff: 4,  category: 'food' },
@@ -92,6 +106,11 @@ const ITEMS = {
     gall_snake:       { id: 'gall_snake',     name: '蛇胆',      desc: '巨蟒之胆，服用可增内力。',                                value: 10,  stealDiff: 15, category: 'medicine' },
     gall_bear:        { id: 'gall_bear',      name: '熊胆',      desc: '黑熊之胆，大补内力。',                                    value: 20,  stealDiff: 25, category: 'medicine' },
     gall_tiger:       { id: 'gall_tiger',     name: '虎胆',      desc: '猛虎之胆，稀世珍品，可大幅提升内力。',                    value: 40,  stealDiff: 40, category: 'medicine' },
+
+    // ═══ 锻造图纸 ═══
+    blueprint_steel_blade:{ id: 'blueprint_steel_blade', name: '精铁刀图纸', desc: '记载着精铁刀的锻造之法。',                  value: 5,   stealDiff: 20, category: 'blueprint', blueprint: { id: 'steel_blade', ings: { iron_ore: 4, wood_hard: 2 }, cost: 10 } },
+    blueprint_blue_sword: { id: 'blueprint_blue_sword',  name: '青锋剑图纸', desc: '记载着青锋剑的锻造之法。',                  value: 15,  stealDiff: 35, category: 'blueprint', blueprint: { id: 'blue_sword', ings: { iron_ore: 8, wood_hard: 4 }, cost: 35 } },
+    blueprint_gold_armor: { id: 'blueprint_gold_armor',  name: '金丝软甲图纸', desc: '记载着金丝软甲的锻造之法。',             value: 25,  stealDiff: 50, category: 'blueprint', blueprint: { id: 'gold_silk_armor', ings: { iron_ore: 10, leather_raw: 8 }, cost: 60 } },
 
     // ═══ 赌徒心经 ═══
     sutra_gambler_1:  { id: 'sutra_gambler_1', name: '初级赌徒心经', desc: '一本皱巴巴的旧册子，记着些出千和听骰的粗浅门道。',   value: 1,   stealDiff: 5,  category: 'skill', use: { learnInternalSkill: '初级赌徒心经' } },

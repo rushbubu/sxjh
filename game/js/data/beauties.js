@@ -98,7 +98,7 @@ function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + m
 
 function pick(arr) { return arr[rand(0, arr.length - 1)]; }
 
-function generateRequirements(type) {
+function generateRequirements(type, locationId) {
     const reqs = [];
     let pool;
     if (type === 'village') {
@@ -114,19 +114,25 @@ function generateRequirements(type) {
     if (type === 'village') {
         for (const r of shuffled) {
             if (r === 'reputation') reqs.push({ type: 'reputation', min: rand(2, 5) });
-            else if (r === 'appearance') reqs.push({ type: 'appearance', min: rand(10, 25) });
+            else if (r === 'appearance') reqs.push({ type: 'appearance', min: rand(20, 40) });
             else if (r === 'height') reqs.push({ type: 'height', min: rand(160, 175) });
         }
     } else if (type === 'small_city') {
         for (const r of shuffled) {
             if (r === 'reputation') reqs.push({ type: 'reputation', min: rand(4, 8) });
-            else if (r === 'appearance') reqs.push({ type: 'appearance', min: rand(20, 40) });
+            else if (r === 'appearance') reqs.push({ type: 'appearance', min: rand(30, 50) });
             else if (r === 'height') reqs.push({ type: 'height', min: rand(165, 175) });
+        }
+    } else if (locationId === 'shendu') {
+        for (const r of shuffled) {
+            if (r === 'reputation') reqs.push({ type: 'reputation', min: rand(10, 15) });
+            else if (r === 'appearance') reqs.push({ type: 'appearance', min: rand(80, 100) });
+            else if (r === 'height') reqs.push({ type: 'height', min: rand(170, 180) });
         }
     } else {
         for (const r of shuffled) {
             if (r === 'reputation') reqs.push({ type: 'reputation', min: rand(7, 12) });
-            else if (r === 'appearance') reqs.push({ type: 'appearance', min: rand(35, 55) });
+            else if (r === 'appearance') reqs.push({ type: 'appearance', min: rand(40, 80) });
             else if (r === 'height') reqs.push({ type: 'height', min: rand(170, 178) });
         }
     }
@@ -231,7 +237,7 @@ function computeChastity(beauty) {
     }
 }
 
-function pickRegionalGift(locationId) {
+function pickRegionalGift(locationId, chatLevel) {
     const region = getRegion(locationId);
     const locs = getAllLocations().filter(l => getRegion(l.id) === region);
     const allItems = locs.flatMap(l => {
@@ -240,7 +246,16 @@ function pickRegionalGift(locationId) {
     });
     const giftPool = allItems.filter(it => it && it.value >= 5 && it.value <= 100);
     if (giftPool.length === 0) return null;
-    return giftPool[Math.floor(Math.random() * giftPool.length)];
+    // 按价格从低到高排序
+    giftPool.sort((a, b) => a.value - b.value);
+    // 根据对话进度选取对应价位段
+    const level = chatLevel || 0;
+    const segment = Math.min(level, 4);
+    const chunkSize = Math.max(1, Math.floor(giftPool.length / 5));
+    const start = Math.min(segment * chunkSize, giftPool.length - 1);
+    const end = Math.min(start + chunkSize, giftPool.length);
+    const candidates = giftPool.slice(start, end);
+    return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
 function generateBeauties(locationId, type, usedNames) {
@@ -292,7 +307,7 @@ function generateBeauties(locationId, type, usedNames) {
             faceDesc, bodyDesc,
             clothing: ms === 'widow' ? pick(CLOTHING_WIDOW) : pick(type === 'big_city' ? CLOTHING_BIG : type === 'small_city' ? CLOTHING_CITY : CLOTHING_VILLAGE),
             favorability: 0,
-            requirements: generateRequirements(type),
+            requirements: generateRequirements(type, locationId),
             chatLevel: 0,
             _revealed: { face: true },
             flirtCount: 0, flirtDay: 0,

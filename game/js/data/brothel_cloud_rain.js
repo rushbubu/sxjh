@@ -171,9 +171,9 @@ function _brDoForeplay(prostitute, player, callbacks, part) {
         },
         chest: function(p) {
             const breast = _getBreastShort(p);
-            const cup = _getCupLabel(p.bust);
+            const sizes = _getSizeDesc(p.bust);
             const color = _getColor(p, COLORS_YOUNG, COLORS_MATURE);
-            return '她挺起' + breast + '，往你掌心里送，咬着下唇吃吃笑：「爷……您捏捏，' + cup + '罩杯的奶子，外头可不好找……' + color + '的奶头儿又嫩又翘，您不想尝尝？」';
+            return '她挺起' + breast + '，往你掌心里送，咬着下唇吃吃笑：「爷……您捏捏，' + sizes[2] + '奶子，外头可不好找……' + color + '的奶头儿又嫩又翘，您不想尝尝？」';
         },
         waist: function(p) {
             const w = p.waist;

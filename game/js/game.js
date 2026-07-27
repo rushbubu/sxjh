@@ -192,7 +192,8 @@ class Game {
                         npcDesc: f.stewardDesc,
                         civilian: false,
                         combatPower: f.stewardPower,
-                        items: [],
+    items: [],
+    statuses: [],
                         factionId: fId,
                     }],
                 });
@@ -408,17 +409,20 @@ class Game {
     /* ─── 状态条 ─── */
 
     getRepInfo(rep) {
-        if (rep <= 2) return { label: '声名狼藉', color: '#804040' };
-        if (rep <= 4) return { label: '臭名昭著', color: '#a05050' };
-        if (rep <= 6) return { label: '风评不佳', color: '#b07050' };
-        if (rep <= 8) return { label: '默默无闻', color: '#606060' };
-        if (rep <= 10) return { label: '初入江湖', color: '#808080' };
-        if (rep <= 12) return { label: '小有名气', color: '#5090c0' };
-        if (rep <= 14) return { label: '声名鹊起', color: '#40a080' };
-        if (rep <= 16) return { label: '名震一方', color: '#8060d0' };
-        if (rep <= 18) return { label: '威震天下', color: '#d0a040' };
-        if (rep <= 20) return { label: '武林泰斗', color: '#e08030' };
-        return { label: '名动江湖', color: '#ff6040' };
+        if (rep <= -40) return { label: '游戏结束', color: '#800000' };
+        if (rep < -30) return { label: '恶贯满盈', color: '#600000' };
+        if (rep < -20) return { label: '声名狼藉', color: '#804040' };
+        if (rep < -10) return { label: '臭名昭著', color: '#a05050' };
+        if (rep < 0) return { label: '风评不佳', color: '#b07050' };
+        if (rep < 10) return { label: '无名小卒', color: '#606060' };
+        if (rep < 20) return { label: '初入江湖', color: '#808080' };
+        if (rep < 50) return { label: '小有名气', color: '#5090c0' };
+        if (rep < 100) return { label: '声名鹊起', color: '#40a080' };
+        if (rep < 400) return { label: '声名显赫', color: '#6090e0' };
+        if (rep < 1000) return { label: '名震一方', color: '#8060d0' };
+        if (rep < 2000) return { label: '威震天下', color: '#d0a040' };
+        if (rep < 5000) return { label: '武林泰斗', color: '#e08030' };
+        return { label: '江湖神话', color: '#ff6040' };
     }
 
     getWealthInfo(gold) {
@@ -572,7 +576,13 @@ class Game {
         else if (hpPct < 50) { st.textContent = '重伤'; st.style.color = '#ff8040'; }
         else if (hpPct < 70) { st.textContent = '轻伤'; st.style.color = '#ffc040'; }
         else st.textContent = '';
+        const statusNames = { bleed: '撕裂', poison: '中毒' };
+        const activeStatuses = (p.statuses || []).map(s => statusNames[s.type] || s.type).filter(Boolean);
+        if (activeStatuses.length > 0) {
+            st.textContent += (st.textContent ? ' | ' : '') + activeStatuses.join('|');
+        }
         p.hp = Math.max(0, p.hp); p.neili = Math.max(0, p.neili);
+        if (p.reputation <= -40) this._triggerRepGameOver();
         const ri = this.getRepInfo(p.reputation);
         const wi = this.getWealthInfo(p.gold);
         document.getElementById('gold-text').textContent = p.gold + ' 两';
@@ -614,7 +624,8 @@ class Game {
         const il = p.items.length ? p.items.map(i => i.name).join('、') : '（空）';
         const extSkills = p.externalSkills.length ? p.externalSkills.map(s => {
             const q = SKILL_QUALITIES[s.quality] || SKILL_QUALITIES.white;
-            return `${s.name} Lv.${s.level}/${s.maxLevel}（${q.name}）`;
+            const elem = s.element ? ` [${s.element}]` : '';
+            return `${s.name} Lv.${s.level}/${s.maxLevel}（${q.name}${elem}）`;
         }).join('、') : '无';
         const intSkills = p.internalSkills.length ? p.internalSkills.join('、') : '无';
         document.getElementById('menu-stats').innerHTML = `
@@ -687,6 +698,7 @@ class Game {
     enterLocation(locationId, clear = true) {
         const loc = getAllLocations().find(l => l.id === locationId);
         if (!loc) return;
+        if (this.processStatusOnMove()) return;
         // Clean expired blacklist entries
         for (const [id, expiry] of Object.entries(this.player.villageBlacklist || {})) {
             if (this.player.day >= expiry) delete this.player.villageBlacklist[id];
@@ -901,7 +913,7 @@ class Game {
             this.enterVenueInner(venue);
         } else {
             this.addMessage('你正专心撬锁，突然远处传来一声大喝：「有贼！」', 'danger');
-            this.player.reputation = Math.max(0, this.player.reputation - 5);
+            this.player.reputation -= 5;
             this.updateStatsBar();
             this.addMessage(`声望 -5（当前 ${this.player.reputation}）`, 'system');
             setTimeout(() => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()), 400);
@@ -919,6 +931,7 @@ class Game {
             ]);
             return;
         }
+        if (this.processStatusOnMove()) return;
         this.enterVenueInner(venue);
     }
 
@@ -1172,6 +1185,7 @@ class Game {
         const loc = this.currentLocation;
         const gift = Math.max(30, 50 + (loc.economy === 'moderate' ? 30 : 0));
         this.player.gold += gift;
+        this.updateStatsBar();
         this.player.mainQuest = 2;
         this.showMessageSequence([
             { text: `你走进${venue.name}，${landlord.npcName}正端坐在太师椅上喝茶。`, type: 'narrator' },
@@ -1200,7 +1214,7 @@ class Game {
                 this.showMessageSequence([
                     { text: `三拳两脚，两个家丁便躺在地上哀嚎不止。`, type: 'narrator' },
                     { text: `大门「吱呀」一声开了，${venue.npcs[0].npcName}站在门口，面色不悦。`, type: 'narrator' },
-                    { text: `${venue.npcs[0].npcName}：「少侠好身手，既然能打到这来，那就进来说话吧。」`, type: 'narrator' },
+                    { text: `管家：「少侠好身手，既然能打到这来，那就进来说话吧。」`, type: 'narrator' },
                 ], () => this.landlordQuestGrant(venue));
             },
             () => this.gameOver('你受伤过重，不治身亡')
@@ -1239,7 +1253,7 @@ class Game {
             { text: '出售', action: () => this.sellToNpc(venue, npc) },
         ];
         if (venue.name === '铁匠铺') {
-            choices.splice(choices.findIndex(c => c.text === '出售') + 1, 0, { text: '锻造', action: () => this.showForgeMenu(venue, npc) });
+            choices.splice(choices.findIndex(c => c.text === '出售') + 1, 0, { text: '装备制造', action: () => this.showForgeMenu(venue, npc) });
         }
         // 小树林：猎人或樵夫专属
         if (npc._forestType === 'hunter' && !npc._killed) {
@@ -1495,6 +1509,7 @@ class Game {
                         type: sk.type,
                         quality: sk.quality,
                         level: 1,
+                        maxLevel: (SKILL_QUALITIES[sk.quality] || SKILL_QUALITIES.white).maxLevel,
                     });
                     this.addMessage(`你潜心研习，习得了「${sk.name}」！`, 'event');
                     this.player.day += 3;
@@ -1718,7 +1733,7 @@ class Game {
                 '我这里有锻炉，你拿铁矿石、兽皮、硬木来，我给你打兵器铠甲。猎户的兽皮、樵夫的硬木都是好材料。',
             ],
             '酒馆': [
-                '客官来点什么？本店的招牌菜可是一绝。', '听说了吗？最近城外好像不太平。', '我这有坛十八年的女儿红，想不想尝尝？',
+                '客官来点什么？本店的酒水可是一绝。', '听说了吗？最近城外好像不太平。', '我这有坛十八年的女儿红，想不想尝尝？',
                 '你要想打听消息，街角那老乞丐消息最灵通，塞几两银子什么都告诉你。', '出门在外，多带些干粮和酒水，路上用得着。',
                 '听说有些村子的铁匠铺能打造上好的兵器，你有材料不妨去试试。',
             ],
@@ -1834,7 +1849,7 @@ class Game {
 
     beatBeggar(venue, npc) {
         this.clearChoices();
-        this.player.reputation = Math.max(0, this.player.reputation - 3);
+        this.player.reputation -= 3;
         this._adjInnerRep(-2, '欺压乞丐');
         this._adjWorldHelp(-1, '欺压乞丐');
         this.addMessage(`你揪起乞丐的衣领，恶狠狠地瞪了他一眼。`, 'narrator');
@@ -1861,7 +1876,7 @@ class Game {
                     this.clearChoices();
                     const where = b._currentVenueName || '街上';
                     const who = ['我瞧见过', '听人说', '好像', '前两日还在'][Math.floor(Math.random() * 4)];
-                    const action = ['晃悠', '小酌', '洗衣', '闲坐', '纳凉', '赏景', '等人'][Math.floor(Math.random() * 7)];
+                    const action = ['晃悠', '小酌', '买酒', '闲坐', '纳凉', '赏景', '等人'][Math.floor(Math.random() * 7)];
                     this.addMessage(`乞丐压低声音：「${who}，她这会儿在${where}${action}呢。」`, 'narrator');
                     this.showChoices([
                         { text: '再问别的', action: () => this.beggarIntelBeauties(venue, npc, beat, true) },
@@ -2032,7 +2047,7 @@ class Game {
                 this.addMessage(`${npc.npcName}满意地点点头：「你人不错，又肯下力气。我这几手砍柴的功夫，你想学吗？」`, 'narrator');
                 const art = getMartialArt('caidao');
                 if (art) {
-                    const skillObj = { id: 'caidao', name: art.name, desc: art.desc, type: art.type, quality: art.quality, level: 1, maxLevel: 4 };
+                    const skillObj = { id: 'caidao', name: art.name, desc: art.desc, type: art.type, quality: art.quality, level: 1, maxLevel: 4, element: art.element };
                     this.player.externalSkills.push(skillObj);
                     this.addMessage(`你领悟了「${art.name}」！`, 'event');
                 }
@@ -2146,7 +2161,7 @@ class Game {
                     this.clearChoices();
                     const where = b._currentVenueName || '街上';
                     const who = ['有人说', '听隔壁大妈讲', '据说', '好像是', '前两日还见她在'][Math.floor(Math.random() * 5)];
-                    const action = ['散步', '小酌', '洗衣', '闲坐', '纳凉', '赏景', '等人'][Math.floor(Math.random() * 7)];
+                    const action = ['散步', '小酌', '买酒', '闲坐', '纳凉', '赏景', '等人'][Math.floor(Math.random() * 7)];
                     this.addMessage(`${npc.npcName}凑近了些，压低声音：「${who}，她这会儿在${where}${action}呢。」`, 'narrator');
                     this.showChoices([{ text: '再问别的', action: () => this.chiefIntelBeauties(venue, npc, true) }, { text: '多谢', action: () => this.chiefAction(venue, npc) }]);
                 },
@@ -2486,7 +2501,7 @@ class Game {
     takeLoot(venue, npc, item) {
         this.clearChoices();
         const repCost = Math.max(1, Math.floor(item.value / 5));
-        this.player.reputation = Math.max(0, this.player.reputation - repCost);
+        this.player.reputation -= repCost;
         this.player.shadowRep += 1;
         this.addMessage(`你拿走了${item.name}，声望 -${repCost}（当前 ${this.player.reputation}）`, 'system');
         const taken = { ...item };
@@ -2540,7 +2555,7 @@ class Game {
             const luckLabel = this.player.attrs.luck >= art.luckReq ? '福缘深厚' : '勉强够格';
             this.addMessage(`你${luckLabel}（福缘 ${this.player.attrs.luck}），${npc.npcName}对你另眼相看！`, 'event');
             const qData = SKILL_QUALITIES[art.quality] || SKILL_QUALITIES.white;
-            this.player.externalSkills.push({ id: npc.martialArt, name: art.name, desc: art.desc, type: art.type, quality: art.quality, level: 1, maxLevel: qData.maxLevel });
+            this.player.externalSkills.push({ id: npc.martialArt, name: art.name, desc: art.desc, type: art.type, quality: art.quality, level: 1, maxLevel: qData.maxLevel, element: art.element });
             this.addMessage(`${npc.npcName}将${art.name}倾囊相授！你领悟了「${art.name}」的奥义！`, 'event');
             this.player.exp += 20;
             this.checkLevelUp();
@@ -2781,7 +2796,7 @@ class Game {
         const healingItems = [];
         for (let i = 0; i < this.player.items.length; i++) {
             const it = this.player.items[i];
-            if (it.use && (it.use.healHp || it.use.healNeili)) {
+            if (it.use && (it.use.healHp || it.use.healNeili || it.use.cure)) {
                 healingItems.push({ item: it, index: i });
             }
         }
@@ -2802,7 +2817,18 @@ class Game {
         this.player.items.splice(idx, 1);
         let msg = `你使用了「${item.name}」。`;
         const use = item.use || {};
-        if (use.healNeili) {
+        const statusNames = { bleed: '撕裂', poison: '中毒' };
+        if (use.cure) {
+            const p = this.player;
+            const found = (p.statuses || []).findIndex(s => s.type === use.cure);
+            if (found !== -1) {
+                p.statuses.splice(found, 1);
+                msg += ` 身上的「${statusNames[use.cure] || use.cure}」状态解除了。`;
+            } else {
+                msg += ` 但你没有${statusNames[use.cure] || use.cure}状态。`;
+            }
+            this.battleState.log.push({ text: msg, cls: 'battle-log-info' });
+        } else if (use.healNeili) {
             this.player.neili = Math.min(this.player.maxNeili, this.player.neili + use.healNeili);
             msg += ` 内力恢复 ${use.healNeili} 点。`;
             this.battleState.log.push({ text: msg, cls: 'battle-log-info' });
@@ -2854,6 +2880,9 @@ class Game {
         const rawDmg = Math.max(1, Math.floor(move.power + Math.floor(Math.random() * 4) - 1));
         const dmg = Math.max(1, rawDmg - Math.floor(defense * 0.15));
         this.player.hp -= dmg;
+        if (move.status && Math.random() < move.status.chance) {
+            this._applyStatus(move.status.type, e.name);
+        }
         const moveName = move.neiliCost ? `<span style="color:#f0a0a0">${move.name}</span>` : move.name;
         this.battleState.log.push({ text: `${e.name}使出了${moveName}！你受到 <b>${dmg}</b> 点伤害。`, cls: 'battle-log-self' });
         this.renderBattleHUD();
@@ -2888,6 +2917,45 @@ class Game {
         this.battleState = null;
         document.getElementById('log').innerHTML = '';
         cb();
+    }
+
+    /* ─── 异常状态 ─── */
+
+    _applyStatus(type, source) {
+        const p = this.player;
+        if (!p.statuses) p.statuses = [];
+        if (p.statuses.some(s => s.type === type)) return;
+        p.statuses.push({ type, source });
+        const names = { bleed: '撕裂', poison: '中毒' };
+        const name = names[type] || type;
+        this.addMessage(`你被${source}的攻击命中，陷入了<b>${name}</b>状态！`, 'danger');
+        this.updateStatsBar();
+    }
+
+    processStatusOnMove() {
+        const p = this.player;
+        if (!p.statuses || p.statuses.length === 0) return false;
+        let msg = '';
+        for (const s of p.statuses) {
+            if (s.type === 'bleed') {
+                const dmg = Math.max(1, Math.floor(p.maxHp * 0.05));
+                p.hp -= dmg;
+                msg += `伤口撕裂，你流失了 ${dmg} 点气血！`;
+            } else if (s.type === 'poison') {
+                const dmg = Math.max(1, Math.floor(p.maxHp * 0.03));
+                p.hp -= dmg;
+                msg += `毒气发作，你损失了 ${dmg} 点气血！`;
+            }
+        }
+        if (msg) {
+            this.addMessage(msg, 'danger');
+            this.updateStatsBar();
+            if (p.hp <= 0) {
+                this.gameOver('你因伤势过重，倒在了路上。');
+                return true;
+            }
+        }
+        return false;
     }
 
     /* ─── 购买 ─── */
@@ -2964,9 +3032,19 @@ class Game {
         setTimeout(() => this.sellToNpc(venue, npc), 400);
     }
 
-    /* ─── 锻造 ─── */
+    /* ─── 装备制造 ─── */
 
     showForgeMenu(venue, npc) {
+        this.clearChoices();
+        this.addMessage(`—— ${npc.npcName}的锻炉 ——`, 'system');
+        this.showChoices([
+            { text: '基础锻造', action: () => this.showBasicForge(venue, npc) },
+            { text: '图纸锻造', action: () => this.showBlueprintForge(venue, npc) },
+            { text: '返回', action: () => this.interactNpc(venue, npc) },
+        ]);
+    }
+
+    showBasicForge(venue, npc) {
         this.clearChoices();
         const p = this.player;
         const allRecipes = [
@@ -2984,8 +3062,8 @@ class Game {
         const countItem = (id) => p.items.filter(it => it.id === id).length;
         const ingName = (id) => (getItem(id) || { name: id }).name;
 
-        this.addMessage(`—— ${npc.npcName}的锻炉 ——`, 'system');
-        this.addMessage(`你身上的材料：铁矿石×${countItem('iron_ore')}、兽皮×${countItem('leather_raw')}、硬木×${countItem('wood_hard')}  银两：${p.gold}两`, 'narrator');
+        this.addMessage(`— 基础锻造 —`, 'system');
+        this.addMessage(`材料：铁矿石×${countItem('iron_ore')}、兽皮×${countItem('leather_raw')}、硬木×${countItem('wood_hard')}  银两：${p.gold}两`, 'narrator');
 
         const choices = recipes.map(r => {
             const hasMat = Object.entries(r.ings).every(([id, qty]) => countItem(id) >= qty);
@@ -2995,14 +3073,53 @@ class Game {
                 Object.entries(r.ings).map(([id, qty]) => `${ingName(id)}×${qty}`).join('、') + ` + ${r.cost}两`;
             return {
                 text: label,
-                action: canForge ? () => this._doForge(venue, npc, r) : () => { this.addMessage('材料不足，无法锻造。', 'info'); setTimeout(() => this.showForgeMenu(venue, npc), 200); },
+                action: canForge ? () => this._doForge(r, venue, npc) : () => { this.addMessage('材料不足，无法锻造。', 'info'); setTimeout(() => this.showBasicForge(venue, npc), 200); },
             };
         });
-        choices.push({ text: '返回', action: () => this.interactNpc(venue, npc) });
+        choices.push({ text: '返回装备制造', action: () => this.showForgeMenu(venue, npc) });
         this.showChoices(choices);
     }
 
-    _doForge(venue, npc, recipe) {
+    showBlueprintForge(venue, npc) {
+        this.clearChoices();
+        const p = this.player;
+        const blueprints = p.items.filter(i => {
+            const def = getItem(i.id);
+            return def && def.category === 'blueprint' && def.blueprint;
+        });
+
+        this.addMessage(`— 图纸锻造 —`, 'system');
+        if (blueprints.length === 0) {
+            this.addMessage('你身上没有任何锻造图纸。', 'narrator');
+            this.addMessage('图纸可以在各地商人处购买，或从某些特殊途径获得。', 'narrator');
+            this.showChoices([{ text: '返回装备制造', action: () => this.showForgeMenu(venue, npc) }]);
+            return;
+        }
+
+        const countItem = (id) => p.items.filter(it => it.id === id).length;
+        const ingName = (id) => (getItem(id) || { name: id }).name;
+        this.addMessage(`材料：铁矿石×${countItem('iron_ore')}、兽皮×${countItem('leather_raw')}、硬木×${countItem('wood_hard')}  银两：${p.gold}两`, 'narrator');
+
+        const choices = blueprints.map(bp => {
+            const def = getItem(bp.id);
+            const bpData = def.blueprint;
+            const targetItem = getItem(bpData.id);
+            const tier = targetItem ? (targetItem.tier || 'white') : 'white';
+            const hasMat = Object.entries(bpData.ings).every(([id, qty]) => countItem(id) >= qty);
+            const hasGold = p.gold >= bpData.cost;
+            const canForge = hasMat && hasGold;
+            const label = (canForge ? '' : '⚠ ') + '【' + (ITEM_TIER_LABELS[tier] || tier) + '】' + def.name + ' → ' + (targetItem ? targetItem.name : bpData.id) + '  |  ' +
+                Object.entries(bpData.ings).map(([id, qty]) => `${ingName(id)}×${qty}`).join('、') + ` + ${bpData.cost}两`;
+            return {
+                text: label,
+                action: canForge ? () => this._doBlueprintForge(bp, bpData, venue, npc) : () => { this.addMessage('材料不足，无法锻造。', 'info'); setTimeout(() => this.showBlueprintForge(venue, npc), 200); },
+            };
+        });
+        choices.push({ text: '返回装备制造', action: () => this.showForgeMenu(venue, npc) });
+        this.showChoices(choices);
+    }
+
+    _doForge(recipe, venue, npc) {
         this.clearChoices();
         const p = this.player;
         for (const [id, qty] of Object.entries(recipe.ings)) {
@@ -3014,12 +3131,35 @@ class Game {
         }
         p.gold -= recipe.cost;
         const item = getItem(recipe.id);
-        if (!item) { this.addMessage('锻造失败：未知的配方。', 'danger'); this.updateStatsBar(); setTimeout(() => this.showForgeMenu(venue, npc), 400); return; }
+        if (!item) { this.addMessage('锻造失败：未知的配方。', 'danger'); this.updateStatsBar(); setTimeout(() => this.showBasicForge(venue, npc), 400); return; }
         if (!this.autoEquip(item)) p.items.push({ ...item });
         this.addMessage(`你将材料投入炉火中，锻造成了一把${recipe.name}！`, 'event');
         this.addMessage(`花费 ${recipe.cost}两，消耗了相应材料。`, 'info');
         this.updateStatsBar();
-        setTimeout(() => this.showForgeMenu(venue, npc), 400);
+        setTimeout(() => this.showBasicForge(venue, npc), 400);
+    }
+
+    _doBlueprintForge(bp, bpData, venue, npc) {
+        this.clearChoices();
+        const p = this.player;
+        for (const [id, qty] of Object.entries(bpData.ings)) {
+            let left = qty;
+            p.items = p.items.filter(it => {
+                if (it.id === id && left > 0) { left--; return false; }
+                return true;
+            });
+        }
+        p.gold -= bpData.cost;
+        const bpIdx = p.items.indexOf(bp);
+        if (bpIdx !== -1) p.items.splice(bpIdx, 1);
+        const item = getItem(bpData.id);
+        if (!item) { this.addMessage('锻造失败：未知的配方。', 'danger'); this.updateStatsBar(); setTimeout(() => this.showBlueprintForge(venue, npc), 400); return; }
+        if (!this.autoEquip(item)) p.items.push({ ...item });
+        this.addMessage(`你按照图纸上的方法，精心打造！`, 'narrator');
+        this.addMessage(`你成功制作了${item.name}！图纸也随之用掉了。`, 'event');
+        this.addMessage(`花费 ${bpData.cost}两，消耗了相应材料。`, 'info');
+        this.updateStatsBar();
+        setTimeout(() => this.showBlueprintForge(venue, npc), 400);
     }
 
     /* ─── 偷盗 ─── */
@@ -3128,7 +3268,7 @@ class Game {
         }
         this.addMessage(`银两：${p.gold}两 | 物品：${p.items.length}件`, 'system');
         const choices = [];
-        const usable = p.items.findIndex(it => it.use && (it.use.healHp || it.use.healNeili));
+        const usable = p.items.findIndex(it => it.use && (it.use.healHp || it.use.healNeili || it.use.cure));
         if (usable !== -1) {
             choices.push({ text: '使用物品', action: () => this.showUseableItems() });
         }
@@ -3142,7 +3282,7 @@ class Game {
         const usable = [];
         for (let i = 0; i < p.items.length; i++) {
             const it = p.items[i];
-            if (it.use && (it.use.healHp || it.use.healNeili)) {
+            if (it.use && (it.use.healHp || it.use.healNeili || it.use.cure)) {
                 usable.push({ item: it, index: i });
             }
         }
@@ -3172,7 +3312,17 @@ class Game {
         }
         this.player.items.splice(idx, 1);
         let msg = `你使用了「${item.name}」。`;
-        if (use.healNeili) {
+        const statusNames = { bleed: '撕裂', poison: '中毒' };
+        if (use.cure) {
+            const p = this.player;
+            const found = (p.statuses || []).findIndex(s => s.type === use.cure);
+            if (found !== -1) {
+                p.statuses.splice(found, 1);
+                msg += ` 身上的「${statusNames[use.cure] || use.cure}」状态解除了。`;
+            } else {
+                msg += ` 但你没有${statusNames[use.cure] || use.cure}状态。`;
+            }
+        } else if (use.healNeili) {
             this.player.neili = Math.min(this.player.maxNeili, this.player.neili + use.healNeili);
             msg += ` 内力恢复 ${use.healNeili} 点。`;
         } else if (use.healHp) {
@@ -3840,7 +3990,7 @@ class Game {
         } else {
             const tierMin = RATINGS[ratingIdx].min;
             const penalty = Math.max(1, Math.floor(tierMin / 10));
-            this.player.reputation = Math.max(0, this.player.reputation - penalty);
+            this.player.reputation -= penalty;
             this.addMessage(`路人失望地看着你：「见死不救，算什么江湖中人！」`, 'danger');
             this.addMessage(`声望 -${penalty}（当前 ${this.player.reputation}）`, 'system');
             if (this.player.reputation < 0) { this.gameOver('你声名狼藉，江湖再无容身之处……'); return; }
@@ -3997,6 +4147,11 @@ class Game {
         const fav = computeFavorability(this.player, bd) >= 80 ? computeFavorability(this.player, bd) : bd.favorability;
         const attitudeText = this._getAttitudeText(fav);
         if (!attitudeText) {
+            const outdoorVenues = ['断桥', '小溪', '田埂', '小树林', '街角', '集市'];
+            if (outdoorVenues.includes(venue.name) && Math.random() < 0.5) {
+                this._beautyOutdoorBattle(venue, beauty);
+                return;
+            }
             this.showMessageSequence([
                 { text: `你走向${bd.name}，她态度冷冷，似乎不愿与你交谈。`, type: 'narrator' },
             ], () => this.enterVenue(venue));
@@ -4015,11 +4170,33 @@ class Game {
         );
         this._ensureRedRecord(bd);
         msgs.push({ text: `已将${bd.name}记入红颜录，可通过红颜录查询她的去向。`, type: 'system' });
-        const gift = pickRegionalGift(this.currentLocation.id);
+        const gift = pickRegionalGift(this.currentLocation.id, Math.max(0, (bd.chatLevel || 0) - 1));
         if (gift) { bd._wantedGift = gift.id; msgs.push({ text: `${bd.name}提到她最近想要一件「${gift.name}」。`, type: 'event' }); }
         bd._chattedToday = true;
         msgs.push({ text: `${bd.name}离开了${venue.name}。`, type: 'narrator' });
         this.showMessageSequence(msgs, () => this.showChoices([{ text: '离开', action: () => this.showOutdoorChoices() }]));
+    }
+
+    _beautyOutdoorBattle(venue, beauty) {
+        const bd = beauty._beautyData;
+        const wildVenues = ['断桥', '小溪', '田埂', '小树林'];
+        const isWild = wildVenues.includes(venue.name);
+        const enemies = isWild ? ['dog_1', 'snake_1'] : ['thug_1', 'thug_2'];
+        const key = enemies[Math.floor(Math.random() * enemies.length)];
+        const enemy = createTravelEnemy(key);
+        const intro = isWild
+            ? `你正要上前与${bd.name}搭话，忽然${enemy.name}从旁边窜了出来！`
+            : `你正要上前与${bd.name}搭话，几个${enemy.name}围上前来，不怀好意地打量着她。`;
+        this.addMessage(intro, 'danger');
+        this.startBattle(enemy,
+            () => {
+                this.addMessage(`你干净利落地击败了${enemy.name}！`, 'event');
+                this.addMessage(`${bd.name}松了口气，看向你的眼神多了几分感激和敬佩。`, 'narrator');
+                bd.favorability = Math.max(bd.favorability, 5);
+                this._chatFirstMet(venue, beauty);
+            },
+            () => this.gameOver(`你被${enemy.name}打成重伤，不治身亡。`),
+        );
     }
 
     _chatProgressive(venue, beauty) {
@@ -4041,7 +4218,7 @@ class Game {
             msgs.push({ text: `她告诉你她今年${bd.age}岁，${bd.surface === 'unmarried' ? '尚未婚配' : bd.surface === 'widow' ? '夫家已故，守寡至今' : '已嫁人'}${bd.surface === 'married_child' ? '，育有子女' : ''}。`, type: 'info' });
             msgs.push({ text: `你偷偷记下了她的三围：${bd.bust}-${bd.waist}-${bd.hips}。`, type: 'info' });
         }
-        const gift = pickRegionalGift(this.currentLocation.id);
+        const gift = pickRegionalGift(this.currentLocation.id, bd.chatLevel || 0);
         if (gift) { bd._wantedGift = gift.id; msgs.push({ text: `${bd.name}提到她最近想要一件「${gift.name}」。`, type: 'event' }); }
         bd._chattedToday = true;
         msgs.push({ text: `${bd.name}离开了${venue.name}。`, type: 'narrator' });
@@ -4141,10 +4318,10 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
     actBeauty(venue, beauty) {
         this.clearChoices();
         this.addMessage(`你想做些什么？`, 'narrator');
-        const choices = [
-            { text: '送礼', action: () => this.giftBeauty(venue, beauty) },
-            { text: '送诗', action: () => this.poemBeauty(venue, beauty) },
-        ];
+        const bd = beauty._beautyData;
+        const choices = [];
+        if (bd.chatLevel > 0) choices.push({ text: '送礼', action: () => this.giftBeauty(venue, beauty) });
+        choices.push({ text: '送诗', action: () => this.poemBeauty(venue, beauty) });
         choices.push({ text: '返回', action: () => this.interactBeauty(venue, beauty) });
         this.showChoices(choices);
     }
@@ -4573,7 +4750,7 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
                 prostitute.name}在一旁捂着嘴咯咯直笑。`,
         ];
         this.addMessage(taunts[Math.floor(Math.random() * taunts.length)], 'danger');
-        p.reputation = Math.max(0, p.reputation - 4);
+        p.reputation -= 4;
         this.addMessage(`（声望 -4）`, 'system');
         this.updateStatsBar();
         this.showChoices([{ text: '灰溜溜地离开', action: () => this.brothelShowGirls(venue, npc) }]);
@@ -4665,6 +4842,12 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
     }
 
     /* ─── 游戏结束 ─── */
+
+    _triggerRepGameOver() {
+        if (this._repGameOverTriggered) return;
+        this._repGameOverTriggered = true;
+        this.gameOver('你恶贯满盈，江湖之大已无容身之处。天下英雄人人得而诛之，你最终伏诛于武林正道之手……');
+    }
 
     gameOver(reason, npc = null) {
         this.addMessage(`━━━ Game Over ━━━`, 'system');
