@@ -547,7 +547,6 @@ class Game {
             { text: '居家 · 闭门修炼', action: () => this.showHomeChoices() },
             { text: '【睡到明天】', action: () => this.sleepToTomorrow() },
             { text: '【个人状态】', action: () => this.showCharacterStatus() },
-            { text: '【背包】', action: () => this.showInventory() },
             { text: '【红颜录】', action: () => this.showRedRecord() },
         ]);
     }
@@ -1129,11 +1128,12 @@ class Game {
                 { text: `${npc.npcName}满脸不屑地打量着你。`, type: 'narrator' },
                 { text: npc.npcName + '：' + insult, type: 'html' },
             ], () => {
+                const exitVenue = () => this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices();
                 this.showChoices([
-                    { text: '忍气吞声', action: () => { this.addMessage('你咬了咬牙，没有发作。', 'narrator'); setTimeout(() => this.enterVenue(venue), 300); } },
+                    { text: '忍气吞声', action: () => { this.addMessage('你咬了咬牙没有发作，转身默默离开。', 'narrator'); setTimeout(() => exitVenue(), 300); } },
                     { text: '一顿毒打', action: () => this.confrontChief(venue, npc, 'beat') },
                     { text: '痛下杀手', action: () => this.confrontChief(venue, npc, 'kill') },
-                    { text: '离开', action: () => this.enterVenue(venue) },
+                    { text: '离开', action: () => exitVenue() },
                 ]);
             });
         } else {
