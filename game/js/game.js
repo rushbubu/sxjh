@@ -148,6 +148,11 @@ class Game {
         this.player.locationId = sv.id;
         this.player.startingVillage = sv.id;
         this.player.mainQuest = 0;
+        this.player.mainQuestSteps = [
+            '去村长家打听师弟沈清寒的下落',
+            '去大户家询问沈清寒的消息',
+            '出城去附近城市打探消息',
+        ];
         this.player._questFirstEntry = true;
         const usedNames = new Set();
         this.beautyMap = {};
