@@ -212,6 +212,7 @@ function _showServiceMenu(bd, player, callbacks) {
         choices.push({ text: '乳交', action: () => _doService(bd, player, callbacks, 'titjob') });
     }
     choices.push({ text: '把玩玉乳', action: () => _doService(bd, player, callbacks, 'breast') });
+    choices.push({ text: '抚弄玉臀', action: () => _doService(bd, player, callbacks, 'butt') });
     choices.push({ text: '小戏花园', action: () => _doService(bd, player, callbacks, 'garden') });
     choices.push({ text: '返回', action: () => _renderSexMain(bd, player, callbacks) });
     callbacks.showChoices(choices);
@@ -227,6 +228,9 @@ function _doService(bd, player, callbacks, type) {
         s.femaleArousal = Math.min(100, s.femaleArousal + 4);
         s.maleArousal = Math.min(100, s.maleArousal + 3);
     } else if (type === 'breast') {
+        s.femaleArousal = Math.min(100, s.femaleArousal + 6);
+        s.maleArousal = Math.min(100, s.maleArousal + 2);
+    } else if (type === 'butt') {
         s.femaleArousal = Math.min(100, s.femaleArousal + 6);
         s.maleArousal = Math.min(100, s.maleArousal + 2);
     } else if (type === 'garden') {

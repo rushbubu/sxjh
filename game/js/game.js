@@ -1199,7 +1199,17 @@ class Game {
             { text: `你现在可以离开村庄，前往其他地方打探消息了。`, type: 'info' },
         ], () => {
             this.showChoices([
-                { text: '多谢老员外', action: () => { this.addMessage('你辞别了员外，走出了大门。', 'narrator'); setTimeout(() => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()), 400); } },
+                { text: '多谢老员外', action: () => {
+                    this.addMessage('你辞别了员外，走出了大门。', 'narrator');
+                    setTimeout(() => {
+                        if (typeof this._triggerRescueOx === 'function') {
+                            this._triggerRescueOx();
+                        } else {
+                            this.addMessage('（支线系统未就绪）', 'danger');
+                            this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices();
+                        }
+                    }, 400);
+                } },
             ]);
         });
     }
@@ -1242,6 +1252,7 @@ class Game {
             this.beggarAction(venue, npc); return;
         }
         if (npc.factionId) { this.factionAction(venue, npc); return; }
+        if (npc.isButcher && this.questInteractButcher) { this.questInteractButcher(venue, npc); return; }
         this.clearChoices();
         if (!npc._introduced) {
             this.addMessage(`${npc.npcName}：「${npc.npcDesc}」`, 'info');
@@ -3833,6 +3844,14 @@ class Game {
             });
         }
         this.updateStatsBar();
+        if (this.questCheckExpired) {
+            const expired = this.questCheckExpired();
+            if (expired) {
+                this.addMessage('……', 'narrator');
+                this.addMessage('你想起昨天那对爷孙，也不知道他们怎么样了。', 'narrator');
+                this.addMessage('你心中感到一丝愧疚。', 'narrator');
+            }
+        }
         setTimeout(() => this.showLocationChoices(), 400);
     }
 
@@ -4042,6 +4061,16 @@ class Game {
         // 特殊美人专用交互（可自定义对话树/任务）
         if (bd.special && bd.onInteract) {
             bd.onInteract(this, venue, beauty);
+            return;
+        }
+        // 被强奸过的女性，只剩不义之举
+        if (bd._raped) {
+            this.addMessage(`${bd.name}「${bd.faceDesc}」`, 'html');
+            this.addMessage('她目光躲闪，身子微微发抖，不敢正眼看你。', 'narrator');
+            this.showChoices([
+                { text: '不义之举', action: () => this.evilBeauty(venue, beauty) },
+                { text: '离开', action: () => this.enterVenue(venue) },
+            ]);
             return;
         }
         const effFav = computeFavorability(this.player, bd) >= 80 ? computeFavorability(this.player, bd) : bd.favorability;
@@ -4320,8 +4349,10 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
         this.addMessage(`你想做些什么？`, 'narrator');
         const bd = beauty._beautyData;
         const choices = [];
-        if (bd.chatLevel > 0) choices.push({ text: '送礼', action: () => this.giftBeauty(venue, beauty) });
-        choices.push({ text: '送诗', action: () => this.poemBeauty(venue, beauty) });
+        if (bd.chatLevel > 0) {
+          choices.push({ text: '送礼', action: () => this.giftBeauty(venue, beauty) });
+          choices.push({ text: '送诗', action: () => this.poemBeauty(venue, beauty) });
+        }
         choices.push({ text: '返回', action: () => this.interactBeauty(venue, beauty) });
         this.showChoices(choices);
     }
@@ -4855,6 +4886,97 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
             document.getElementById('gameover-reason').textContent = reason;
             document.getElementById('gameover-overlay').classList.remove('hidden');
         }, 3000);
+    }
+
+    _triggerRescueOx() {
+        if (!this.player._questRescueOx) this.player._questRescueOx = {};
+        const q = this.player._questRescueOx;
+        if (q._done) { this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices(); return; }
+        if (!q.stage) q.stage = 'TRIGGER';
+        if (typeof this.questAdvance === 'function') {
+            if (!this.player.activeQuests) this.player.activeQuests = {};
+            if (!this.player.completedQuests) this.player.completedQuests = {};
+            if (this.player.completedQuests.rescue_ox) { this._afterQuestChoices(); return; }
+            this.player.activeQuests.rescue_ox = { stage: q.stage, dayStarted: this.player.day, _local: q };
+            this.questAdvance('rescue_ox');
+            return;
+        }
+        this._inlineQuestTrigger(q);
+    }
+
+    _inlineQuestTrigger(q) {
+        this._questSeq_fallback([
+            '你走出大门，沿着村道前行……',
+            '忽然，你听到不远处传来打斗声和叫骂声。',
+            '似乎是一个年轻人正在殴打老人。',
+        ], () => {
+            this.showChoices([
+                { text: '过去看看', action: () => { q.stage = 'FIGHT_SCENE'; this._inlineQuestRescueOx(q); } },
+                { text: '不管闲事', action: () => { q._done = true; this._questSeq_fallback(['你摇了摇头，转身离开。'], () => { this._afterQuestChoices(); }); } },
+            ]);
+        });
+    }
+
+    _inlineQuestRescueOx(q) {
+        const s = q.stage;
+        if (s === 'FIGHT_SCENE') {
+            this._questSeq_fallback([
+                '你快步走近，只见一个二十出头的年轻人正按着一位花甲老人拳打脚踢。',
+                '老人蜷缩在地上，满脸是血，口中不住地哀求。',
+                '年轻人却不管不顾，一边打一边骂。',
+            ], () => {
+                this.showChoices([
+                    { text: '上前阻挠', action: () => {
+                        this._questSeq_fallback([
+                            '你上前一把抓住年轻人的手腕，沉声道：「住手！」',
+                            '年轻人猛地甩开你的手，怒目而视：「你是谁？凭什么管我家的事！」',
+                            '「少管闲事！不然连你一起打！」他摆开架势，朝你扑了过来。',
+                        ], () => {
+                            const cp = (this.currentLocation && this.currentLocation.guardianPower || 15) + 8;
+                            this.startBattle(createGenericEnemy('愤怒的年轻人', cp), () => {
+                                q._done = true;
+                                this._questSeq_fallback([
+                                    '你三两下便将他制住。',
+                                    '他捂着脸蹲在地上，低声啜泣。',
+                                    '你叹了口气：「年纪轻轻，何必如此？」',
+                                    '他没有回答，只是哭得更厉害了。',
+                                    '你摇了摇头，转身离开。',
+                                ], () => { this._afterQuestChoices(); });
+                            }, () => {
+                                this._questSeq_fallback([
+                                    '你竟不是他的对手，被他三拳两脚打翻在地。',
+                                    '他冷哼一声，扶着老人走了。',
+                                ], () => { this._afterQuestChoices(); });
+                            });
+                        });
+                    } },
+                    { text: '离开', action: () => { q._done = true; this._questSeq_fallback(['你转身离开。'], () => { this._afterQuestChoices(); }); } },
+                ]);
+            });
+        }
+    }
+
+    _questSeq_fallback(messages, onDone) {
+        let i = 0;
+        const next = () => {
+            if (i < messages.length) {
+                this.addMessage(messages[i], 'narrator');
+                i++;
+                this.showChoices([{ text: '……', action: next }]);
+            } else if (onDone) {
+                onDone();
+            }
+        };
+        next();
+    }
+
+    _afterQuestChoices() {
+        this.showChoices([
+            { text: '继续', action: () => {
+                this.clearChoices();
+                this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices();
+            } },
+        ]);
     }
 }
 

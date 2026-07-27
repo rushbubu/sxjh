@@ -292,6 +292,7 @@ function _brShowServiceMenu(prostitute, player, callbacks) {
         choices.push({ text: '喂奶', action: () => _brDoService(prostitute, player, callbacks, 'nursing') });
     }
     choices.push({ text: '把玩玉乳', action: () => _brDoService(prostitute, player, callbacks, 'breast') });
+    choices.push({ text: '抚弄玉臀', action: () => _brDoService(prostitute, player, callbacks, 'butt') });
     choices.push({ text: '小戏花园', action: () => _brDoService(prostitute, player, callbacks, 'garden') });
     choices.push({ text: '返回', action: () => _brRenderMain(prostitute, player, callbacks) });
     callbacks.showChoices(choices);
@@ -321,6 +322,10 @@ function _brDoService(prostitute, player, callbacks, type) {
             { text: '继续', action: () => _brRenderMain(prostitute, player, callbacks) },
         ]);
         return;
+    } else if (type === 'butt') {
+        s.femaleArousal = Math.min(100, s.femaleArousal + 6);
+        s.maleArousal = Math.min(100, s.maleArousal + 2);
+        _brAddMessage('她扭了扭腰，将那圆滚滚的屁股蛋子往你手里送了送，回头浪笑道：「好爷……您摸摸奴家这大腚子……又翘又弹，比那未出阁的黄花闺女还有肉头呢……您捏一捏，保管您爱不释手。」', 'event');
     } else if (type === 'garden') {
         s.femaleArousal = Math.min(100, s.femaleArousal + 10);
         s.maleArousal = Math.min(100, s.maleArousal + 3);

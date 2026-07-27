@@ -243,6 +243,22 @@ const WORLD = {
                     venues[venues.length - 1].npcs[0].combatPower = baseCp + 5;
                 }
             }
+            venues.push({
+                name: '集市·肉铺',
+                npcs: [{
+                    npcName: '张屠户',
+                    npcDesc: '一个满脸横肉的光头大汉，围着一条沾满血污的围裙，正拿着一把剔骨刀在案板上剁肉。',
+                    civilian: false,
+                    combatPower: 35,
+                    isButcher: true,
+                    items: [
+                        { id: 'meat_wild', name: '野味肉', value: 5, stock: 10, maxStock: 10, desc: '新鲜的野味肉。' },
+                        { id: 'meat_beef', name: '牛肉', value: 8, stock: 5, maxStock: 5, desc: '上好的黄牛肉。' },
+                        { id: 'meat_chicken', name: '鸡肉', value: 3, stock: 8, maxStock: 8, desc: '肥美的土鸡。' },
+                        { id: 'meat_mutton', name: '羊肉', value: 10, stock: 3, maxStock: 3, desc: '鲜嫩的羊肉。' },
+                    ],
+                }],
+            });
             venues.push({ name: '小树林', npcs: [] });  // NPC 由 game.js 动态生成
             venues.push({ name: '断桥', npcs: [] });
             venues.push({ name: '小溪', npcs: [] });

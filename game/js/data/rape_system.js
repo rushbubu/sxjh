@@ -181,6 +181,13 @@ const RAPE_SERVICE_DESC = {
         '你用指尖狠狠扣弄着她的花心，她的身子猛地弓起，口中发出一声压抑的尖叫。',
         '你俯下身，舌尖粗暴地探入她的花径，她拼命扭动腰肢想要躲开，却被你死死按住。',
     ],
+    butt: [
+        '你粗暴地将她翻转过去，双手狠狠抓住她的臀瓣用力揉捏。她疼得倒吸一口凉气，身体绷得死紧，却不敢挣扎。',
+        '你掐住她丰满的臀部，指尖深深陷入那柔软的臀肉中。她咬着嘴唇，眼泪顺着脸颊滑落，身子在你的掌下不住地发抖。',
+        '你一巴掌重重拍在她的屁股上，发出一声脆响。她痛呼一声，雪白的臀瓣上顿时浮起一道鲜红的掌印。你掐着那道红痕用力揉搓，她呜咽着，整个人蜷缩起来。',
+        '你将她按在地上，强迫她高高撅起臀部。你从后面掐着她的臀瓣，指节陷入那饱满的曲线中，留下一道道红痕。她趴在地上一动不敢动，只有肩膀在无声地耸动。',
+        '你抓住她的臀肉用力分开，那隐秘的股缝暴露在你眼前。她惊恐地扭动着腰肢想要躲避，却被你死死按住，只能任由你摆布。',
+    ],
 };
 function rapePickServiceDesc(type) {
     const scenes = RAPE_SERVICE_DESC[type];
@@ -562,6 +569,7 @@ function rapePickEndDesc() {
 
 function startRapeDetailedScene(bd, player, callbacks) {
     if (!bd._hadSex) bd._wasVirgin = true;
+    const root = player.attrs.root || 10;
     bd._rapeState = {
         femaleArousal: 0,
         maleArousal: 0,
@@ -569,6 +577,10 @@ function startRapeDetailedScene(bd, player, callbacks) {
         orgasmCount: 0,
         canSquirt: Math.random() < 0.3,
         finished: false,
+        ejacCount: 0,
+        ejacLimit: _getEjacLimit(root),
+        holdRounds: _getHoldRounds(root),
+        overClock: 0,
     };
     _sexBuildLayout();
     callbacks.clearChoices();
@@ -585,6 +597,13 @@ function _renderRapeMain(bd, player, callbacks) {
     if (s.femaleArousal >= 100) {
         s.femaleArousal = Math.min(s.femaleArousal, 100);
         return _handleRapeOrgasm(bd, player, callbacks);
+    }
+
+    if (s.maleArousal >= 100) {
+        if (s.overClock >= s.holdRounds) {
+            return _showRapeEjacMenu(bd, player, callbacks);
+        }
+        s.overClock++;
     }
 
     callbacks.clearChoices();
@@ -644,12 +663,12 @@ function _showRapeUndress(bd, player, callbacks) {
         _sexAddMessage('她已一丝不挂。', 'narrator');
         return _renderRapeMain(bd, player, callbacks);
     }
-    const choices = available.map(k => ({
-        text: '扯下' + CLOTHING_NAMES[k],
-        action: () => _doRapeUndress(bd, player, callbacks, k),
-    }));
-    choices.push({ text: '返回', action: () => _renderRapeMain(bd, player, callbacks) });
-    callbacks.showChoices(choices);
+    const next = available[0];
+    _sexAddMessage('她身上还穿着' + CLOTHING_NAMES[next] + '。', 'narrator');
+    callbacks.showChoices([
+        { text: '扯下' + CLOTHING_NAMES[next], action: () => _doRapeUndress(bd, player, callbacks, next) },
+        { text: '返回', action: () => _renderRapeMain(bd, player, callbacks) },
+    ]);
 }
 
 function _doRapeUndress(bd, player, callbacks, key) {
@@ -685,6 +704,7 @@ function _showRapeService(bd, player, callbacks) {
         choices.push({ text: '强迫乳交', action: () => _doRapeService(bd, player, callbacks, 'titjob') });
     }
     choices.push({ text: '把玩玉乳', action: () => _doRapeService(bd, player, callbacks, 'breast') });
+    choices.push({ text: '搓弄玉臀', action: () => _doRapeService(bd, player, callbacks, 'butt') });
     choices.push({ text: '玩弄花径', action: () => _doRapeService(bd, player, callbacks, 'garden') });
     choices.push({ text: '返回', action: () => _renderRapeMain(bd, player, callbacks) });
     callbacks.showChoices(choices);
@@ -695,6 +715,9 @@ function _doRapeService(bd, player, callbacks, type) {
     _sexAddMessage(rapePickServiceDesc(type), 'narrator');
     const s = bd._rapeState;
     if (type === 'breast') {
+        s.femaleArousal = Math.min(100, s.femaleArousal + 6);
+        s.maleArousal = Math.min(100, s.maleArousal + 2);
+    } else if (type === 'butt') {
         s.femaleArousal = Math.min(100, s.femaleArousal + 6);
         s.maleArousal = Math.min(100, s.maleArousal + 2);
     } else if (type === 'garden') {
@@ -823,9 +846,22 @@ function _rapeOrgasmDone(bd, player, callbacks, isSquirt, maleCame) {
     if (!maleCame) {
         _sexAddMessage(rapeGetOrgasmReaction(bd, isSquirt), 'narrator');
     }
+    if (maleCame) {
+        s.maleArousal = 70;
+        s.ejacCount++;
+        s.overClock = 0;
+    } else {
+        s.maleArousal = Math.max(0, s.maleArousal - 30);
+    }
     s.femaleArousal = Math.max(0, s.femaleArousal - 30);
-    if (maleCame) s.maleArousal = Math.max(0, s.maleArousal - 30);
     _sexUpdatePanel(s);
+    if (maleCame && s.ejacCount >= s.ejacLimit) {
+        const root = player.attrs.root || 10;
+        const label = getRatingLabel(root);
+        const msg = '你只觉腰眼一阵酸软，再也无力继续。终究是你' + label + '(' + root + ')的根骨，' + (s.ejacLimit === 1 ? '只能泄这一次。' : '最多只能支持' + s.ejacLimit + '次。') + '你喘息片刻，起身整理衣襟。';
+        _sexAddMessage(msg, 'narrator');
+        return _endRapeScene(bd, player, callbacks);
+    }
     callbacks.showChoices([
         { text: '继续', action: () => _renderRapeMain(bd, player, callbacks) },
         { text: '结束暴行', action: () => _endRapeScene(bd, player, callbacks) },
@@ -870,7 +906,16 @@ function _afterRapeEjac(bd, player, callbacks) {
     const s = bd._rapeState;
     s.maleArousal = 70;
     s.femaleArousal = Math.max(0, s.femaleArousal - 30);
+    s.ejacCount++;
+    s.overClock = 0;
     _sexUpdatePanel(s);
+    if (s.ejacCount >= s.ejacLimit) {
+        const root = player.attrs.root || 10;
+        const label = getRatingLabel(root);
+        const msg = '你只觉腰眼一阵酸软，再也无力继续。终究是你' + label + '(' + root + ')的根骨，' + (s.ejacLimit === 1 ? '只能泄这一次。' : '最多只能支持' + s.ejacLimit + '次。') + '你喘息片刻，起身整理衣襟。';
+        _sexAddMessage(msg, 'narrator');
+        return _endRapeScene(bd, player, callbacks);
+    }
     callbacks.showChoices([
         { text: '继续', action: () => _renderRapeMain(bd, player, callbacks) },
         { text: '结束暴行', action: () => _endRapeScene(bd, player, callbacks) },
@@ -903,6 +948,7 @@ function _endRapeScene(bd, player, callbacks) {
     player.reputation = Math.max(0, player.reputation - 10);
     _sexAddMessage('声望 -10（当前 ' + player.reputation + '）', 'danger');
     bd._hadSex = true;
+    bd._raped = true;
     bd.favorability = Math.max(0, bd.favorability - 30);
     player.neili -= 20;
     if (callbacks.ensureRedRecord) callbacks.ensureRedRecord(bd);
