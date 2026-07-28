@@ -30,7 +30,7 @@ Game.prototype.questComplete = function(questId) {
     if (!this.player.completedQuests) this.player.completedQuests = {};
     this.player.completedQuests[questId] = true;
     this.player.reputation += 10;
-    this._adjEvil(5, '支线');
+    this._adjWorldHelp(10, '支线');
     this.updateStatsBar();
     this.addMessage('声望 +10', 'system');
     this.questCleanupButcher();
@@ -245,7 +245,7 @@ Game.prototype._questButcherNegotiate = function(venue, npc) {
                                         '张屠户不敢吭声，眼睁睁看你把牛牵出了肉铺。',
                                         '你找到小虎，把牛绳塞进他手里。',
                                         '他不敢相信地看着你，随即抱着牛脖子放声大哭。',
-                                    ], () => { this._completeRescueOx(5); });
+                                    ], () => { this._completeRescueOx(5, 0); });
                                 } },
                                 { text: '不拿牛，回去给小虎三十两', action: () => {
                                     if (this.player.gold < 30) {
@@ -319,12 +319,16 @@ Game.prototype._questButcherPay = function(venue, npc) {
     });
 };
 
-Game.prototype._completeRescueOx = function(repValue) {
+Game.prototype._completeRescueOx = function(repValue, worldHelpValue) {
     delete this.player.activeQuests.rescue_ox;
     if (!this.player.completedQuests) this.player.completedQuests = {};
     this.player.completedQuests.rescue_ox = true;
     this.player.reputation += repValue;
-    this._adjWorldHelp(repValue);
+    if (worldHelpValue !== undefined) {
+        if (worldHelpValue > 0) this._adjWorldHelp(worldHelpValue);
+    } else {
+        this._adjWorldHelp(repValue);
+    }
     this.questCleanupButcher();
     this.updateStatsBar();
     this.addMessage('声望 ' + (repValue >= 0 ? '+' : '') + repValue, 'system');
