@@ -274,6 +274,12 @@ body {
     transform: translateX(4px);
 }
 
+.battle-choices {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
 /* 创建界面 */
 #create-overlay {
     position: absolute;

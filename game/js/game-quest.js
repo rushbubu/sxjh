@@ -30,7 +30,7 @@ Game.prototype.questComplete = function(questId) {
     if (!this.player.completedQuests) this.player.completedQuests = {};
     this.player.completedQuests[questId] = true;
     this.player.reputation += 10;
-    this._adjInnerRep(5, '支线');
+    this._adjEvil(5, '支线');
     this.updateStatsBar();
     this.addMessage('声望 +10', 'system');
     this.questCleanupButcher();
@@ -82,8 +82,8 @@ Game.prototype._questRescueOx = function(q) {
             '似乎是一个年轻人正在殴打老人。',
         ], () => {
             this.showChoices([
-                { text: '过去看看', action: () => { q.stage = 'FIGHT_SCENE'; this._questRescueOx(q); } },
                 { text: '不管闲事', action: () => { this._questSeq(['你摇了摇头，转身离开。多一事不如少一事。'], () => { this.questFail('rescue_ox'); this._showChoicesAfterQuest(); }); } },
+                { text: '过去看看', action: () => { q.stage = 'FIGHT_SCENE'; this._questRescueOx(q); } },
         ]);
         });
     } else if (s === 'FIGHT_SCENE') {
@@ -93,27 +93,27 @@ Game.prototype._questRescueOx = function(q) {
             '年轻人却不管不顾，一边打一边骂：「老不死的东西！你怎么敢！」',
         ], () => {
             this.showChoices([
-                { text: '上前阻挠', action: () => {
-                    this._questSeq([
-                        '你上前一把抓住年轻人的手腕，沉声道：「住手！」',
-                        '年轻人猛地甩开你的手，怒目而视：「你是谁？凭什么管我家的事！」',
-                        '「少管闲事！不然连你一起打！」他摆开架势，朝你扑了过来。',
-                    ], () => {
-                        this.startBattle(createGenericEnemy('愤怒的年轻人', 25), () => {
-                            q.stage = 'AFTER_BATTLE';
-                            this._questRescueOx(q);
-                        }, () => {
-                            this._questSeq([
-                                '你不是他的对手，被打翻在地。',
-                                '他冷哼一声，扶着老人走了。',
-                            ], () => {
-                                this.questFail('rescue_ox');
-                                this._showChoicesAfterQuest();
+                    { text: '离开', action: () => { this._questSeq(['你转身离开，不愿惹事上身。'], () => { this.questFail('rescue_ox'); this._showChoicesAfterQuest(); }); } },
+                    { text: '上前阻挠', action: () => {
+                        this._questSeq([
+                            '你上前一把抓住年轻人的手腕，沉声道：「住手！」',
+                            '年轻人猛地甩开你的手，怒目而视：「你是谁？凭什么管我家的事！」',
+                            '「少管闲事！不然连你一起打！」他摆开架势，朝你扑了过来。',
+                        ], () => {
+                            this.startBattle(createGenericEnemy('愤怒的年轻人', 25), () => {
+                                q.stage = 'AFTER_BATTLE';
+                                this._questRescueOx(q);
+                            }, () => {
+                                this._questSeq([
+                                    '你不是他的对手，被打翻在地。',
+                                    '他冷哼一声，扶着老人走了。',
+                                ], () => {
+                                    this.questFail('rescue_ox');
+                                    this._showChoicesAfterQuest();
+                                });
                             });
                         });
-                    });
-                } },
-                { text: '离开', action: () => { this._questSeq(['你转身离开，不愿惹事上身。'], () => { this.questFail('rescue_ox'); this._showChoicesAfterQuest(); }); } },
+                    } },
         ]);
         });
     } else if (s === 'AFTER_BATTLE') {
@@ -147,9 +147,9 @@ Game.prototype._questRescueOxReveal = function(q) {
         '「我没钱……我没法子啊……」他用力捶着自己的头。',
     ], () => {
         this.showChoices([
+            { text: '不管了', action: () => { this._questSeq(['你叹了口气，转身离去。'], () => { this.questFail('rescue_ox'); this._showChoicesAfterQuest(); }); } },
             { text: '给他三十两', action: () => this._questRescueOxGiveMoney(q) },
             { text: '我来想办法', action: () => this._questRescueOxThink(q) },
-            { text: '不管了', action: () => { this._questSeq(['你叹了口气，转身离去。'], () => { this.questFail('rescue_ox'); this._showChoicesAfterQuest(); }); } },
         ]);
     });
 };
@@ -207,7 +207,11 @@ Game.prototype.questInteractButcher = function(venue, npc) {
     this.clearChoices();
     this.addMessage(`${npc.npcName}：「买肉？」他手中的剔骨刀在灯光下泛着寒光。`, 'narrator');
     const choices = [];
-    if (this.player.activeQuests && this.player.activeQuests.rescue_ox && ['SPAWN_BUTCHER','BUTCHER_ACTIVE'].includes(this.player.activeQuests.rescue_ox.stage)) {
+    // DEBUG
+    const qObj = this.player.activeQuests && this.player.activeQuests.rescue_ox;
+    console.log('DEBUG butcher check:', JSON.stringify({ hasActive: !!this.player.activeQuests, hasQ: !!qObj, stage: qObj && qObj.stage }));
+    this.addMessage(`[DEBUG] activeQuests 存在: ${!!this.player.activeQuests}, rescue_ox 存在: ${!!qObj}`, 'system');
+    if (this.player.activeQuests && this.player.activeQuests.rescue_ox) {
         choices.push({ text: '【支线】要求还牛', action: () => this._questButcherNegotiate(venue, npc) });
     }
     choices.push({ text: '买肉', action: () => this.buyFromNpc(venue, npc) });
@@ -245,21 +249,7 @@ Game.prototype._questButcherNegotiate = function(venue, npc) {
                                         '你找到小虎，把牛绳塞进他手里。',
                                         '他不敢相信地看着你，随即抱着牛脖子放声大哭。',
                                     ], () => { this._completeRescueOx(5); });
-                                } },
-                                { text: '把牛抢走还给小虎，再给三十两', action: () => {
-                                    if (this.player.gold < 30) {
-                                        this.addMessage('你摸了摸钱袋，只有' + this.player.gold + '两银子……连三十两都拿不出。', 'narrator');
-                                        return;
-                                    }
-                                    this.player.gold -= 30;
-                                    this.updateStatsBar();
-                                    this._questSeq([
-                                        '你沉默片刻，沉声道：「牛我带走，银子给你。」',
-                                        '你掏出三十两银子扔在案板上，牵着老黄牛走出肉铺。',
-                                        '你找到小虎，把牛绳和银子一起塞进他手里。',
-                                        '他捧着银子，又看看牛，眼泪夺眶而出，扑通跪了下来。',
-                                    ], () => { this._completeRescueOx(10); });
-                                } },
+                                },
                                 { text: '不拿牛，回去给小虎三十两', action: () => {
                                     if (this.player.gold < 30) {
                                         this.addMessage('你摸了摸钱袋，只有' + this.player.gold + '两银子……连三十两都拿不出。', 'narrator');

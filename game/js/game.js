@@ -133,7 +133,7 @@ class Game {
             faction: null,
             factionRank: 0,
             factionRep: 0,
-            _innerRep: 100,
+            _evil: 0,
             _worldHelp: 0,
             _theftCount: 0,
             _assassinationCount: 0,
@@ -212,10 +212,10 @@ class Game {
         }
     }
 
-    /* ─── 双声望辅助 ─── */
+    /* ─── 罪恶值辅助 ─── */
 
-    _adjInnerRep(delta, label) {
-        this.player._innerRep = Math.max(0, (this.player._innerRep || 0) + delta);
+    _adjEvil(delta, label) {
+        this.player._evil = (this.player._evil || 0) + delta;
     }
 
     _adjWorldHelp(delta, label) {
@@ -1210,6 +1210,11 @@ class Game {
             // 凭声望或硬闯进来的，可以索要盘缠
             this.showMessageSequence(seq, () => {
                 this.showChoices([
+                    { text: '告辞', action: () => {
+                        this.player.mainQuest = 2;
+                        this.addMessage('你辞别了员外，走出了大门。', 'narrator');
+                        setTimeout(() => this._afterLandlordQuest(), 400);
+                    } },
                     { text: '「晚辈初入江湖，盘缠不足，不知老员外能否资助一二？」', action: () => {
                         this.clearChoices();
                         this.player.gold += gift;
@@ -1228,11 +1233,6 @@ class Game {
                                 } },
                             ]);
                         });
-                    } },
-                    { text: '告辞', action: () => {
-                        this.player.mainQuest = 2;
-                        this.addMessage('你辞别了员外，走出了大门。', 'narrator');
-                        setTimeout(() => this._afterLandlordQuest(), 400);
                     } },
                 ]);
             });
@@ -1852,7 +1852,7 @@ class Game {
 
     beggarAction(venue, npc) {
         // 瘸子李：满足条件时触发
-        if (this.player.completedQuests && this.player.completedQuests.rescue_ox && !this.player._metCrippleLi && (this.player._innerRep || 0) === 0 && (this.player._chopCount || 0) >= 5 && (this.player._huntCount || 0) >= 5) {
+        if (this.player.completedQuests && this.player.completedQuests.rescue_ox && !this.player._metCrippleLi && (this.player._evil || 0) === 0 /* && (this.player._chopCount || 0) >= 5 && (this.player._huntCount || 0) >= 5 */) {
             this.crippleLiAction(venue, npc);
             return;
         }
@@ -1902,7 +1902,7 @@ class Game {
     beatBeggar(venue, npc) {
         this.clearChoices();
         this.player.reputation -= 3;
-        this._adjInnerRep(2, '欺压乞丐');
+        this._adjEvil(2, '欺压乞丐');
         this._adjWorldHelp(-1, '欺压乞丐');
         this.addMessage(`你揪起乞丐的衣领，恶狠狠地瞪了他一眼。`, 'narrator');
         this.addMessage(`乞丐吓得瑟瑟发抖：「大爷饶命！我说！我什么都说！」`, 'narrator');
@@ -2172,14 +2172,14 @@ class Game {
         const chopCount = this.player._chopCount;
         const shadowRep = this.player.shadowRep || 0;
 
-        // 第3次且里声望为0：送柴刀
+        // 第3次且罪恶值为0：送柴刀
         if (chopCount === 3 && shadowRep === 0) {
             this.addMessage(`${npc.npcName}擦了把汗，看了看你：「你小子老实本分，我这有把柴刀你用得上，拿去吧。」`, 'narrator');
             this.player.items.push({ ...getItem('knife_wood') });
             this.addMessage('获得了柴刀！', 'event');
         }
 
-        // 第5次且里声望为0：教蓝色刀法
+        // 第5次且罪恶值为0：教蓝色刀法
         if (chopCount === 5 && shadowRep === 0) {
             if (!this.player.externalSkills.some(s => s.id === 'caidao')) {
                 this.addMessage(`${npc.npcName}满意地点点头：「你人不错，又肯下力气。我这几手砍柴的功夫，你想学吗？」`, 'narrator');
@@ -2568,7 +2568,7 @@ class Game {
                     this.killedNpcs.add(this.currentLocation.id + ':' + venue.name + ':' + npc.npcName);
                     this.addMessage(`${npc.npcName}缓缓倒下，再无声息……`, 'danger');
                     this.player._assassinationCount = (this.player._assassinationCount || 0) + 1;
-                    this._adjInnerRep(5, '暗杀');
+                    this._adjEvil(5, '暗杀');
                     this._adjWorldHelp(-3, '暗杀');
                 }
                 if (winGetAllItems) {
@@ -2850,12 +2850,23 @@ class Game {
 
     showBattleActions() {
         this.renderBattleHUD();
-        this.showChoices([
+        const area = document.getElementById('choice-area');
+        area.innerHTML = '';
+        area.classList.add('battle-choices');
+        const items = [
             { text: '普通攻击', action: () => this.battleNormalAttack() },
             { text: '外功招式', action: () => this.showBattleSkillMenu() },
             { text: '使用物品', action: () => this.showBattleItemMenu() },
             { text: '逃跑', action: () => this.attemptFlee() },
-        ]);
+        ];
+        for (const c of items) {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn';
+            btn.textContent = c.text;
+            btn.onclick = () => { area.classList.remove('battle-choices'); if (c.action) c.action(); };
+            area.appendChild(btn);
+        }
+        document.getElementById('main-area').scrollTop = document.getElementById('main-area').scrollHeight;
     }
 
     battleNormalAttack() {
@@ -3380,7 +3391,7 @@ class Game {
             this.addMessage('得手了！你迅速将东西藏好。', 'event');
             this.player.shadowRep += 1;
             this.player._theftCount = (this.player._theftCount || 0) + 1;
-            this._adjInnerRep(2, '偷盗');
+            this._adjEvil(2, '偷盗');
             const stolen = { ...item };
             if (!this.autoEquip(stolen)) this.player.items.push(stolen);
             item.stock--;
@@ -4833,7 +4844,7 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
         this.clearChoices();
         const bd = beauty._beautyData;
         this.player.reputation -= 2;
-        this._adjInnerRep(10, '强奸');
+        this._adjEvil(10, '强奸');
         this._adjWorldHelp(-5, '强奸');
         bd.favorability = Math.max(0, bd.favorability - 30);
         this.updateStatsBar();
@@ -4855,10 +4866,10 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
         // 表声望：-10，大于 100 则扣 20%
         const repDeduction = this.player.reputation > 100 ? Math.floor(this.player.reputation * 0.2) : 10;
         this.player.reputation -= repDeduction;
-        // 里声望（恶行累积）：+10，大于 100 则加 20%
-        if (!this.player._innerRep) this.player._innerRep = 0;
-        const innerGain = this.player._innerRep > 100 ? Math.floor(this.player._innerRep * 0.2) : 10;
-        this.player._innerRep += innerGain;
+        // 罪恶值（恶行累积）：+10，大于 100 则加 20%
+        if (!this.player._evil) this.player._evil = 0;
+        const innerGain = this.player._evil > 100 ? Math.floor(this.player._evil * 0.2) : 10;
+        this.player._evil += innerGain;
         // 济苍生：同表声望算法
         const helpDeduction = this.player.reputation > 100 ? Math.floor(this.player.reputation * 0.2) : 10;
         this.player._worldHelp = Math.max(0, (this.player._worldHelp || 0) - helpDeduction);
@@ -4971,7 +4982,7 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
             ];
             this.addMessage(msgs[Math.floor(Math.random() * msgs.length)], 'event');
             this.addMessage(`（支付${paid}两 + 扣除声望 ${repCost}）`, 'system');
-            this._adjInnerRep(1, '赊账嫖妓');
+            this._adjEvil(1, '赊账嫖妓');
             this.updateStatsBar();
             return this.brothelSexProstitute(prostitute, venue);
         }
@@ -5126,8 +5137,8 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
             '似乎是一个年轻人正在殴打老人。',
         ], () => {
             this.showChoices([
-                { text: '过去看看', action: () => { q.stage = 'FIGHT_SCENE'; this._syncQuestStage('FIGHT_SCENE'); this._inlineQuestRescueOx(q); } },
                 { text: '不管闲事', action: () => { q._done = true; this._questSeq_fallback(['你摇了摇头，转身离开。'], () => { this._afterQuestChoices(); }); } },
+                { text: '过去看看', action: () => { q.stage = 'FIGHT_SCENE'; this._syncQuestStage('FIGHT_SCENE'); this._inlineQuestRescueOx(q); } },
             ]);
         });
     }
@@ -5141,6 +5152,7 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
                 '年轻人却不管不顾，一边打一边骂。',
             ], () => {
                 this.showChoices([
+                    { text: '离开', action: () => { q._done = true; this._questSeq_fallback(['你转身离开。'], () => { this._afterQuestChoices(); }); } },
                     { text: '上前阻挠', action: () => {
                         this._questSeq_fallback([
                             '你上前一把抓住年轻人的手腕，沉声道：「住手！」',
@@ -5160,7 +5172,6 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
                             });
                         });
                     } },
-                    { text: '离开', action: () => { q._done = true; this._questSeq_fallback(['你转身离开。'], () => { this._afterQuestChoices(); }); } },
                 ]);
             });
         } else if (s === 'REVEAL') {
@@ -5191,6 +5202,12 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
             '「我没钱……我没法子啊……」他用力捶着自己的头。',
         ], () => {
             this.showChoices([
+                { text: '不管了', action: () => {
+                    this._questSeq_fallback(['你叹了口气，转身离去。'], () => {
+                        q._done = true;
+                        this._afterQuestChoices();
+                    });
+                } },
                 { text: '给他三十两', action: () => this._inlineQuestGiveMoney(q) },
                 { text: '我来想办法', action: () => {
                     this._questSeq_fallback([
@@ -5205,12 +5222,6 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
                             if (v && v.npcs[0]) v.npcs[0]._questActive = true;
                             this._butcherSpawned = true;
                         }
-                        this._afterQuestChoices();
-                    });
-                } },
-                { text: '不管了', action: () => {
-                    this._questSeq_fallback(['你叹了口气，转身离去。'], () => {
-                        q._done = true;
                         this._afterQuestChoices();
                     });
                 } },
@@ -5257,7 +5268,7 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
         ], () => {
             q._done = true;
             this.player.reputation += 10;
-            this._adjInnerRep(5, '支线');
+            this._adjEvil(5, '支线');
             this.updateStatsBar();
             this.addMessage('声望 +10', 'system');
             this.addMessage('济苍生 +5', 'system');
