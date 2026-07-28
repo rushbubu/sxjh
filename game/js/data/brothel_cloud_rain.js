@@ -63,7 +63,7 @@ const BROTHEL_FOREPLAY_SCENES = {
     chest: {
         common: [
             ['你隔着薄薄的衣料覆上她的胸口，掌心下那团软肉温热而富有弹性，拇指在峰顶轻轻打转，隔着布料也清晰地感觉到那一粒{nipple}凸起：「这里……倒是精神。」', '她挺了挺胸往你掌心里送，吃吃笑道：「它知道相公来了……自己就站起来了。」'],
-            ['你解开她领口的扣子，探手进去，握住一团白嫩嫩的乳肉，指尖夹住那{nipple}{nipple_color}乳头轻轻搓弄：「{nipple_color}的这粒……真够敏感的。」', '她轻吸一口气，酥胸起伏着往你手上贴，声音带喘：「相公……轻点儿……{nipple}乳头疼……」'],
+            ['你解开她领口的扣子，探手进去，握住一团白嫩嫩的乳肉，指尖夹住那{nipple}{nipple_color}乳头轻轻搓弄：「{nipple_color}的这粒……真够敏感的。」', '她轻吸一口气，酥胸起伏着往你手上贴，声音带喘：「相公……轻点儿……人家身子骨弱……」'],
             ['你从她锁骨一路向下抚摸，指尖绕着那{areola}乳晕画圈，时不时拨弄一下那{nipple}乳头：「这身子……倒是会长。」', '她咬着嘴唇笑了笑，眼神迷离：「专为了伺候官人长的……官人喜欢就多摸摸。」'],
             ['你指尖勾住她领口的系带轻轻一拉——衣襟散开，一对白嫩嫩的酥胸裹着温热的香气弹跃出来。那{nipple}乳尖在烛光下泛着{nipple_color}的光，娇娇地翘着。你伸手覆上那团温软的乳肉，拇指轻轻碾过那一粒凸起：「好软……好香。」', '她粉面飞红，别过脸去不敢看你，声如蚊蚋：「爷爷这般直白……是要羞死奴家了……」', '你笑着骂了声：「少来，你个小骚浪蹄子！」说罢俯首含住那{nipple}乳头，舌尖轻轻拨弄着那粒{nipple_color}的珠儿——她「啊」地一声软了腰，指尖不觉绞紧了你的衣襟。'],
         ],
@@ -85,10 +85,10 @@ const BROTHEL_FOREPLAY_SCENES = {
     },
     hips: {
         common: [
-            ['你握住她那{butt_short}捏了一把，满掌都是白嫩嫩的臀肉，弹滑得腻手：「这屁股……练过？」', '她回头冲你抛了个媚眼，故意晃了晃腰，让那{butt_short}在你手心里颠了颠：「专门练的……就是为了让相公摸着舒服。」'],
+            ['你握住她那{butt_short}捏了一把，满掌都是白嫩嫩的臀肉，弹滑得腻手：「这屁股……怎得如此软嫩？」', '她回头冲你抛了个媚眼，故意晃了晃腰，让那{butt_short}在你手心里颠了颠：「专门练的……就是为了让相公摸着舒服。」'],
             ['你一巴掌轻拍在她那{butt_short}上，响声清脆，白生生的臀肉微微泛红：「趴好。」', '她乖乖地撑住桌沿，将{butt_short}翘得高高的，回头浪声道：「官人想怎么弄都行……奴家受得住。」'],
-            ['你双手掰开那{butt_short}，目光在那道深深的股缝间流连，低头啐了一口：「这里……今天洗过没有？」', '她脸红了一红，声音却更媚了：「知道相公要来……特地用香汤洗了三遍……相公放心尝。」'],
-            ['你双手揉捏着那{butt_short}，十指深深陷进那白嫩饱满的臀肉里，指尖顺着股缝缓缓下滑，在那一处轻轻按压：「这里……想不想让爷碰？」', '她「嗯」地一声，整个身子都酥了半边，回头时眼底已蒙上一层水雾：「想……冤家碰哪里……奴家都想……」'],
+            ['你双手掰开那{butt_short}，目光在那道深深的股缝间流连，低头啐了一口：「娘子这里……是香的还是臭的？」', '她脸红了一红，声音却更媚了：「知道相公要来……特地用香汤洗了三遍……相公放心尝。」'],
+            ['你双手揉捏着那{butt_short}，十指深深陷进那白嫩饱满的臀肉里，指尖顺着股缝缓缓下滑，在她肥美的阴阜上轻轻按压：「这里……想不想让爷碰？」', '她「嗯」地一声，整个身子都酥了半边，回头时眼底已蒙上一层水雾：「想……冤家碰哪里……奴家都想……」'],
         ],
     },
     legs: {
@@ -177,6 +177,7 @@ function startBrothelRain(prostitute, player, callbacks) {
         maleArousal: 0,
         clothes: { outer: true, pants: true, inner: true, bra: true, panties: true },
         orgasmCount: 0,
+        lastAction: null,
         canSquirt: Math.random() < 0.3,
         finished: false,
         ejacCount: 0,
@@ -248,11 +249,21 @@ function _brShowForeplayMenu(prostitute, player, callbacks) {
     callbacks.showChoices(choices);
 }
 
-function _brGetForeplayPair(part, prostitute) {
-    const scenes = BROTHEL_FOREPLAY_SCENES[part];
-    if (!scenes) return ['你抚摸着她的身体。'];
-    const pool = [];
-    if (scenes.common) pool.push(...scenes.common);
+function _brGetForeplayPair(part, prostitute, tier) {
+    let pool = [];
+    if (tier >= 3 && typeof BROTHEL_FOREPLAY_SCENES_T3 !== 'undefined') {
+        const t3 = BROTHEL_FOREPLAY_SCENES_T3[part];
+        if (t3 && t3.common) pool.push(...t3.common);
+    }
+    if (pool.length === 0 && tier >= 2 && typeof BROTHEL_FOREPLAY_SCENES_T2 !== 'undefined') {
+        const t2 = BROTHEL_FOREPLAY_SCENES_T2[part];
+        if (t2 && t2.common) pool.push(...t2.common);
+    }
+    if (pool.length === 0) {
+        const scenes = BROTHEL_FOREPLAY_SCENES[part];
+        if (!scenes) return ['你抚摸着她的身体。'];
+        if (scenes.common) pool.push(...scenes.common);
+    }
     if (pool.length === 0) return ['你抚摸着她的身体。'];
     const state = prostitute._brState;
     if (!state._fpIdx) state._fpIdx = {};
@@ -269,8 +280,9 @@ function _brGetForeplayPair(part, prostitute) {
 
 function _brDoForeplay(prostitute, player, callbacks, part) {
     callbacks.clearChoices();
-    const lines = _brGetForeplayPair(part, prostitute);
     const s = prostitute._brState;
+    const tier = Math.min(3, (s.ejacCount || 0) + 1);
+    const lines = _brGetForeplayPair(part, prostitute, tier);
     s.femaleArousal = Math.min(100, s.femaleArousal + 5);
     const mAValues = { chest: 4, hips: 4, garden: 4, waist: 2, legs: 2, face: 1, arms: 1, feet: 1 };
     s.maleArousal = Math.min(100, s.maleArousal + (mAValues[part] || 1));
@@ -376,19 +388,22 @@ function _brShowServiceMenu(prostitute, player, callbacks) {
 function _brDoService(prostitute, player, callbacks, type) {
     callbacks.clearChoices();
     const s = prostitute._brState;
+    s.lastAction = 'service';
 
     if (type === 'sixty_nine' || type === 'sumata') {
-        const pos = _brPickSexPosition(type, prostitute, Math.floor(Math.random() * 10));
+        const tier = Math.min(3, (s.ejacCount || 0) + 1);
+        const pos = _brPickSexPosition(type, prostitute, Math.floor(Math.random() * 10), tier);
         _brAddMessage('【' + pos.name + '】', 'system');
-        _brAddMessage(pos.desc, 'narrator');
+        const segments = (_splitDesc || function(t){return[t]})(pos.desc);
         s.maleArousal = Math.min(100, s.maleArousal + pos.mA);
         s.femaleArousal = Math.min(100, s.femaleArousal + pos.fA);
         _brUpdatePanel(s);
-        callbacks.showChoices([{ text: '继续', action: () => _brRenderMain(prostitute, player, callbacks) }]);
+        _brShowServiceSegment(prostitute, player, callbacks, segments, 0);
         return;
     }
 
-    const desc = pickServiceDesc(type);
+    const tier = Math.min(3, s.ejacCount + 1);
+    const desc = pickServiceDesc(type, tier);
     const segments = (_splitDesc || function(t){return[t]})(desc);
     _brAddMessage(segments[0], 'narrator');
     if (type === 'kiss') {
@@ -530,8 +545,8 @@ const _BR_SEX_POSITIONS = {
     sixty_nine: {
         name: '69式',
         desc: [
-            '{name}笑道：「爷，咱们换个玩法。」你只觉龟头一阵温热的包裹，她{ph}的花丛就在你眼前，{pp_color}的嫩肉上沾着晶亮的花蜜。她一边含着你的肉棒吞吐，一边含糊不清地道：「爷……您也尝尝奴家的味儿……看看咸还是甜……」',
-            '你们头脚相对地躺着，她熟练地含住你的阳物，舌尖在马眼上打转。你也拨开她{ph}的花丛，舌尖轻轻舔过那{pp_color}的花瓣。她身子一颤，{pp_name}里涌出一股蜜汁，尽数滴在你脸上。她赶忙抬起头，抱歉地笑道：「哎哟……爷……奴家不是故意的……实在是爷的舌头太厉害了……」',
+            '{name}笑道：「爷，咱们换个玩法。」|你只觉龟头一阵温热的包裹，她{ph}的花丛就在你眼前，{pp_color}的嫩肉上沾着晶亮的花蜜。她一边含着你的肉棒吞吐，一边含糊不清地道：「爷……您也尝尝奴家的味儿……看看咸还是甜……」',
+            '你们头脚相对地躺着，她熟练地含住你的阳物，舌尖在马眼上打转。|你也拨开她{ph}的花丛，舌尖轻轻舔过那{pp_color}的花瓣。她身子一颤，{pp_name}里涌出一股蜜汁，尽数滴在你脸上。|她赶忙抬起头，抱歉地笑道：「爷……奴家不是故意的……实在是爷的舌头太厉害了……」',
         ], mA: 8, fA: 12,
     },
     doggy: {
@@ -571,8 +586,11 @@ const _BR_SEX_POSITIONS = {
     },
 };
 
-function _brPickSexPosition(key, prostitute, idx) {
-    const pos = _BR_SEX_POSITIONS[key] || _BR_SEX_POSITIONS.normal;
+function _brPickSexPosition(key, prostitute, idx, tier) {
+    let pos;
+    if (tier >= 3 && typeof _BR_SEX_POSITIONS_T3 !== 'undefined') pos = _BR_SEX_POSITIONS_T3[key] || _BR_SEX_POSITIONS_T3.normal;
+    if (!pos && tier >= 2 && typeof _BR_SEX_POSITIONS_T2 !== 'undefined') pos = _BR_SEX_POSITIONS_T2[key] || _BR_SEX_POSITIONS_T2.normal;
+    if (!pos) pos = _BR_SEX_POSITIONS[key] || _BR_SEX_POSITIONS.normal;
     const i = typeof idx === 'number' ? idx % pos.desc.length : Math.floor(Math.random() * pos.desc.length);
     const template = pos.desc[i];
     const desc = typeof _renderPosDesc === 'function' ? _renderPosDesc(template, prostitute) : template;
@@ -597,13 +615,15 @@ function _brShowSexMenu(prostitute, player, callbacks) {
 function _brDoSex(prostitute, player, callbacks, key) {
     callbacks.clearChoices();
     const s = prostitute._brState;
+    s.lastAction = 'sex';
+    const tier = Math.min(3, (s.ejacCount || 0) + 1);
     if (!s.posIdx) s.posIdx = {};
     if (!s.posCount) s.posCount = {};
     s.posCount[key] = (s.posCount[key] || 0) + 1;
     const idx = s.posIdx[key] || 0;
     s.posIdx[key] = idx + 1;
     const isFav = prostitute._favPos === key;
-    const pos = _brPickSexPosition(key, prostitute, idx);
+    const pos = _brPickSexPosition(key, prostitute, idx, tier);
     _brAddMessage('【' + pos.name + (isFav ? '★' : '') + '】', 'system');
     const segments = (_splitDesc || function(t){return[t]})(pos.desc);
     _brAddMessage(segments[0], 'narrator');
@@ -659,69 +679,156 @@ function _brAfterSexAction(prostitute, player, callbacks) {
 
 // ─── 高潮 ───
 
+// 正戏女性独自高潮文本链（勾栏，插入中，女性到，男性未射）
+const _BR_FEMALE_SOLO_ORGASM = [
+    [
+        '她的花径骤然缩紧，蜜壶内壁的嫩肉层层叠叠地绞了上来，死死缠着你的阳物。她仰着头发出一声长长的浪吟，花蜜喷涌而出。',
+        '你只觉阳具被那又湿又热的软肉紧紧裹住，酥麻感从脊椎直冲头顶。你掐着她的胯骨，咬紧牙关才没有丢。',
+    ],
+    [
+        '她身子猛地绷紧，腰肢向上拱起，花心深处一阵剧烈的痉挛——她到了。湿热的花液顺着棒身淌了出来，打湿了身下的床单。',
+        '她的花径一缩一缩地吸吮着你，她喘着气回过头来，媚笑道：「好爷……您可真是……奴家都快活死了……您还忍着呢？」',
+    ],
+    [
+        '她浑身剧烈地颤抖起来，花径痉挛着死死咬住你，一股热流从花心深处涌出。她浪叫着一把搂住你的脖子，双腿死死缠着你的腰。',
+        '那紧窒的软肉一收一放地绞动，你深吸一口气，勉强守住精关。她在你耳边喘息着：「乖乖……您这定力……奴家服了……」',
+    ],
+];
+
+// 正戏同步高潮文本链（勾栏，插入中，双方同时到）
+const _BR_SYNC_ORGASM = [
+    [
+        '她的花径猛地收紧，像一张小嘴死死咬住你的阳物，你根本来不及抽出，便被那阵剧烈的痉挛绞得精关失守——',
+        '滚烫的阳精尽数喷洒在她花心深处，她在这股热流的冲击下达到了顶峰，满足地浪吟了一声。',
+    ],
+    [
+        '她高潮时的痉挛让你再也无法忍耐，精关一泄如注。滚烫的阳精尽数浇灌在她花心深处，她身子一颤，满意地笑道：「好爷……都射给奴家了……真乖……」',
+    ],
+    [
+        '她的花心深处一阵剧烈的收缩，龟头被那湿热紧窒的软肉死死咬住，你闷哼一声，抵着她的花心将阳精尽数喷洒而出。她舒服地叹了口气，在你耳边吃吃笑道：「乖乖……这可真是要了奴家的命了……」',
+    ],
+];
+
 function _brHandleImpendingOrgasm(prostitute, player, callbacks) {
     const s = prostitute._brState;
-    const isSquirt = s.canSquirt && s.orgasmCount <= 1;
     callbacks.clearChoices();
 
-    _brAddMessage('她一把搂住你的腰，将你的阳物深深送入蜜穴深处，蜜壶内壁的嫩肉层层叠叠地缠了上来。', 'narrator');
-    callbacks.showChoices([{ text: '继续', action: () => _brHandleOrgasmStep2(prostitute, player, callbacks, isSquirt) }]);
-}
+    // Chain A — 侍奉高潮
+    if (s.lastAction === 'service') {
+        return _brServiceSoloOrgasm(prostitute, player, callbacks);
+    }
 
-function _brHandleOrgasmStep2(prostitute, player, callbacks, isSquirt) {
-    callbacks.clearChoices();
-    _brAddMessage('她的花径骤然缩紧，一阵阵剧烈的颤抖从深处传来，紧紧绞住你的阳物。温热的花蜜喷涌而出，浇淋在你的龟头之上。', 'narrator');
+    // 试算 maleArousal +20 后是否触发同步高潮
+    const maleAfterBoost = Math.min(100, s.maleArousal + 20);
 
-    const s = prostitute._brState;
-    s.maleArousal = Math.min(100, s.maleArousal + 20);
-    _brUpdatePanel(s);
-
-    callbacks.showChoices([{ text: '继续', action: () => _brImpendingNext1(prostitute, player, callbacks, isSquirt) }]);
-}
-
-function _brImpendingNext1(prostitute, player, callbacks, isSquirt) {
-    callbacks.clearChoices();
-    _brAddMessage('你只觉阳具被又湿又热的软肉死死缠住，酥麻感从脊椎直冲头顶，几乎要把你化掉。', 'narrator');
-
-    const s = prostitute._brState;
-    if (s.maleArousal >= 100) {
-        callbacks.showChoices([{ text: '继续', action: () => _brImpendingNext2(prostitute, player, callbacks, isSquirt) }]);
+    if (maleAfterBoost >= 100) {
+        // Chain C — 同步高潮
+        s.maleArousal = maleAfterBoost;
+        _brUpdatePanel(s);
+        return _brSyncOrgasm(prostitute, player, callbacks);
     } else {
-        s.orgasmCount++;
-        callbacks.showChoices([{ text: '继续', action: () => _brImpendingDone(prostitute, player, callbacks, isSquirt, false) }]);
+        // Chain B — 正戏女性独自高潮
+        return _brFemaleSoloOrgasm(prostitute, player, callbacks);
     }
 }
 
-function _brImpendingNext2(prostitute, player, callbacks, isSquirt) {
-    callbacks.clearChoices();
-    _brAddMessage('她的花径猛地收紧，像一张小嘴死死咬住你的阳物，你根本来不及抽出，便被那阵剧烈的痉挛绞得精关失守——', 'narrator');
-    callbacks.showChoices([{ text: '继续', action: () => _brImpendingNext3(prostitute, player, callbacks, isSquirt) }]);
-}
+// ─── Chain A：侍奉高潮 ───
 
-function _brImpendingNext3(prostitute, player, callbacks, isSquirt) {
-    callbacks.clearChoices();
-    _brAddMessage('滚烫的阳精尽数喷洒在她花心深处，她在这股热流的冲击下达到了顶峰。', 'narrator');
-    prostitute._brState.orgasmCount++;
-    prostitute._brState.wasInternal = true;
-    callbacks.showChoices([{ text: '继续', action: () => _brImpendingDone(prostitute, player, callbacks, isSquirt, true) }]);
-}
-
-function _brImpendingDone(prostitute, player, callbacks, isSquirt, maleCame) {
+function _brServiceSoloOrgasm(prostitute, player, callbacks) {
     const s = prostitute._brState;
-    _brAddMessage('（高潮）', 'system');
-    if (!maleCame) {
-        _brAddMessage(getOrgasmReaction(prostitute, isSquirt), 'narrator');
-    }
-    if (maleCame) {
-        s.maleArousal = 70;
-        s.ejacCount++;
-        s.overClock = 0;
-    } else {
-        s.maleArousal = Math.max(0, s.maleArousal - 30);
-    }
+    _brAddMessage('她身子猛地绷紧，双腿之间一阵剧烈的痉挛收缩——竟在侍奉中丢了身子。', 'narrator');
+    s.orgasmCount++;
     s.femaleArousal = Math.max(0, s.femaleArousal - 30);
     _brUpdatePanel(s);
-    if (maleCame && s.ejacCount >= s.ejacLimit) {
+    callbacks.showChoices([{ text: '继续', action: () => _brServiceOrgasmDone(prostitute, player, callbacks) }]);
+}
+
+function _brServiceOrgasmDone(prostitute, player, callbacks) {
+    _brAddMessage('（高潮）', 'system');
+    _brAddMessage(_brGetOrgasmReaction(prostitute, false), 'narrator');
+    _brUpdatePanel(prostitute._brState);
+    callbacks.showChoices([{ text: '继续', action: () => _brRenderMain(prostitute, player, callbacks) }]);
+}
+
+// ─── Chain B：正戏女性独自高潮 ───
+
+function _brFemaleSoloOrgasm(prostitute, player, callbacks) {
+    const s = prostitute._brState;
+    const pool = _BR_FEMALE_SOLO_ORGASM;
+    const idx = Math.floor(Math.random() * pool.length);
+    const segs = pool[idx];
+
+    _brAddMessage(segs[0], 'narrator');
+    s.orgasmCount++;
+    s.femaleArousal = Math.max(0, s.femaleArousal - 30);
+    _brUpdatePanel(s);
+
+    if (segs.length > 1) {
+        callbacks.showChoices([{ text: '继续', action: () => _brFemaleSoloStep2(prostitute, player, callbacks, segs, 1) }]);
+    } else {
+        callbacks.showChoices([{ text: '继续', action: () => _brFemaleSoloDone(prostitute, player, callbacks) }]);
+    }
+}
+
+function _brFemaleSoloStep2(prostitute, player, callbacks, segs, idx) {
+    callbacks.clearChoices();
+    _brAddMessage(segs[idx], 'narrator');
+    if (idx < segs.length - 1) {
+        callbacks.showChoices([{ text: '继续', action: () => _brFemaleSoloStep2(prostitute, player, callbacks, segs, idx + 1) }]);
+    } else {
+        callbacks.showChoices([{ text: '继续', action: () => _brFemaleSoloDone(prostitute, player, callbacks) }]);
+    }
+}
+
+function _brFemaleSoloDone(prostitute, player, callbacks) {
+    const s = prostitute._brState;
+    _brAddMessage('（高潮）', 'system');
+    _brAddMessage(_brGetOrgasmReaction(prostitute, false), 'narrator');
+    // 男性未射精，不扣 maleArousal
+    _brUpdatePanel(s);
+    callbacks.showChoices([{ text: '继续', action: () => _brRenderMain(prostitute, player, callbacks) }]);
+}
+
+// ─── Chain C：正戏同步高潮 ───
+
+function _brSyncOrgasm(prostitute, player, callbacks) {
+    const s = prostitute._brState;
+    const pool = _BR_SYNC_ORGASM;
+    const idx = Math.floor(Math.random() * pool.length);
+    const segs = pool[idx];
+
+    _brAddMessage(segs[0], 'narrator');
+    _brUpdatePanel(s);
+
+    if (segs.length > 1) {
+        callbacks.showChoices([{ text: '继续', action: () => _brSyncStep2(prostitute, player, callbacks, segs, 1) }]);
+    } else {
+        _brSyncAfterText(prostitute, player, callbacks);
+    }
+}
+
+function _brSyncStep2(prostitute, player, callbacks, segs, idx) {
+    callbacks.clearChoices();
+    _brAddMessage(segs[idx], 'narrator');
+    if (idx < segs.length - 1) {
+        callbacks.showChoices([{ text: '继续', action: () => _brSyncStep2(prostitute, player, callbacks, segs, idx + 1) }]);
+    } else {
+        _brSyncAfterText(prostitute, player, callbacks);
+    }
+}
+
+function _brSyncAfterText(prostitute, player, callbacks) {
+    const s = prostitute._brState;
+    s.orgasmCount++;
+    s.ejacCount++;
+    s.wasInternal = true;
+    s.maleArousal = 70;
+    s.femaleArousal = Math.max(0, s.femaleArousal - 30);
+    s.overClock = 0;
+    _brUpdatePanel(s);
+    _brAddMessage('（高潮）', 'system');
+
+    if (s.ejacCount >= s.ejacLimit) {
         const root = player.attrs.root || 10;
         const label = getRatingLabel(root);
         const msg = '你只觉腰眼一阵酸软，再也无力继续。终究是你' + label + '(' + root + ')的根骨，' + (s.ejacLimit === 1 ? '只能泄这一次。' : '最多只能支持' + s.ejacLimit + '次。') + '你喘息片刻，揽着她温存了一会儿。';
@@ -820,6 +927,31 @@ function _brEndSexScene(prostitute, player, callbacks) {
     } }]);
 }
 
+// ─── 勾栏高潮反应（妓女身份适配） ───
+
+const BR_ORGASM_REACTIONS = [
+    '她仰起头，喉间发出一声长长的浪吟，花径一阵阵痉挛着绞紧你。身子软软地瘫在你怀里，还在不住地轻颤。',
+    '她死死搂着你的脖子，{pp_name}里一阵剧烈的收缩，像是要把你榨干一般。她带着餍足的喘息笑道：「好爷……您可真是要了奴家的命了……」',
+    '她浑身绷紧，{pp_name}痉挛着死死咬住你。片刻后长长地吐出一口气，整个人软得像一摊春水，口中含含糊糊地浪道：「丢了……丢了……爷太厉害了……」',
+    '她身子猛地弓起，花径深处涌出一股热流。她伏在你肩上喘息着，吃吃笑道：「乖乖……爷这本事……奴家伺候过这么多客人……头一回丢得这么痛快……」',
+    '她双手紧紧抓着床单，身子剧烈地颤抖了几下，然后便软了下来。她闭着眼回味了好一会儿，才睁开眼媚媚地看着你：「爷……您让奴家快活得……话都说不出来了……」',
+];
+
+const BR_SQUIRT_REACTIONS = [
+    '随着她一声尖叫，一股清澈的爱液从花心深处喷涌而出，打湿了身下的床单。她喘息着，脸上带着满足的媚态：「哎哟……爷……您把奴家弄喷了……」',
+    '她猛地弓起身，一股水流从花心深处激射而出。她愣愣地看着那滩水渍，随即吃吃笑道：「好爷……您可真行……奴家好久没这么痛快地喷过了……」',
+];
+
+function _brGetOrgasmReaction(prostitute, isSquirt) {
+    let text = BR_ORGASM_REACTIONS[Math.floor(Math.random() * BR_ORGASM_REACTIONS.length)];
+    if (isSquirt) {
+        const s = BR_SQUIRT_REACTIONS[Math.floor(Math.random() * BR_SQUIRT_REACTIONS.length)];
+        text += ' ' + s;
+    }
+    text = text.replace(/{pp_name}/g, _getPPLabel(prostitute).name);
+    return text;
+}
+
 // ─── 辅助函数 ───
 
 function _brGetEjacLimit(root) {
@@ -838,3 +970,203 @@ function _brGetHoldRounds(root) {
     if (root >= 20) return 2;
     return 1;
 }
+
+// ═══════════════════════════════════════════
+// 勾栏 Tier 2 体位（第二次及以后，更湿更浪）
+// ═══════════════════════════════════════════
+
+const _BR_SEX_POSITIONS_T2 = {
+    normal: {
+        name: '正常位',
+        desc: [
+            '{name}仰在床上，{ph}的双腿大张着，那{pp_color}的{pp_name}已经被操得红艳艳的，{pp_desc}的嫩肉向外翻着。你压上去一挺而入，她「啊……」地长叹一声，{butt}向上挺了挺，浪声道：「好爷……您那肉棒子可算进来了……奴家这骚屄等得都快淌干了……」',
+            '你压着她{hl}的身子狠干，{breast_short}随着你的撞击上下翻飞。她低头看着你们交合的地方，那处已经被捣出了白沫。她吃吃笑道：「爷您瞧瞧……都把奴家操出沫子了……您可真厉害……」说着{pp_name}猛地缩紧，绞得你闷哼一声。',
+            '她搂着你的脖子，在你耳边吹着热气：「好爷……您一边干一边摸奴家的奶……奴家最喜欢了……」你握住她{breast_short}的乳房揉捏着，她果然叫得更浪了，{pp_name}咬得你舒爽难当。蜜汁顺着你的大腿往下淌。',
+        ], mA: 10, fA: 12,
+    },
+    cowgirl: {
+        name: '女上位',
+        desc: [
+            '你往榻上一躺，她迫不及待地跨坐在你身上，扶着你的肉棒对准{pp_name}一坐到底。她仰起头喉间发出一声满足的叹息，随即便自顾自地上下起伏起来。{breast}在她胸前翻腾得厉害，她低头看着自己的乳浪，喘着气浪叫。',
+            '她骑在你身上颠得满头青丝乱飞，汗水顺着{hl}的身子往下淌。{ph}的腰肢扭得像水蛇一样，{pp_name}里的蜜汁流得到处都是。她放开了嗓子：「爷……您说……是奴家的骚屄紧……还是您上过的那些良家妇女紧？」',
+            '她在你身上颠得浑身汗淋淋的，{butt}啪嗒啪嗒地拍在你腿上。她上气不接下气地浪叫：「啊……爷……您那肉棒子顶到奴家花心了……顶穿了……奴家要死了……」',
+        ], mA: 12, fA: 10,
+    },
+    reverse_cowgirl: {
+        name: '反向女上位',
+        desc: [
+            '{name}背对着你跨坐，那圆滚滚的{butt}在你小腹上碾磨着。她反手扶着你的肉棒对准{pp_name}一坐到底，然后便开始上下套弄。你眼前尽是那{butt}起起落落的浪态，臀肉随着她的动作漾开层层肉浪。',
+            '她背对着你颠得{butt}啪啪作响，扭过头来媚眼如丝：「好爷……您瞧着奴家这大屁股……是不是比正面更来劲儿？」你伸手抓住她那两瓣颤巍巍的臀肉，她叫得更欢了，{ph}的腰肢扭得飞快。',
+        ], mA: 12, fA: 10,
+    },
+    sixty_nine: {
+        name: '69式',
+        desc: [
+            '她含着你的肉棒卖力地吞吐着，同时把自己的{pp_name}凑在你脸上。那{pp_color}的嫩肉上沾满了亮晶晶的花蜜，她含含糊糊地道：「爷……您也尝尝……奴家今儿个的蜜水儿特别甜……」',
+            '你们头脚相对，她的舌尖在你龟头上打转。你也拨开她{ph}的花丛，舌尖探入那湿滑的甬道。她身子猛地一颤，{pp_name}里涌出一股蜜汁，她赶忙含住你的肉棒用力吸了一下作为补偿。',
+        ], mA: 10, fA: 14,
+    },
+    doggy: {
+        name: '后入式',
+        desc: [
+            '{name}转过身去，{butt}高高撅起，那{pp_desc}的{pp_name}水光光地翕动着。她回头浪笑：「好爷……从后头来……每一下都能顶到最深……」你一挺而入，她「啊——」地一声，{butt}摇得更欢了。{ph}的臀瓣在你撞击下漾开层层肉浪。',
+            '她跪趴在床沿，{butt}在你的撞击下红了一片。她回过头来，眼神又骚又浪：「爷……您使点劲儿……别心疼奴家……」你掐着她的腰狠干起来，{pp_name}里的蜜汁被捣成了白沫，糊在穴口。',
+        ], mA: 11, fA: 11,
+    },
+    spoon: {
+        name: '侧入式',
+        desc: [
+            '你从{name}身后贴近，抬起她一条{ph}的腿架在臂弯里，{pp_adj}{pp_name}从下方暴露出来。她反手搂着你的脖子：「爷……从后头慢慢进来……奴家喜欢这样……」你扶着肉棒缓缓送了进去，她舒服地叹了口气。',
+            '你们侧拥着交合，你一边揉捏着她的{breast_short}，一边在她耳边说着骚话。她偏过头来与你舌吻，下身{pp_name}紧紧裹着你一缩一缩的。半晌唇分，她喘着气道：「爷……您这嘴上功夫和下面一样厉害……」',
+        ], mA: 9, fA: 12,
+    },
+    sumata: {
+        name: '臀部素股',
+        desc: [
+            '{name}夹紧{ph}的大腿，用腿根那团软肉裹着你的阳物上下套弄。她低头看着那紫红的龟头在她腿间一出一进，咬唇浪笑：「好爷……您瞧瞧……光用腿就能把您伺候得舒舒服服的……要是真进了骚屄，那不得把您夹射了？」',
+            '你的肉棒在她{butt_short}之间进出，{pp_name}里的蜜汁把她的腿根涂得亮晶晶。她扭过头来：「好人……别在外面磨了……进来吧……奴家痒得不行了……」',
+        ], mA: 8, fA: 9,
+    },
+    standing: {
+        name: '立位',
+        desc: [
+            '{name}扶着墙弯下腰，{butt}高高撅起。你从后面进入，她「啊……」地一声浪叫：「爷……站着干最得劲儿……您想多深就多深……」你掐着她的胯骨狠干，{butt}被你撞得啪啪响。',
+            '你掐着她的腰狠干，{name}的浪叫声越来越大。她回头浪道：「爷……您可得卖力些……别让人笑话奴家伺候得不好……」{breast_short}贴在墙上蹭来蹭去，{pp_name}里的蜜汁顺着大腿往下淌。',
+        ], mA: 10, fA: 10,
+    },
+    edge: {
+        name: '桌沿',
+        desc: [
+            '{name}{butt_short}坐在桌沿，{ph}的双腿大张，自己拿手指掰开那{pp_color}的{pp_name}，露出里头红嫩嫩的芯子：「好爷……您瞧清楚了……这骚屄专程给您预备的……」你扶着肉棒一挺而入，她「啊——」地一声弓起了腰。',
+            '你将她按在桌边狠干着，{butt}撞在桌沿发出咯吱咯吱的声响。{name}的浪叫一声高过一声，{pp_name}里的蜜水被带出，顺着{ph}的大腿往下淌。她上气不接下气地道：「好爷……您太厉害了……奴家要死了……」',
+        ], mA: 11, fA: 11,
+    },
+};
+
+// ═══════════════════════════════════════════
+// 勾栏 Tier 3 体位（体力耗尽，语无伦次）
+// ═══════════════════════════════════════════
+
+const _BR_SEX_POSITIONS_T3 = {
+    normal: {
+        name: '正常位',
+        desc: [
+            '{name}仰在床上，{ph}的双腿无力地分着，{pp_adj}{pp_name}已经被操得红肿不堪，白浊和淫水混在一起糊在穴口。你压上去挺入，她只是轻轻地哼了一声，{breast_short}上布满了红痕。她已经叫不出声了，只有喉间偶尔发出含混的呜咽。',
+            '你压在她身上抽送着，她{hl}的身子软得像一摊泥。{pp_name}口红肿着，嫩肉向外翻。你每一下都带着黏腻的水声，她也只是偶尔颤一颤。你低头吻她，她微微张开嘴，舌尖却已经没有力气回应了。',
+        ], mA: 10, fA: 14,
+    },
+    cowgirl: {
+        name: '女上位',
+        desc: [
+            '她跨坐在你身上却已经骑不动了，软软地趴在你胸口。{pp_name}还含着你，一缩一缩地咬着。你扶着她的腰帮她起伏，她随着你的动作发出断断续续的喘息：「爷……奴家真的不行了……腿都软了……」',
+            '她背对着你跨坐，{butt}在你小腹上轻轻磨蹭着，已经没有了大幅度的力气。你握着她的腰帮她，她仰着头靠在你肩上：「好爷……您动吧……奴家伺候不了了……」',
+        ], mA: 12, fA: 12,
+    },
+    reverse_cowgirl: {
+        name: '反向女上位',
+        desc: [
+            '她背对着你跨坐，{butt}已经颠不动了，只是轻轻在你小腹上碾磨着。你扶着她的腰帮她上下起伏，她随着你的动作发出软软的呻吟。{pp_name}里的蜜汁顺着你的大腿往下淌，她已经没有力气说话了。',
+        ], mA: 12, fA: 12,
+    },
+    sixty_nine: {
+        name: '69式',
+        desc: [
+            '她含着你的阳物，累得只能偶尔动一动舌尖。{ph}的花丛就在你眼前，{pp_color}的嫩肉上沾满了花蜜和白浊。你已经不需要她的回应了，舌尖探入那湿滑的甬道，她浑身一颤，{pp_name}里涌出一股热流，尽数滴在你脸上。',
+        ], mA: 10, fA: 14,
+    },
+    doggy: {
+        name: '后入式',
+        desc: [
+            '{name}跪趴在床上却已经撑不住了，上半身完全瘫在床上，只有{butt_short}还勉强撅着。那{pp_desc}的{pp_name}红肿着，白浊顺着大腿往下淌。你从后面进入时她只是无力地哼了一声，{butt_short}在你的撞击下被动地晃动着。',
+            '她趴在床上脸埋在枕头里，{hl}的身子随着你的撞击轻轻晃动。她已经叫不出声了，只在每一下深顶时发出一声闷闷的呜咽。{butt_short}上全是巴掌印子，{ph}的腿间一片狼藉。',
+        ], mA: 11, fA: 13,
+    },
+    spoon: {
+        name: '侧入式',
+        desc: [
+            '你们侧躺着，你从身后拥着她。她累得睁不开眼了，任你抬起她的腿。{pp_adj}{pp_name}红肿着暴露出来。你缓缓进入时她轻轻地嗯了一声，往后拱了拱贴近你怀里。她在半梦半醒间微微颤着。',
+        ], mA: 9, fA: 12,
+    },
+    sumata: {
+        name: '臀部素股',
+        desc: [
+            '你的肉棒在她{butt_short}之间缓缓进出，她已经没有力气夹紧了，只是软软地趴着任你动作。{pp_name}里的白浊沾满了她的腿根，你的龟头时不时滑进那红肿的穴口，她轻轻颤一下，却没有力气躲开。',
+        ], mA: 8, fA: 9,
+    },
+    standing: {
+        name: '立位',
+        desc: [
+            '{name}扶着墙已经站不稳了，双腿不住地打颤。你从后面进入她，她软软地向前一倒，全靠你扶着她的腰才没有倒下。{butt}在你的撞击下晃动着，她已经叫不出声了，只有喉咙里发出细微的呜咽。',
+        ], mA: 10, fA: 10,
+    },
+    edge: {
+        name: '桌沿',
+        desc: [
+            '{name}趴在桌沿，{hl}的身子摊在冰凉的桌面上。{pp_adj}{pp_name}红肿着，白浊和蜜汁混在一起顺着大腿往下淌。你从后面进入时她只是轻轻「呃」了一声，连抬头的力气都没有了。',
+        ], mA: 11, fA: 11,
+    },
+};
+
+// ═══════════════════════════════════════════
+// 勾栏 Tier 2 抚触场景
+// ═══════════════════════════════════════════
+
+const BROTHEL_FOREPLAY_SCENES_T2 = {
+    face: { common: [
+        ['你捏着她的下巴，拇指揉开她唇上残留的口脂：「这张嘴……刚才尝过我的味儿了。」', '她伸出舌尖舔了舔你的指尖，媚眼如丝：「尝过了……还想尝……爷给不给？」'],
+        ['你抚着她汗湿的脸颊，低声道：「一脸都是汗……还是好看。」', '她拿脸颊蹭你的手心：「汗也是香的……奴家连汗都是花蜜味儿的。」'],
+    ]},
+    chest: { common: [
+        ['你隔着薄薄的衣料覆上她的胸口，那团软肉滚烫。你拨弄着那凸起的一点，低笑道：「这里……比刚才精神多了。」', '她挺了挺胸往你掌心里送，浪声道：「它知道相公要来……自己就站起来了……爷再摸摸……」'],
+        ['你解开她衣襟，对着那对{breast_short}的乳房轻轻吹了口气，眼看着那{nipple}的乳尖在你气息下挺立。你伸出舌尖轻轻一舔，她浑身一颤。', '她低头看着自己的乳尖在你舌尖下变硬，声音又颤又媚：「爷……您别光看不练呀……吸一口……」'],
+    ]},
+    waist: { common: [
+        ['你揽住她汗湿的腰肢往怀里一带，那截纤腰滑不留手。你顺着腰线滑到胯骨，低笑道：「全是汗……滑得抓不住。」', '她蛇一样贴在你身上扭了扭：「爷抓不住……奴家就贴紧些……保管跑不了。」'],
+        ['你的手从她衣摆下探进去，贴着光裸的腰侧缓缓摩挲。那肌肤滚烫湿滑，你的指尖每过一处她就轻轻一颤。', '她靠在你怀里，偏过头来蹭你的脸：「好爷……您手凉……摸着真舒服……再往上些……」'],
+    ]},
+    arms: { common: [
+        ['你握住她的手腕举过头顶，沿着她手臂内侧的细汗缓缓滑下。那肌肤滑腻温热，她的呼吸渐渐乱了。', '她任由你摆弄，声音又轻又颤：「爷……您弄得奴家手都软了……等会儿怎么伺候您……」'],
+    ]},
+    hips: { common: [
+        ['你握着那{butt_short}用力揉捏，满掌都是滑腻的触感——汗水和淫水混在一起，让她的臀瓣在你手中不住地打滑。你一巴掌拍上去，声音清脆。', '她乖乖地撅了撅屁股：「好爷……您打重些……奴家受得住……」'],
+        ['你双手掰开她的臀瓣，那沾满花蜜的{pp_name}和后庭都暴露出来。你低头啐了一口：「这里……都湿透了。」', '她回头看你，眼中带着媚意：「还不是爷害的……您伸舌头舔舔……就不湿了……」'],
+    ]},
+    legs: { common: [
+        ['你分开她{ph}的双腿，手掌贴着大腿内侧那滑腻的嫩肉缓缓上滑。那处一片湿滑，手指沾满了亮晶晶的蜜汁。你低笑道：「这里……都泛滥成灾了。」', '她羞得别过头，声音却更媚了：「还不是您弄的……爷快些……奴家痒得不行了……」'],
+    ]},
+    feet: { common: [
+        ['你握住她的小脚，低头在脚背上落下一个吻。她痒得脚趾蜷了蜷。你沿着足弓一路吻到脚趾，含住一根轻轻吸吮。', '她惊叫一声想缩回脚：「别……脏……」你却握紧了不放，她红着脸不再挣扎了，呼吸越来越重。'],
+    ]},
+    garden: { common: [
+        ['你的手掌顺着她光洁的小腹滑入腿间，隔着那层薄薄的亵裤轻轻按压——布料已经湿透了。你低笑道：「这里……倒是诚实。」', '她「唔」地一声夹紧了腿：「还不是都怪爷撩拨的……您快些……别逗奴家了……」'],
+        ['你拨开那层湿透的布料，{ph}的花丛间泉水涓涓渗出。你顺着那{pp_name}轻轻一滑，沾了满指晶亮亮的花蜜，送到她唇边：「尝尝……你自己的味道。」', '她张嘴含住你的手指，舌尖绕着指腹打转，吃吃得笑道：「甜的……都是爷的功劳。」'],
+    ]},
+};
+
+// ═══════════════════════════════════════════
+// 勾栏 Tier 3 抚触场景（体力耗尽）
+// ═══════════════════════════════════════════
+
+const BROTHEL_FOREPLAY_SCENES_T3 = {
+    face: { common: [
+        ['你捧着她的脸，她疲惫地靠在你掌心里。你的拇指轻轻摩挲着她的颧骨，她闭着眼，睫毛微微颤抖。', '她侧过脸，嘴唇轻轻碰了碰你的掌心，声音哑哑的：「爷手好暖……奴家想睡……」'],
+    ]},
+    chest: { common: [
+        ['你的手轻轻覆上她的胸口，那对{breast_short}的乳房上布满了红痕和吻痕，{nipple}的乳尖红肿着微微发颤。你只是轻轻握着，她低低地「嘶」了一声。', '她低头看了看自己胸口的狼藉，轻轻笑了笑：「爷……您给奴家咬得……真够狠的……」语气里却没有责怪的意思。'],
+    ]},
+    waist: { common: [
+        ['你揽住她的腰，那截腰肢上全是汗，滑不留手。她软软地靠在你怀里，任你的手掌在她腰侧流连。你轻轻揉了揉她腰间的软肉，她含含糊糊地哼了一声。', '她闭着眼在你怀里蹭了蹭：「好爷……别弄了……让奴家歇会儿……」'],
+    ]},
+    arms: { common: [
+        ['你握着她的手腕，她纤细的手臂上还有你留下的红痕。你轻轻揉了揉那些痕迹，她低头看了看：「爷……瞧您给奴家掐的。」语气懒懒的，像是在说一件不相干的事。'],
+    ]},
+    hips: { common: [
+        ['你的手覆上她的{butt_short}，那白嫩的臀瓣上还留着红红的指印。你轻轻揉捏着，她趴在床上含含糊糊地哼了一声。', '你掰开臀瓣，那{pp_name}和股缝之间一片狼藉。你没有触碰那红肿之处，只是轻轻帮她擦了擦。她回过头来，眼神软软地看了你一眼。'],
+    ]},
+    legs: { common: [
+        ['你分开她{ph}的双腿，她的腿软软地任你摆布。大腿内侧的肌肤上全是干涸的痕迹，{pp_name}红肿着。你的手指轻轻划过那些湿痕，她轻轻颤了颤。', '她偏过头去不看，声音闷闷的：「爷……别看……丢人……」'],
+    ]},
+    garden: { common: [
+        ['你的手掌贴着她的小腹，没有再往下探。那处已经红肿不堪，轻轻一碰都让她哆嗦。她抓住你的手，声音又软又哑：「好爷……别碰了……太敏感了……受不住……」', '你把她的手轻轻放在自己腿间，她犹豫了一下，还是轻轻按了按。然后红着脸别过头去。'],
+    ]},
+};

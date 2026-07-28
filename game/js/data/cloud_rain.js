@@ -74,6 +74,7 @@ function startDetailedSexScene(bd, player, callbacks) {
         maleArousal: 0,
         clothes: { outer: true, pants: true, inner: true, bra: true, panties: true },
         orgasmCount: 0,
+        lastAction: null,
         canSquirt: Math.random() < 0.3,
         finished: false,
         ejacCount: 0,
@@ -150,8 +151,9 @@ function _showForeplayMenu(bd, player, callbacks) {
 
 function _doForeplay(bd, player, callbacks, part) {
     callbacks.clearChoices();
-    _sexAddMessage(pickForeplay(part, bd), 'narrator');
     const s = bd._sexState;
+    const tier = Math.min(3, (s.ejacCount || 0) + 1);
+    _sexAddMessage(pickForeplay(part, bd, tier), 'narrator');
     s.femaleArousal = Math.min(100, s.femaleArousal + 5);
     const mAValues = { chest: 4, hips: 4, waist: 2, legs: 2, face: 1, arms: 1, feet: 1 };
     s.maleArousal = Math.min(100, s.maleArousal + (mAValues[part] || 1));
@@ -220,10 +222,12 @@ function _showServiceMenu(bd, player, callbacks) {
 
 function _doService(bd, player, callbacks, type) {
     callbacks.clearChoices();
-    const desc = pickServiceDesc(type);
+    const s = bd._sexState;
+    s.lastAction = 'service';
+    const tier = Math.min(3, (s.ejacCount || 0) + 1);
+    const desc = pickServiceDesc(type, tier);
     const segments = (_splitDesc || function(t){return[t]})(desc);
     _sexAddMessage(segments[0], 'narrator');
-    const s = bd._sexState;
     if (type === 'kiss') {
         s.femaleArousal = Math.min(100, s.femaleArousal + 4);
         s.maleArousal = Math.min(100, s.maleArousal + 3);
@@ -277,13 +281,15 @@ function _showSexMenu(bd, player, callbacks) {
 function _doSex(bd, player, callbacks, key) {
     callbacks.clearChoices();
     const s = bd._sexState;
+    s.lastAction = 'sex';
+    const tier = Math.min(3, (s.ejacCount || 0) + 1);
     if (!s.posIdx) s.posIdx = {};
     if (!s.posCount) s.posCount = {};
     s.posCount[key] = (s.posCount[key] || 0) + 1;
     const idx = s.posIdx[key] || 0;
     s.posIdx[key] = idx + 1;
     const isFav = bd._favPos === key;
-    const pos = pickSexPosition(key, bd, idx);
+    const pos = pickSexPosition(key, bd, idx, tier);
     _sexAddMessage('【' + pos.name + (isFav ? '★' : '') + '】', 'system');
     const segments = (_splitDesc || function(t){return[t]})(pos.desc);
     _sexAddMessage(segments[0], 'narrator');
@@ -324,58 +330,158 @@ function _afterSexAction(bd, player, callbacks) {
 
 // ─── 高潮 ───
 
+// 正戏女性独自高潮文本链（插入中，女性到，男性未射）
+const _FEMALE_SOLO_ORGASM = [
+    [
+        '她的花径骤然缩紧，一阵阵剧烈的颤抖从深处传来，紧紧绞住你的阳物。温热的花蜜喷涌而出，浇淋在你的龟头之上。',
+        '你只觉阳具被又湿又热的软肉死死缠住，酥麻感从脊椎直冲头顶，几乎要把你化掉。',
+    ],
+    [
+        '她身子猛地绷紧，腰肢向上拱起，花心深处一阵剧烈的痉挛——她到了高潮。湿热的花液顺着棒身淌了下来。',
+        '她的花径一缩一缩地吸吮着你，你深吸一口气，生生压住了那股射意。',
+    ],
+    [
+        '她浑身剧烈地颤抖起来，阴道痉挛着死死咬住你，一股热流从花心深处涌出。她仰着头，喉间发出破碎的呻吟。',
+        '那湿热紧窒的软肉紧紧地裹着你，一收一放地绞动，你咬着牙勉强守住精关。',
+    ],
+];
+
+// 正戏同步高潮文本链（插入中，双方同时到）
+const _SYNC_ORGASM = [
+    [
+        '她的花径猛地收紧，像一张小嘴死死咬住你的阳物，你根本来不及抽出，便被那阵剧烈的痉挛绞得精关失守——',
+        '滚烫的阳精尽数喷洒在她花心深处，她在这股热流的冲击下达到了顶峰。',
+    ],
+    [
+        '她高潮时的痉挛让你再也无法忍耐，精关一泄如注——滚烫的阳精尽数浇灌在她花心深处。她满足地叹息着，把你搂得更紧了些。',
+    ],
+    [
+        '她的花心深处一阵剧烈的收缩，龟头被那湿热紧窒的软肉死死咬住，你闷哼一声，抵着她的花心将阳精尽数喷洒而出。她在你身下战栗着，享受着那股滚烫的冲击。',
+    ],
+];
+
 function _handleImpendingOrgasm(bd, player, callbacks) {
     const s = bd._sexState;
-    const isSquirt = s.canSquirt && s.orgasmCount <= 1;
     callbacks.clearChoices();
 
-    _sexAddMessage('她的花径骤然缩紧，一阵阵剧烈的颤抖从深处传来，紧紧绞住你的阳物。温热的花蜜喷涌而出，浇淋在你的龟头之上。', 'narrator');
+    // Chain A — 侍奉高潮
+    if (s.lastAction === 'service') {
+        return _serviceSoloOrgasm(bd, player, callbacks);
+    }
 
-    s.maleArousal = Math.min(100, s.maleArousal + 20);
-    _sexUpdatePanel(s);
+    // 试算 maleArousal +20 后是否触发同步高潮
+    const maleAfterBoost = Math.min(100, s.maleArousal + 20);
 
-    callbacks.showChoices([{ text: '继续', action: () => _impendingNext1(bd, player, callbacks, isSquirt) }]);
-}
-function _impendingNext1(bd, player, callbacks, isSquirt) {
-    callbacks.clearChoices();
-    _sexAddMessage('你只觉阳具被又湿又热的软肉死死缠住，酥麻感从脊椎直冲头顶，几乎要把你化掉。', 'narrator');
-
-    const s = bd._sexState;
-    if (s.maleArousal >= 100) {
-        callbacks.showChoices([{ text: '继续', action: () => _impendingNext2(bd, player, callbacks, isSquirt) }]);
+    if (maleAfterBoost >= 100) {
+        // Chain C — 同步高潮
+        s.maleArousal = maleAfterBoost;
+        _sexUpdatePanel(s);
+        return _syncOrgasm(bd, player, callbacks);
     } else {
-        s.orgasmCount++;
-        callbacks.showChoices([{ text: '继续', action: () => _impendingDone(bd, player, callbacks, isSquirt, false) }]);
+        // Chain B — 正戏女性独自高潮
+        return _femaleSoloOrgasm(bd, player, callbacks);
     }
 }
-function _impendingNext2(bd, player, callbacks, isSquirt) {
-    callbacks.clearChoices();
-    _sexAddMessage('她的花径猛地收紧，像一张小嘴死死咬住你的阳物，你根本来不及抽出，便被那阵剧烈的痉挛绞得精关失守——', 'narrator');
-    callbacks.showChoices([{ text: '继续', action: () => _impendingNext3(bd, player, callbacks, isSquirt) }]);
-}
-function _impendingNext3(bd, player, callbacks, isSquirt) {
-    callbacks.clearChoices();
-    _sexAddMessage('滚烫的阳精尽数喷洒在她花心深处，她在这股热流的冲击下达到了顶峰。', 'narrator');
-    bd._sexState.orgasmCount++;
-    bd._sexState.wasInternal = true;
-    callbacks.showChoices([{ text: '继续', action: () => _impendingDone(bd, player, callbacks, isSquirt, true) }]);
-}
-function _impendingDone(bd, player, callbacks, isSquirt, maleCame) {
+
+// ─── Chain A：侍奉高潮 ───
+
+function _serviceSoloOrgasm(bd, player, callbacks) {
     const s = bd._sexState;
-    _sexAddMessage('（高潮）', 'system');
-    if (!maleCame) {
-        _sexAddMessage(getOrgasmReaction(bd, isSquirt), 'narrator');
-    }
-    if (maleCame) {
-        s.maleArousal = 70;
-        s.ejacCount++;
-        s.overClock = 0;
-    } else {
-        s.maleArousal = Math.max(0, s.maleArousal - 30);
-    }
+    _sexAddMessage('她身子猛地绷紧，双腿之间一阵剧烈的痉挛收缩——竟在侍奉中达到了高潮。', 'narrator');
+    s.orgasmCount++;
     s.femaleArousal = Math.max(0, s.femaleArousal - 30);
     _sexUpdatePanel(s);
-    if (maleCame && s.ejacCount >= s.ejacLimit) {
+    callbacks.showChoices([{ text: '继续', action: () => _serviceOrgasmDone(bd, player, callbacks) }]);
+}
+
+function _serviceOrgasmDone(bd, player, callbacks) {
+    _sexAddMessage('（高潮）', 'system');
+    _sexAddMessage(getOrgasmReaction(bd, false), 'narrator');
+    _sexUpdatePanel(bd._sexState);
+    callbacks.showChoices([{ text: '继续', action: () => _renderSexMain(bd, player, callbacks) }]);
+}
+
+// ─── Chain B：正戏女性独自高潮 ───
+
+function _femaleSoloOrgasm(bd, player, callbacks) {
+    const s = bd._sexState;
+    const pool = _FEMALE_SOLO_ORGASM;
+    const idx = Math.floor(Math.random() * pool.length);
+    const segs = pool[idx];
+
+    _sexAddMessage(segs[0], 'narrator');
+    s.orgasmCount++;
+    s.femaleArousal = Math.max(0, s.femaleArousal - 30);
+    _sexUpdatePanel(s);
+
+    if (segs.length > 1) {
+        callbacks.showChoices([{ text: '继续', action: () => _femaleSoloStep2(bd, player, callbacks, segs, 1) }]);
+    } else {
+        callbacks.showChoices([{ text: '继续', action: () => _femaleSoloDone(bd, player, callbacks) }]);
+    }
+}
+
+function _femaleSoloStep2(bd, player, callbacks, segs, idx) {
+    callbacks.clearChoices();
+    _sexAddMessage(segs[idx], 'narrator');
+    if (idx < segs.length - 1) {
+        callbacks.showChoices([{ text: '继续', action: () => _femaleSoloStep2(bd, player, callbacks, segs, idx + 1) }]);
+    } else {
+        callbacks.showChoices([{ text: '继续', action: () => _femaleSoloDone(bd, player, callbacks) }]);
+    }
+}
+
+function _femaleSoloDone(bd, player, callbacks) {
+    const s = bd._sexState;
+    _sexAddMessage('（高潮）', 'system');
+    _sexAddMessage(getOrgasmReaction(bd, false), 'narrator');
+    // 男性未射精，不扣 maleArousal
+    _sexUpdatePanel(s);
+    callbacks.showChoices([
+        { text: '继续', action: () => _renderSexMain(bd, player, callbacks) },
+    ]);
+}
+
+// ─── Chain C：正戏同步高潮 ───
+
+function _syncOrgasm(bd, player, callbacks) {
+    const s = bd._sexState;
+    const pool = _SYNC_ORGASM;
+    const idx = Math.floor(Math.random() * pool.length);
+    const segs = pool[idx];
+
+    _sexAddMessage(segs[0], 'narrator');
+    _sexUpdatePanel(s);
+
+    if (segs.length > 1) {
+        callbacks.showChoices([{ text: '继续', action: () => _syncStep2(bd, player, callbacks, segs, 1) }]);
+    } else {
+        _syncAfterText(bd, player, callbacks);
+    }
+}
+
+function _syncStep2(bd, player, callbacks, segs, idx) {
+    callbacks.clearChoices();
+    _sexAddMessage(segs[idx], 'narrator');
+    if (idx < segs.length - 1) {
+        callbacks.showChoices([{ text: '继续', action: () => _syncStep2(bd, player, callbacks, segs, idx + 1) }]);
+    } else {
+        _syncAfterText(bd, player, callbacks);
+    }
+}
+
+function _syncAfterText(bd, player, callbacks) {
+    const s = bd._sexState;
+    s.orgasmCount++;
+    s.ejacCount++;
+    s.wasInternal = true;
+    s.maleArousal = 70;
+    s.femaleArousal = Math.max(0, s.femaleArousal - 30);
+    s.overClock = 0;
+    _sexUpdatePanel(s);
+    _sexAddMessage('（高潮）', 'system');
+
+    if (s.ejacCount >= s.ejacLimit) {
         const root = player.attrs.root || 10;
         const label = getRatingLabel(root);
         const msg = '你只觉腰眼一阵酸软，再也无力继续。终究是你' + label + '(' + root + ')的根骨，' + (s.ejacLimit === 1 ? '只能泄这一次。' : '最多只能支持' + s.ejacLimit + '次。') + '你喘息片刻，揽着她温存了一会儿。';

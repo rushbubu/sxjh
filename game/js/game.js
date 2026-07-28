@@ -209,18 +209,7 @@ class Game {
                     ...(isWealthy ? { _isCommercialHQ: true } : {}),
                 });
             }
-            // 为少林/武当注入爬塔驻地
-            const tower = getFactionTower(fId);
-            if (!tower) continue;
-            if (!host.venues.some(v => v.name === tower.towerName)) {
-                host.venues.push({
-                    name: tower.towerName,
-                    npcs: [],
-                    _isTower: true,
-                    _towerFactionId: fId,
-                    _isOutskirts: true,
-                });
-            }
+            // 爬塔入口已移至门派内部菜单（不再作为独立场景）
         }
     }
 
@@ -955,10 +944,14 @@ class Game {
             this.enterVenueSneak(venue);
             return;
         }
-        // 爬塔特殊入口
+        // 爬塔入口已在门派菜单中处理（旧数据兼容：塔场景重定向）
         if (venue._isTower) {
-            this.enterTower(venue);
-            return;
+            const fId = venue._towerFactionId;
+            const towerFaction = FACTIONS[fId];
+            if (towerFaction) {
+                this.addMessage(`此处已移入门派内部，请从门派驻地进入。`, 'narrator');
+                return this.showVenues();
+            }
         }
         // Landlord gate check for starting village quest
         if (this.player.mainQuest <= 1 && this.player.startingVillage === this.player.locationId && venue.name.endsWith('府')) {
@@ -1375,11 +1368,9 @@ class Game {
             choices.push({ text: '研习武学', action: () => this.learnFactionSkillFromFaction(f, venue) });
             choices.push({ text: '修习内功', action: () => this.learnFactionInternalFromFaction(f, venue) });
             const tower = getFactionTower(f.id);
-            if (tower) choices.push({ text: `挑战「${tower.towerName}」`, action: () => {
-                const towerVenue = this.currentLocation.locationVenues.find(v => v._isTower && v._towerFactionId === f.id);
-                if (towerVenue) this.enterTower(towerVenue);
-                else { this.addMessage('试炼之地暂未开放。', 'narrator'); this.factionAction(venue, { factionId: f.id }); }
-            }});
+            if (tower) choices.push({ text: `挑战「${tower.towerName}」`, action: () =>
+                this.enterTower({ _towerFactionId: f.id, _originVenue: venue })
+            });
             choices.push({ text: '捐赠银两（贡献+1/10两）', action: () => this.donateToFaction(f, venue) });
             choices.push({ text: '退出门派', action: () => this.leaveFaction(venue) });
         } else {
@@ -1669,11 +1660,19 @@ class Game {
 
     /* ─── 爬塔系统 ─── */
 
+    _towerBack(venue) {
+        if (venue._originVenue) {
+            this.enterVenue(venue._originVenue);
+        } else {
+            this.showVenues();
+        }
+    }
+
     enterTower(venue) {
         this.clearChoices();
         const fId = venue._towerFactionId;
         const tower = getFactionTower(fId);
-        if (!tower) { this.addMessage('试炼之地已荒废。', 'narrator'); return this.enterVenue(venue); }
+        if (!tower) { this.addMessage('试炼之地已荒废。', 'narrator'); return this._towerBack(venue); }
 
         const p = this.player;
         const progressKey = '_tower_' + fId;
@@ -1686,13 +1685,13 @@ class Game {
 
         if (!isMember) {
             this.addMessage('只有本门弟子方可入内挑战。', 'narrator');
-            this.showChoices([{ text: '离开', action: () => this.enterVenue(venue) }]);
+            this.showChoices([{ text: '离开', action: () => this._towerBack(venue) }]);
             return;
         }
 
         if (currentLevel >= tower.levels.length) {
             this.addMessage('你已通关所有关卡，站在塔顶俯瞰众生，心中豪气万千。', 'event');
-            this.showChoices([{ text: '离开', action: () => this.enterVenue(venue) }]);
+            this.showChoices([{ text: '离开', action: () => this._towerBack(venue) }]);
             return;
         }
 
@@ -1707,7 +1706,7 @@ class Game {
         this.addMessage('', 'narrator');
         this.showChoices([
             { text: `挑战「${tower.levels[currentLevel].name}」`, action: () => this.startTowerBattle(venue, tower) },
-            { text: '离开', action: () => this.enterVenue(venue) },
+            { text: '离开', action: () => this._towerBack(venue) },
         ]);
     }
 
@@ -5250,6 +5249,7 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
 
     _inlineQuestTrigger(q) {
         this._questSeq_fallback([
+            '【支线任务·其一：救牛】',
             '你走出大门，沿着村道前行……',
             '忽然，你听到不远处传来打斗声和叫骂声。',
             '似乎是一个年轻人正在殴打老人。',
