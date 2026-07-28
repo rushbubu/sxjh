@@ -6,7 +6,7 @@ Game.prototype._questSeq = function(messages, onDone) {
         if (i < messages.length) {
             this.addMessage(messages[i], 'narrator');
             i++;
-            this.showChoices([{ text: '……', action: next }]);
+            this.showChoices([{ text: '继续', action: next }]);
         } else if (onDone) {
             onDone();
         }

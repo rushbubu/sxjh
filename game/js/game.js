@@ -686,7 +686,7 @@ class Game {
             if (i < messages.length) {
                 this.addMessage(messages[i].text, messages[i].type || 'narrator');
                 i++;
-                this.showChoices([{ text: '……', action: next }]);
+                this.showChoices([{ text: '继续', action: next }]);
             } else if (onDone) {
                 onDone();
             }
@@ -1938,32 +1938,40 @@ class Game {
     }
 
     crippleLiAction(venue, npc) {
-        this.clearChoices();
         this.player._metCrippleLi = true;
         npc._hidden = true;
-        this.addMessage('街角蜷缩着一个衣衫褴褛的老乞丐，他一条腿瘸着，身旁靠着一根黑黝黝的竹棒。', 'narrator');
-        this.addMessage('你走近时，他缓缓抬起头，一双眼睛却精光四射，与那副落魄模样毫不相称。', 'narrator');
-        this.addMessage('「这位爷……行行好，给点赏钱让老瘸子吃口饭吧。」他咧嘴笑道，露出一口黄牙。', 'narrator');
-        this.showChoices([
-            { text: '给几两银子', action: () => this.crippleLiGiveMoney(venue, npc) },
-            { text: '不予理会', action: () => { this.addMessage('你转身离开，老瘸子在身后叹了口气。', 'narrator'); setTimeout(() => this.enterVenue(venue), 400); } },
-        ]);
+        this._questSeq([
+            '街角蜷缩着一个衣衫褴褛的老乞丐，他一条腿瘸着，身旁靠着一根黑黝黝的竹棒。',
+            '你走近时，他缓缓抬起头，一双眼睛却精光四射，与那副落魄模样毫不相称。',
+            '「这位爷……行行好，给点赏钱让老瘸子吃口饭吧。」他咧嘴笑道，露出一口黄牙。',
+        ], () => {
+            this.showChoices([
+                { text: '给几两银子', action: () => this.crippleLiGiveMoney(venue, npc) },
+                { text: '不予理会', action: () => { this.addMessage('你转身离开，老瘸子在身后叹了口气。', 'narrator'); setTimeout(() => this.enterVenue(venue), 400); } },
+            ]);
+        });
     }
 
     crippleLiGiveMoney(venue, npc) {
         if (this.player.gold < 5) {
-            this.addMessage('你摸了摸钱袋，窘迫地发现连五两碎银都拿不出来。老瘸子摆摆手：「无妨无妨，有心就好。」', 'narrator');
-            this.addMessage('他顿了顿，忽然道：「你虽穷，却有一副侠义心肠。我那不成器的徒子徒孙传了我一套棒法，留在我这儿也是浪费——拿去！」', 'narrator');
-            this.addMessage('他将身旁那根黑黝黝的竹棒抛给你。', 'narrator');
-            this.teachCrippleLiSkill();
+            this._questSeq([
+                '你摸了摸钱袋，窘迫地发现连五两碎银都拿不出来。老瘸子摆摆手：「无妨无妨，有心就好。」',
+                '他顿了顿，忽然道：「你虽穷，却有一副侠义心肠。我那不成器的徒子徒孙传了我一套棒法，留在我这儿也是浪费——拿去！」',
+                '他将身旁那根黑黝黝的竹棒抛给你。',
+            ], () => {
+                this.teachCrippleLiSkill();
+            });
             return;
         }
         this.player.gold -= 5;
         this.updateStatsBar();
-        this.addMessage('你掏出五两碎银放进他碗里。', 'narrator');
-        this.addMessage('老瘸子看了一眼银子，又抬头看了看你，忽然哈哈大笑。', 'narrator');
-        this.addMessage('「好！好心有好报！老瘸子我漂泊半生，也没什么值钱家当——这套棒法，你收着！」', 'narrator');
-        this.teachCrippleLiSkill();
+        this._questSeq([
+            '你掏出五两碎银放进他碗里。',
+            '老瘸子看了一眼银子，又抬头看了看你，忽然哈哈大笑。',
+            '「好！好心有好报！老瘸子我漂泊半生，也没什么值钱家当——这套棒法，你收着！」',
+        ], () => {
+            this.teachCrippleLiSkill();
+        });
     }
 
     teachCrippleLiSkill() {
@@ -4318,7 +4326,7 @@ class Game {
         this.clearChoices();
         const node = tree[stage];
         this.addMessage(typeof node === 'string' ? node : node.text, 'narrator');
-        const choices = (node.choices || [{ text: '……', next: stage + 1 }]).map(c => ({
+        const choices = (node.choices || [{ text: '继续', next: stage + 1 }]).map(c => ({
             text: c.text,
             action: () => {
                 if (c.action) c.action(this, venue, beauty);
@@ -5321,7 +5329,7 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
             if (i < messages.length) {
                 this.addMessage(messages[i], 'narrator');
                 i++;
-                this.showChoices([{ text: '……', action: next }]);
+                this.showChoices([{ text: '继续', action: next }]);
             } else if (onDone) {
                 onDone();
             }

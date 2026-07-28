@@ -545,11 +545,11 @@ function _sexShowPoemLine(bd, player, callbacks) {
         if (idx === 0 && !bd._flirtIntroShown) {
             _sexAddMessage('有道是：', 'narrator');
             bd._flirtIntroShown = true;
-            callbacks.showChoices([{ text: '……', action: () => _sexShowPoemLine(bd, player, callbacks) }]);
+            callbacks.showChoices([{ text: '继续', action: () => _sexShowPoemLine(bd, player, callbacks) }]);
         } else {
             _sexAddMessage('　　' + poem.lines[idx], 'poem');
             bd._flirtPoemIdx = idx + 1;
-            callbacks.showChoices([{ text: '……', action: () => _sexShowPoemLine(bd, player, callbacks) }]);
+            callbacks.showChoices([{ text: '继续', action: () => _sexShowPoemLine(bd, player, callbacks) }]);
         }
     } else {
         _finishCloudRain(bd, player, callbacks);
