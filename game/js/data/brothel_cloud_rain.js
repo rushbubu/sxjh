@@ -4,9 +4,50 @@
         addMessage, showChoices, clearChoices, updateStatsBar,
         sleepToTomorrow,
       });
-    其中 prostitute 是 generateProstitutes 生成的妓女对象
-    player = this.player
+     其中 prostitute 是 generateProstitutes 生成的妓女对象
+     player = this.player
 */
+
+// ─── 妓院专属衣物（性感风） ───
+const BR_CLOTHING_NAMES = {
+    outer: '薄纱披肩', pants: '开裆纱裤', inner: '贴身小衣', bra: '绣花抹胸', panties: '透明亵裤',
+};
+const BR_UNDRESS_ORDER = ['outer', 'pants', 'inner', 'bra', 'panties'];
+
+const BR_UNDRESS_DESC = {
+    outer: [
+        '你勾住她肩头那件薄纱披肩的系带轻轻一扯——轻绡滑落，香肩半露，里头那件贴身小衣根本遮不住胸前的曲线，两粒凸起隔着薄薄的布料若隐若现。',
+        '你从她肩头缓缓剥下那件半透的罗衫，烛光穿过轻纱，在她雪白的肌肤上投下朦胧的光影。她配合地转了转身子，让衣衫顺着脊背滑落在地上，堆成一圈轻云。',
+    ],
+    pants: [
+        '你解开她腰间那条开裆纱裤的系绳，轻薄的纱料顺着大腿滑下——那白生生的腿根在纱影里若隐若现，股缝深处隐约可见一缕幽色。她微微分开双腿，任你褪尽。',
+        '你捏住她纱裤的边缘缓缓往下卷，那透明纱料贴着肌肤滑过，露出一双光裸修长的玉腿。她抬起一只脚让裤管脱落，脚尖轻轻蹭了蹭你的小腿。',
+    ],
+    inner: [
+        '你撩起她那件贴身小衣的下摆，指尖划过她平坦光洁的小腹——那料子薄得几乎透明，能看见底下抹胸绣着的鸳鸯花样。她轻轻吸了口气，小腹随之收得更紧。',
+        '你从她头顶褪下那件贴身小衣，她顺从地举起双臂——那一瞬，胸前的曲线在抹胸下呼之欲出，烛光在她光裸的腰侧镀了一层蜜色的光。',
+    ],
+};
+
+const BR_BRA_REMOVE_DESC = [
+    '你指尖勾住抹胸上缘那根细细的系带，轻轻一抽——绣着鸳鸯戏水的布料松了开来，一对白嫩嫩的乳儿跃然而出，{nipple_desc}，烛光下泛着温润的光。',
+    '你解开她胸前的抹胸，那薄薄一片绣花布料飘然落下，{bust_desc}的酥胸再无遮掩地袒露在你面前，{nipple_desc}。',
+    '她主动抬手让你解开抹胸后的系结，布料滑落的一瞬，她挺了挺胸，{bust_desc}的双峰颤巍巍地晃了晃，{nipple_desc}。',
+];
+const BR_BRA_REACTION = [
+    '她低头看了看自己裸露的胸脯，拿手托了托，吃吃笑道：「爷瞧瞧……这对宝贝养了好些年了，就等着爷来疼呢。」',
+    '她双手捧起自己的奶子，送到你眼前，腻声浪道：「官人……您摸摸……这奶子又软又弹，保管比您府上那些庸脂俗粉强了百倍。」',
+    '她非但没有遮掩，反而挺起胸膛往你跟前凑了凑，眼波流转：「怎么？看呆了？这才哪儿到哪儿呢……后面还有更销魂的。」',
+];
+
+const BR_PANTIES_REMOVE_DESC = [
+    '你勾住她腰间那根细细的带子，将那透明的亵裤缓缓拉下——{pubic_desc}，氤氲着暧昧的水光。',
+    '她配合地抬起腰，任你将那条透明亵裤褪到膝弯。{pubic_desc}。那薄薄的纱料上沾着浅浅的水渍，在烛光下泛着亮晶晶的光。她咬着嘴唇笑了笑：「爷……您还没碰呢……它自己就湿了。」',
+];
+const BR_PANTIES_REACTION = [
+    '她慢慢转过身去，弯腰翘起腚子，拿手掰开那水光潋滟的花瓣儿，回头浪声笑道：「爷……您倒是看仔细了……这水灵灵的小骚屄……可专等着爷的肉棒子来喂呢。」',
+    '她并着腿轻轻蹭了蹭，花唇之间拉出一道细细的银丝，她拿指尖蘸了，送到你唇边，媚声道：「爷尝尝……甜的……奴家特地用花蜜洗过身子……就等着爷来品。」',
+];
 
 // ─── 妓院专属抚触场景数据（独立于通用场景） ───
 
@@ -22,7 +63,7 @@ const BROTHEL_FOREPLAY_SCENES = {
     chest: {
         common: [
             ['你隔着薄薄的衣料覆上她的胸口，掌心下那团软肉温热而富有弹性，拇指在峰顶轻轻打转，隔着布料也清晰地感觉到那一粒{nipple}凸起：「这里……倒是精神。」', '她挺了挺胸往你掌心里送，吃吃笑道：「它知道相公来了……自己就站起来了。」'],
-            ['你解开她领口的扣子，探手进去，握住一团白嫩嫩的乳肉，指尖夹住那{nipple}{nipple_color}的乳头轻轻搓弄：「{nipple_color}的这粒……真够敏感的。」', '她轻吸一口气，酥胸起伏着往你手上贴，声音带喘：「相公……轻点儿……{nipple}乳头疼……」'],
+            ['你解开她领口的扣子，探手进去，握住一团白嫩嫩的乳肉，指尖夹住那{nipple}{nipple_color}乳头轻轻搓弄：「{nipple_color}的这粒……真够敏感的。」', '她轻吸一口气，酥胸起伏着往你手上贴，声音带喘：「相公……轻点儿……{nipple}乳头疼……」'],
             ['你从她锁骨一路向下抚摸，指尖绕着那{areola}乳晕画圈，时不时拨弄一下那{nipple}乳头：「这身子……倒是会长。」', '她咬着嘴唇笑了笑，眼神迷离：「专为了伺候官人长的……官人喜欢就多摸摸。」'],
             ['你指尖勾住她领口的系带轻轻一拉——衣襟散开，一对白嫩嫩的酥胸裹着温热的香气弹跃出来。那{nipple}乳尖在烛光下泛着{nipple_color}的光，娇娇地翘着。你伸手覆上那团温软的乳肉，拇指轻轻碾过那一粒凸起：「好软……好香。」', '她粉面飞红，别过脸去不敢看你，声如蚊蚋：「爷爷这般直白……是要羞死奴家了……」', '你笑着骂了声：「少来，你个小骚浪蹄子！」说罢俯首含住那{nipple}乳头，舌尖轻轻拨弄着那粒{nipple_color}的珠儿——她「啊」地一声软了腰，指尖不觉绞紧了你的衣襟。'],
         ],
@@ -124,7 +165,7 @@ function _brUpdatePanel(state) {
 }
 
 function _brGetAvailableClothes(state) {
-    return UNDRESS_ORDER.filter(k => state.clothes[k]);
+    return BR_UNDRESS_ORDER.filter(k => state.clothes[k]);
 }
 
 // ─── 勾栏云雨主流程 ───
@@ -229,16 +270,49 @@ function _brGetForeplayPair(part, prostitute) {
 function _brDoForeplay(prostitute, player, callbacks, part) {
     callbacks.clearChoices();
     const lines = _brGetForeplayPair(part, prostitute);
-    lines.forEach(l => _brAddMessage(l, 'narrator'));
     const s = prostitute._brState;
     s.femaleArousal = Math.min(100, s.femaleArousal + 5);
     const mAValues = { chest: 4, hips: 4, garden: 4, waist: 2, legs: 2, face: 1, arms: 1, feet: 1 };
     s.maleArousal = Math.min(100, s.maleArousal + (mAValues[part] || 1));
     _brUpdatePanel(s);
-    callbacks.showChoices([{ text: '继续', action: () => _brRenderMain(prostitute, player, callbacks) }]);
+    let i = 0;
+    const next = () => {
+        if (i < lines.length) {
+            _brAddMessage(lines[i], 'narrator');
+            i++;
+            callbacks.showChoices([{ text: '继续', action: next }]);
+        } else {
+            _brRenderMain(prostitute, player, callbacks);
+        }
+    };
+    next();
 }
 
 // ─── 脱衣 ───
+
+function _brGetBraRemoveDesc(bust) {
+    let bustDesc, nippleDesc;
+    if (bust >= 36) { bustDesc = '饱满丰腴'; nippleDesc = '乳晕如铜钱般大小，那一点樱红早已硬挺挺地翘着'; }
+    else if (bust >= 34) { bustDesc = '盈盈一握'; nippleDesc = '粉嫩的乳头如樱桃般点缀其上，娇娇地立着'; }
+    else if (bust >= 32) { bustDesc = '玲珑可爱'; nippleDesc = '淡粉色的乳晕小巧精致，乳头微微凸起，泛着水光'; }
+    else { bustDesc = '娇小玲珑'; nippleDesc = '乳晕如花瓣般淡雅，乳头如花蕊般挺立，惹人怜爱'; }
+    const tpl = BR_BRA_REMOVE_DESC[Math.floor(Math.random() * BR_BRA_REMOVE_DESC.length)];
+    return tpl.replace('{bust_desc}', bustDesc).replace('{nipple_desc}', nippleDesc);
+}
+
+function _brGetPantiesRemoveDesc(bd) {
+    const hips = bd.hips || 32;
+    const waist = bd.waist || 22;
+    let pubic, labia;
+    if (hips >= 36) pubic = '芳草萋萋，浓密的黑森林覆着那饱满的丘陵，早已挂了露珠';
+    else if (hips >= 33) pubic = '稀疏的芳草掩映着那神秘的花谷，谷中水光潋滟';
+    else pubic = '那处光洁如脂，仅有浅浅茸毛，蚌珠微露';
+    if (hips - waist >= 14) labia = '肥美丰腴，两片花唇微微张开';
+    else if (hips - waist >= 10) labia = '粉嫩饱满，紧紧闭合着';
+    else labia = '紧致小巧，一线天般的妙处';
+    const tpl = BR_PANTIES_REMOVE_DESC[Math.floor(Math.random() * BR_PANTIES_REMOVE_DESC.length)];
+    return tpl.replace('{pubic_desc}', pubic).replace('{labia_desc}', labia);
+}
 
 function _brShowUndressMenu(prostitute, player, callbacks) {
     callbacks.clearChoices();
@@ -248,9 +322,9 @@ function _brShowUndressMenu(prostitute, player, callbacks) {
         return _brRenderMain(prostitute, player, callbacks);
     }
     const next = available[0];
-    _brAddMessage('她身上还穿着' + CLOTHING_NAMES[next] + '。', 'narrator');
+    _brAddMessage('她身上还穿着' + BR_CLOTHING_NAMES[next] + '。', 'narrator');
     callbacks.showChoices([
-        { text: '脱下' + CLOTHING_NAMES[next], action: () => _brDoUndress(prostitute, player, callbacks, next) },
+        { text: '脱下' + BR_CLOTHING_NAMES[next], action: () => _brDoUndress(prostitute, player, callbacks, next) },
         { text: '返回', action: () => _brRenderMain(prostitute, player, callbacks) },
     ]);
 }
@@ -261,15 +335,13 @@ function _brDoUndress(prostitute, player, callbacks, key) {
     s.clothes[key] = false;
 
     if (key === 'bra') {
-        _brAddMessage(getBraRemoveDesc(prostitute.bust), 'narrator');
-        _brAddMessage(getBraReaction(prostitute), 'narrator');
-        _brAddMessage(prostitute.name + '双手托着两只大奶子，颤巍巍地晃了晃，浪声道：「爷您瞧瞧……奴家这对宝贝，又白又嫩，奶头儿还是粉的……您含一口试试，保管比蜜还甜。」', 'event');
+        _brAddMessage(_brGetBraRemoveDesc(prostitute.bust), 'narrator');
+        _brAddMessage(BR_BRA_REACTION[Math.floor(Math.random() * BR_BRA_REACTION.length)], 'narrator');
     } else if (key === 'panties') {
-        _brAddMessage(getPantiesRemoveDesc(prostitute), 'narrator');
-        _brAddMessage(getPantiesReaction(prostitute), 'narrator');
-        _brAddMessage('她慢慢转过身去，弯腰翘起腚子，拿手掰开那毛茸茸的花瓣儿，回头浪笑：「爷……您倒是看仔细了……这水灵灵的骚屄……专等着爷的肉棒子来疼呢……」', 'event');
+        _brAddMessage(_brGetPantiesRemoveDesc(prostitute), 'narrator');
+        _brAddMessage(BR_PANTIES_REACTION[Math.floor(Math.random() * BR_PANTIES_REACTION.length)], 'narrator');
     } else {
-        const descs = UNDRESS_DESC[key];
+        const descs = BR_UNDRESS_DESC[key];
         if (descs) _brAddMessage(descs[Math.floor(Math.random() * descs.length)], 'narrator');
     }
     s.femaleArousal = Math.min(100, s.femaleArousal + 1);
@@ -295,16 +367,30 @@ function _brShowServiceMenu(prostitute, player, callbacks) {
     choices.push({ text: '把玩玉乳', action: () => _brDoService(prostitute, player, callbacks, 'breast') });
     choices.push({ text: '抚弄玉臀', action: () => _brDoService(prostitute, player, callbacks, 'butt') });
     choices.push({ text: '小戏花园', action: () => _brDoService(prostitute, player, callbacks, 'garden') });
+    choices.push({ text: '69式', action: () => _brDoService(prostitute, player, callbacks, 'sixty_nine') });
+    choices.push({ text: '臀部素股', action: () => _brDoService(prostitute, player, callbacks, 'sumata') });
     choices.push({ text: '返回', action: () => _brRenderMain(prostitute, player, callbacks) });
     callbacks.showChoices(choices);
 }
 
 function _brDoService(prostitute, player, callbacks, type) {
     callbacks.clearChoices();
+    const s = prostitute._brState;
+
+    if (type === 'sixty_nine' || type === 'sumata') {
+        const pos = _brPickSexPosition(type, prostitute, Math.floor(Math.random() * 10));
+        _brAddMessage('【' + pos.name + '】', 'system');
+        _brAddMessage(pos.desc, 'narrator');
+        s.maleArousal = Math.min(100, s.maleArousal + pos.mA);
+        s.femaleArousal = Math.min(100, s.femaleArousal + pos.fA);
+        _brUpdatePanel(s);
+        callbacks.showChoices([{ text: '继续', action: () => _brRenderMain(prostitute, player, callbacks) }]);
+        return;
+    }
+
     const desc = pickServiceDesc(type);
     const segments = (_splitDesc || function(t){return[t]})(desc);
     _brAddMessage(segments[0], 'narrator');
-    const s = prostitute._brState;
     if (type === 'kiss') {
         s.femaleArousal = Math.min(100, s.femaleArousal + 4);
         s.maleArousal = Math.min(100, s.maleArousal + 3);
@@ -380,6 +466,18 @@ function _brNursingLike(prostitute, player, callbacks) {
     s.maleArousal = Math.min(100, s.maleArousal + 2);
     _brUpdatePanel(s);
     _brAddMessage(prostitute.name + '脸上漾开一抹温柔的笑意，把另一只奶子也送到你嘴边，柔声道：「喜欢就好……来，把这边的也喝了……妈妈的奶水多着呢，管够……」说着轻轻抚摸着你的头发，那眼神竟真有几分慈爱，「乖……多吃些……吃飽了才有力气。」', 'event');
+    callbacks.showChoices([{ text: '继续', action: () => _brNursingAsk(prostitute, player, callbacks) }]);
+}
+
+function _brNursingAsk(prostitute, player, callbacks) {
+    callbacks.clearChoices();
+    _brAddMessage('你含着奶头，含糊地问了一句：「有力气……干嘛？」', 'narrator');
+    callbacks.showChoices([{ text: '继续', action: () => _brNursingReply(prostitute, player, callbacks) }]);
+}
+
+function _brNursingReply(prostitute, player, callbacks) {
+    callbacks.clearChoices();
+    _brAddMessage(prostitute.name + '脸上一红，轻轻拍了你一下，啐道：「讨厌……官人明知故问！」', 'event');
     callbacks.showChoices([{ text: '继续', action: () => _brRenderMain(prostitute, player, callbacks) }]);
 }
 
@@ -432,7 +530,7 @@ const _BR_SEX_POSITIONS = {
     sixty_nine: {
         name: '69式',
         desc: [
-            '{name}笑道：「爷，咱们换个玩法。」她调转身子，{pp_adj}{pp_name}正好对着你的脸，她自己则俯下身去，一口含住了你的阳物。你只觉龟头一阵温热的包裹，她{ph}的花丛就在你眼前，{pp_color}的嫩肉上沾着晶亮的花蜜。她一边含着你的肉棒吞吐，一边含糊不清地道：「爷……您也尝尝奴家的味儿……看看咸还是甜……」',
+            '{name}笑道：「爷，咱们换个玩法。」你只觉龟头一阵温热的包裹，她{ph}的花丛就在你眼前，{pp_color}的嫩肉上沾着晶亮的花蜜。她一边含着你的肉棒吞吐，一边含糊不清地道：「爷……您也尝尝奴家的味儿……看看咸还是甜……」',
             '你们头脚相对地躺着，她熟练地含住你的阳物，舌尖在马眼上打转。你也拨开她{ph}的花丛，舌尖轻轻舔过那{pp_color}的花瓣。她身子一颤，{pp_name}里涌出一股蜜汁，尽数滴在你脸上。她赶忙抬起头，抱歉地笑道：「哎哟……爷……奴家不是故意的……实在是爷的舌头太厉害了……」',
         ], mA: 8, fA: 12,
     },
@@ -487,11 +585,9 @@ function _brShowSexMenu(prostitute, player, callbacks) {
         { text: '正常位', action: () => _brDoSex(prostitute, player, callbacks, 'normal') },
         { text: '女上位', action: () => _brDoSex(prostitute, player, callbacks, 'cowgirl') },
         { text: '反向女上位', action: () => _brDoSex(prostitute, player, callbacks, 'reverse_cowgirl') },
-        { text: '69式', action: () => _brDoSex(prostitute, player, callbacks, 'sixty_nine') },
         { text: '后入式', action: () => _brDoSex(prostitute, player, callbacks, 'doggy') },
         { text: '侧入式', action: () => _brDoSex(prostitute, player, callbacks, 'spoon') },
         { text: '立位', action: () => _brDoSex(prostitute, player, callbacks, 'standing') },
-        { text: '臀部素股', action: () => _brDoSex(prostitute, player, callbacks, 'sumata') },
         { text: '桌沿', action: () => _brDoSex(prostitute, player, callbacks, 'edge') },
     ];
     choices.push({ text: '返回', action: () => _brRenderMain(prostitute, player, callbacks) });
@@ -568,8 +664,15 @@ function _brHandleImpendingOrgasm(prostitute, player, callbacks) {
     const isSquirt = s.canSquirt && s.orgasmCount <= 1;
     callbacks.clearChoices();
 
+    _brAddMessage('她一把搂住你的腰，将你的阳物深深送入蜜穴深处，蜜壶内壁的嫩肉层层叠叠地缠了上来。', 'narrator');
+    callbacks.showChoices([{ text: '继续', action: () => _brHandleOrgasmStep2(prostitute, player, callbacks, isSquirt) }]);
+}
+
+function _brHandleOrgasmStep2(prostitute, player, callbacks, isSquirt) {
+    callbacks.clearChoices();
     _brAddMessage('她的花径骤然缩紧，一阵阵剧烈的颤抖从深处传来，紧紧绞住你的阳物。温热的花蜜喷涌而出，浇淋在你的龟头之上。', 'narrator');
 
+    const s = prostitute._brState;
     s.maleArousal = Math.min(100, s.maleArousal + 20);
     _brUpdatePanel(s);
 

@@ -191,6 +191,7 @@ class Game {
             const cities = [...WORLD.big_cities, ...WORLD.small_cities];
             const host = cities.find(c => c.id === f.locationId);
             if (!host) continue;
+            const isWealthy = fId === 'money';
             // 避免重复注入：门派驻地已存在则跳过
             if (!host.venues.some(v => v.name === f.venueName)) {
                 host.venues.push({
@@ -204,6 +205,8 @@ class Game {
     statuses: [],
                         factionId: fId,
                     }],
+                    _isOutskirts: !isWealthy,
+                    ...(isWealthy ? { _isCommercialHQ: true } : {}),
                 });
             }
             // 为少林/武当注入爬塔驻地
@@ -215,6 +218,7 @@ class Game {
                     npcs: [],
                     _isTower: true,
                     _towerFactionId: fId,
+                    _isOutskirts: true,
                 });
             }
         }
@@ -821,12 +825,14 @@ class Game {
             const specialShops = ['酒馆', '茶馆', '集市'];
             const entertainmentVenues = ['怡红院', '醉花楼', '潇湘阁', '春风楼', '牡丹院', '锦官阁', '汉水楼', '烟雨阁', '赌坊'];
             const isEntertainment = v => entertainmentVenues.includes(v.name);
+            const isOutskirts = v => v._isOutskirts;
             const isShop = v =>
-                !isEntertainment(v) && (specialShops.includes(v.name) || shopKeys.some(s => v.name.includes(s)) || v.name.includes('楼'));
+                !isEntertainment(v) && !isOutskirts(v) && (v._isCommercialHQ || specialShops.includes(v.name) || shopKeys.some(s => v.name.includes(s)) || v.name.includes('楼'));
             const groups = {
+                '城外': this.player.locationVenues.filter(v => isOutskirts(v)),
                 '商业区': this.player.locationVenues.filter(v => isShop(v)),
-                '娱乐区': this.player.locationVenues.filter(v => isEntertainment(v)),
-                '居民区': this.player.locationVenues.filter(v => !isShop(v) && !isEntertainment(v)),
+                '娱乐区': this.player.locationVenues.filter(v => isEntertainment(v) && !isOutskirts(v)),
+                '居民区': this.player.locationVenues.filter(v => !isShop(v) && !isEntertainment(v) && !isOutskirts(v)),
             };
             for (const [label, list] of Object.entries(groups)) {
                 if (list.length > 0) choices.push({ text: label, action: () => this.showGroupVenues(label, list) });
@@ -4248,55 +4254,78 @@ class Game {
 
     resolveTravelFight(locationId, evt, totalPower) {
         this.clearChoices();
-        this.addMessage(`你大喝一声，挡在路人身前！`, 'event');
-
-        const enemy = createTravelEnemy(evt.enemyKey);
-        this.startBattle(enemy,
-            () => {
-                const goldReward = enemy.goldReward || Math.floor(totalPower * 1.5);
-                this.player.gold += goldReward;
-                this.player.exp += enemy.expReward || totalPower;
-                const isEasy = totalPower <= this.getPlayerCombatPower('full') * 0.67;
-                if (isEasy) {
-                    this.player.reputation += 1;
-                    this.addMessage(`你三招两式便将${evt.label}击退！路人纷纷喝彩。`, 'event');
-                    this.addMessage(`获得 ${goldReward} 两银子、${enemy.expReward || totalPower} 点经验，声望 +1`, 'system');
-                } else {
-                    const repGain = Math.min(10, 3 + Math.floor((totalPower / Math.max(1, this.getPlayerCombatPower('full'))) * 2));
-                    this.player.reputation += repGain;
-                    this.addMessage(`你一番苦战，终于将${evt.label}击退！路人千恩万谢。`, 'event');
-                    this.addMessage(`获得 ${goldReward} 两银子、${enemy.expReward || totalPower} 点经验，声望 +${repGain}`, 'system');
+        this._questSeq([
+            '你大喝一声，挡在路人身前！',
+        ], () => {
+            const enemy = createTravelEnemy(evt.enemyKey);
+            this.startBattle(enemy,
+                () => {
+                    const goldReward = enemy.goldReward || Math.floor(totalPower * 1.5);
+                    this.player.gold += goldReward;
+                    this.player.exp += enemy.expReward || totalPower;
+                    const isEasy = totalPower <= this.getPlayerCombatPower('full') * 0.67;
+                    if (isEasy) {
+                        this.player.reputation += 1;
+                        this._questSeq([
+                            `你三招两式便将${evt.label}击退！路人纷纷喝彩。`,
+                            `获得 ${goldReward} 两银子、${enemy.expReward || totalPower} 点经验，声望 +1`,
+                        ], () => {
+                            this.checkLevelUp();
+                            this.updateStatsBar();
+                            setTimeout(() => this.enterLocation(locationId), 400);
+                        });
+                    } else {
+                        const repGain = Math.min(10, 3 + Math.floor((totalPower / Math.max(1, this.getPlayerCombatPower('full'))) * 2));
+                        this.player.reputation += repGain;
+                        this._questSeq([
+                            `你一番苦战，终于将${evt.label}击退！路人千恩万谢。`,
+                            `获得 ${goldReward} 两银子、${enemy.expReward || totalPower} 点经验，声望 +${repGain}`,
+                        ], () => {
+                            this.checkLevelUp();
+                            this.updateStatsBar();
+                            setTimeout(() => this.enterLocation(locationId), 400);
+                        });
+                    }
+                },
+                () => this.gameOver('你受伤过重，不治身亡'),
+                () => {
+                    this._questSeq([
+                        '你趁乱逃走了。',
+                    ], () => {
+                        this.updateStatsBar();
+                        setTimeout(() => this.enterLocation(locationId), 400);
+                    });
                 }
-                this.checkLevelUp();
-                this.updateStatsBar();
-                setTimeout(() => this.enterLocation(locationId), 600);
-            },
-            () => this.gameOver('你受伤过重，不治身亡'),
-            () => {
-                this.addMessage('你趁乱逃走了。', 'narrator');
-                this.updateStatsBar();
-                setTimeout(() => this.enterLocation(locationId), 600);
-            }
-        );
+            );
+        });
     }
 
     resolveTravelStandby(locationId, evt) {
         this.clearChoices();
-        this.addMessage('你冷漠地站在一旁，没有出手。', 'narrator');
         const rep = this.player.reputation;
         const ratingIdx = getRatingIndex(rep);
         if (ratingIdx <= 2) {
-            this.addMessage('你名声不显，路人也不敢指望你什么。', 'info');
+            this._questSeq([
+                '你冷漠地站在一旁，没有出手。',
+                '你名声不显，路人也不敢指望你什么。',
+            ], () => {
+                this.updateStatsBar();
+                setTimeout(() => this.enterLocation(locationId), 400);
+            });
         } else {
             const tierMin = RATINGS[ratingIdx].min;
             const penalty = Math.max(1, Math.floor(tierMin / 10));
             this.player.reputation -= penalty;
-            this.addMessage(`路人失望地看着你：「见死不救，算什么江湖中人！」`, 'danger');
-            this.addMessage(`声望 -${penalty}（当前 ${this.player.reputation}）`, 'system');
-            if (this.player.reputation < 0) { this.gameOver('你声名狼藉，江湖再无容身之处……'); return; }
+            this._questSeq([
+                '你冷漠地站在一旁，没有出手。',
+                `路人失望地看着你：「见死不救，算什么江湖中人！」`,
+                `声望 -${penalty}（当前 ${this.player.reputation}）`,
+            ], () => {
+                if (this.player.reputation < 0) { this.gameOver('你声名狼藉，江湖再无容身之处……'); return; }
+                this.updateStatsBar();
+                setTimeout(() => this.enterLocation(locationId), 400);
+            });
         }
-        this.updateStatsBar();
-        setTimeout(() => this.enterLocation(locationId), 600);
     }
 
     /* ─── 美女系统 ─── */

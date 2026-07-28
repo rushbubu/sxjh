@@ -258,7 +258,7 @@ const SERVICE_DESC = {
 };
 function pickServiceDesc(type) {
     const scenes = SERVICE_DESC[type];
-    return scenes ? scenes[Math.floor(Math.random() * scenes.length)] : '她温柔地侍奉着你。';
+    return scenes ? scenes[Math.floor(Math.random() * scenes.length)] : '她埋首在你胯间，香舌沿着柱身缓缓舔舐，从根部到顶端，又从顶端回到根部，舌尖在马眼处轻轻一点，抬眼媚媚地看你一眼，又低头含住，卖力地伺候起来。';
 }
 
 // 正戏体位（带人物身材占位符）
