@@ -1877,6 +1877,8 @@ class Game {
         if (this.player._metCrippleLi) return;
         if (!this.player.completedQuests || !this.player.completedQuests.rescue_ox) return;
         if ((this.player._evil || 0) !== 0) return;
+        if ((this.player._chopCount || 0) < 5) return;
+        if ((this.player._huntCount || 0) < 5) return;
         const cripple = venue.npcs.find(n => n._isCrippleLi);
         if (cripple) cripple._hidden = false;
     }
