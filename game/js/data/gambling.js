@@ -22,25 +22,47 @@ function setupStreetGamblers(world) {
         2: '一个精明的中年男人靠在墙边，手里把玩着骰子，目光锐利。',
         3: '一个穿着绸缎的瘦削男子倚在墙角，指尖翻动着一枚铜钱，眼神闪烁不定。',
     };
-    const allLocs = [...(world.villages || []), ...(world.small_cities || []), ...(world.big_cities || [])];
-    for (const loc of allLocs) {
+    const casinoNames = ['胡三爷', '金六指', '白七爷', '马九爷', '沈万赌', '雷老虎'];
+    const casinoDescs = {
+        2: '一家不大的赌坊，几张桌子围满了赌客，庄家是个精明的中年人，手法极快。',
+        3: '气派的赌坊大厅里灯火通明，数十张赌桌一字排开，坐镇的老板目光如炬。',
+    };
+    for (const loc of world.villages || []) {
         const corner = loc.venues.find(v => v.name === '街角');
         if (!corner) continue;
-        const isBigCity = world.big_cities && world.big_cities.includes(loc);
-        const isSmallCity = world.small_cities && world.small_cities.includes(loc);
-        const level = isBigCity ? 3 : isSmallCity ? 2 : 1;
         const n = names[Math.floor(Math.random() * names.length)];
         corner.npcs.push({
             npcName: n,
-            npcDesc: descs[level],
+            npcDesc: descs[1],
             civilian: true,
-            combatPower: level * 3 + 3,
+            combatPower: 6,
             items: [],
-            gamblerLevel: level,
+            gamblerLevel: 1,
             isBeauty: false,
             isChief: false,
             martialArt: null,
         });
+    }
+    for (const loc of [...(world.small_cities || []), ...(world.big_cities || [])]) {
+        const isBigCity = world.big_cities && world.big_cities.includes(loc);
+        const level = isBigCity ? 3 : 2;
+        const n = casinoNames[Math.floor(Math.random() * casinoNames.length)];
+        if (!loc.venues.find(v => v.name === '赌坊')) {
+            loc.venues.push({
+                name: '赌坊',
+                npcs: [{
+                    npcName: n,
+                    npcDesc: casinoDescs[level],
+                    civilian: false,
+                    combatPower: level * 5 + 10,
+                    items: [],
+                    gamblerLevel: level,
+                    isBeauty: false,
+                    isChief: false,
+                    martialArt: null,
+                }],
+            });
+        }
     }
 }
 

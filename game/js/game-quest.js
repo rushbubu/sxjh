@@ -207,11 +207,7 @@ Game.prototype.questInteractButcher = function(venue, npc) {
     this.clearChoices();
     this.addMessage(`${npc.npcName}：「买肉？」他手中的剔骨刀在灯光下泛着寒光。`, 'narrator');
     const choices = [];
-    // DEBUG
-    const qObj = this.player.activeQuests && this.player.activeQuests.rescue_ox;
-    console.log('DEBUG butcher check:', JSON.stringify({ hasActive: !!this.player.activeQuests, hasQ: !!qObj, stage: qObj && qObj.stage }));
-    this.addMessage(`[DEBUG] activeQuests 存在: ${!!this.player.activeQuests}, rescue_ox 存在: ${!!qObj}`, 'system');
-    if (this.player.activeQuests && this.player.activeQuests.rescue_ox) {
+    if (this.player.activeQuests && this.player.activeQuests.rescue_ox && ['SPAWN_BUTCHER','BUTCHER_ACTIVE'].includes(this.player.activeQuests.rescue_ox.stage)) {
         choices.push({ text: '【支线】要求还牛', action: () => this._questButcherNegotiate(venue, npc) });
     }
     choices.push({ text: '买肉', action: () => this.buyFromNpc(venue, npc) });
@@ -249,7 +245,7 @@ Game.prototype._questButcherNegotiate = function(venue, npc) {
                                         '你找到小虎，把牛绳塞进他手里。',
                                         '他不敢相信地看着你，随即抱着牛脖子放声大哭。',
                                     ], () => { this._completeRescueOx(5); });
-                                },
+                                } },
                                 { text: '不拿牛，回去给小虎三十两', action: () => {
                                     if (this.player.gold < 30) {
                                         this.addMessage('你摸了摸钱袋，只有' + this.player.gold + '两银子……连三十两都拿不出。', 'narrator');
@@ -280,12 +276,6 @@ Game.prototype._questButcherNegotiate = function(venue, npc) {
                                         '牛用他浑浊的眼神看着你，似乎在感激你的所作所为。',
                                         '你叹了口气，只道众生皆苦。',
                                     ], () => { this._completeRescueOx(25); });
-                                } },
-                                { text: '不管了', action: () => {
-                                    this._questSeq([
-                                        '你松开手中的刀，摇了摇头：「你们家的事，我一个外人掺和不清。」',
-                                        '你转身离开了肉铺。身后传来张屠户一声叹息。',
-                                    ], () => { this.questFail('rescue_ox'); this._showChoicesAfterQuest(); });
                                 } },
                             ]);
                         });

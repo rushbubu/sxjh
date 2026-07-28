@@ -219,7 +219,7 @@ const BREAST_SHAPES = [
 // 乳晕大小
 const AREOLA_TYPES = ['铜钱般小巧的', '铜钱般大小的', '大而饱满的', '杯口般宽大的'];
 // 乳头形状
-const NIPPLE_TYPES = ['细长如豆的', '圆润如樱桃的', '粗大醒目的', '葡萄般凸起的'];
+const NIPPLE_TYPES = ['樱桃般小巧的', '草莓般红润的', '葡萄般圆润的', '石榴般饱满的'];
 // 颜色（未婚浅 / 已婚深）
 const COLORS_YOUNG = ['淡粉', '粉红', '粉嫩', '樱粉'];
 const COLORS_MATURE = ['深红', '浅褐', '褐', '深褐'];
@@ -228,6 +228,7 @@ const BUTT_SHAPES = [
     { key: '紧翘型', desc: '两瓣臀肉紧实上翘，绷出两道诱人的弧线', noun: '紧翘的臀瓣' },
     { key: '圆润型', desc: '臀部浑圆饱满，曲线玲珑有致', noun: '圆润的丰臀' },
     { key: '丰满型', desc: '丰臀肥美，满掌都是软绵绵的触感', noun: '丰满的肉臀' },
+    { key: '蜜桃臀', desc: '两瓣臀肉圆润饱满，如熟透的水蜜桃般诱人', noun: '蜜桃般的臀瓣' },
     { key: '肥美型', desc: '一双臀瓣肥厚多肉，颤颤巍巍', noun: '肥厚多肉的臀瓣' },
     { key: '宽大型', desc: '骨盆宽大，臀部宽阔结实，如一匹烈马的腰胯', noun: '宽阔的臀部' },
 ];
@@ -267,7 +268,7 @@ function _getBreastDesc(bd) {
         '圆盘形': `${sizes[1]}乳儿在胸前铺展开来，乳廓宽宽地摊开，如两只倒扣的玉盘。${areola}乳晕嵌在峰顶，${nipple}乳头俏生生立着，泛着${color}的光泽`,
         '半球形': `${sizes[2]}浑圆饱满，如半剖的瓜儿扣在胸前，乳峰挺拔，峰峦起伏。${areola}乳晕恰到好处，${nipple}乳头微微凸起，${color}的一圈儿分外惹眼`,
         '水滴型': `${sizes[1]}乳儿状如垂露，上部微平下部鼓胀，${s}坠着。${areola}乳晕，${nipple}乳头含苞欲放，呈${color}色泽`,
-        '吊钟乳': `${sizes[2]}沉沉甸甸地垂着，乳廓饱满丰腴，乳尖微微指向下方。${areola}乳晕大而显眼，${nipple}乳头如葡萄般凸起，${color}的乳晕边缘分明`,
+        '吊钟乳': `${sizes[2]}沉沉甸甸地垂着，乳廓饱满丰腴，乳尖微微指向下方。${areola}乳晕大而显眼，${nipple}乳头俏生生缀在峰尖，${color}的乳晕边缘分明`,
         '纺锤形': `${sizes[1]}乳峰修长优美，线条流畅，${areola}乳晕不大不小，${nipple}乳头俏生生立在顶端，${color}的乳粒宛如一粒玛瑙`,
     };
     return descs[shape.key] || `${sizes[1]}玉乳盈盈可握，${areola}乳晕，${nipple}乳头，呈${color}`;
@@ -280,7 +281,7 @@ function _getBreastShort(bd) {
         '圆盘形': `${sizes[1]}乳峰如倒扣的玉盘，一粒${color}的乳头在顶端微微凸起`,
         '半球形': `${sizes[2]}浑圆饱满，${color}的乳尖如熟透的樱桃缀在峰顶`,
         '水滴型': `${sizes[1]}乳儿状如垂露，${color}的乳粒在峰尖微微颤动`,
-        '吊钟乳': `${sizes[2]}沉沉垂着，${color}的乳晕大而饱满，乳尖微微向下`,
+        '吊钟乳': `${sizes[2]}沉沉垂着，${color}的乳晕大而饱满，峰尖缀着一粒${color}的乳珠`,
         '纺锤形': `${sizes[1]}乳峰修长优美，${color}的乳头俏立在顶端`,
     };
     return descs[shape.key] || `一双玉乳，${color}的乳尖若隐若现`;
@@ -326,6 +327,9 @@ function _renderPosDesc(template, bd) {
     out = out.replace(/\{v_else:([^}]+)\}/g, (_, t) => isV ? '' : t);
     out = out.replace(/\{m_if:([^}]+)\}/g, (_, t) => isM ? t : '');
     out = out.replace(/\{m_else:([^}]+)\}/g, (_, t) => isM ? '' : t);
+    const nipple = NIPPLE_TYPES[_hashRange(bd, [5,7,11,13,3], NIPPLE_TYPES.length)];
+    const areola = AREOLA_TYPES[_hashRange(bd, [7,11,13,17,19], AREOLA_TYPES.length)];
+    const nipColor = _getColor(bd, COLORS_YOUNG, COLORS_MATURE);
     return out
         .replace(/{name}/g, bd.name)
         .replace(/{bust}/g, bd.bust)
@@ -342,6 +346,9 @@ function _renderPosDesc(template, bd) {
         .replace(/{pp_desc}/g, pp.desc)
         .replace(/{pp_color}/g, ppColor)
         .replace(/{ph}/g, ph)
+        .replace(/{nipple}/g, nipple)
+        .replace(/{areola}/g, areola)
+        .replace(/{nipple_color}/g, nipColor)
         .replace(/{v}/g, isV ? '处女' : '');
 }
 

@@ -121,7 +121,7 @@ class Game {
             hp: startMaxHp, maxHp: startMaxHp,
             neili: 0, maxNeili: 0,
             day: 1, level: 1, exp: 0,
-            gold: 10, reputation: 10,
+            gold: 50000, reputation: 10,
             shadowRep: 0,
             timePeriod: '清晨',
             items: [],
@@ -142,6 +142,7 @@ class Game {
         };
 
         setupStreetGamblers(WORLD);
+        this._initCrippleLi();
         this.injectFactionVenues();
         const startVillages = WORLD.villages.filter(v => getRegion(v.id) !== 'zhongbu');
         const sv = startVillages[Math.floor(Math.random() * startVillages.length)];
@@ -810,14 +811,14 @@ class Game {
         } else {
             const shopKeys = ['铺', '店', '行', '斋', '庄', '坊', '肆', '堂', '阁'];
             const specialShops = ['酒馆', '茶馆', '集市'];
-            const specialResidences = ['醉花楼'];
-            const isCityShop = v =>
-                specialResidences.includes(v.name) ? false :
-                specialShops.includes(v.name) ? true :
-                shopKeys.some(s => v.name.includes(s)) || v.name.includes('楼');
+            const entertainmentVenues = ['怡红院', '醉花楼', '潇湘阁', '春风楼', '牡丹院', '锦官阁', '汉水楼', '烟雨阁', '赌坊'];
+            const isEntertainment = v => entertainmentVenues.includes(v.name);
+            const isShop = v =>
+                !isEntertainment(v) && (specialShops.includes(v.name) || shopKeys.some(s => v.name.includes(s)) || v.name.includes('楼'));
             const groups = {
-                '街市': this.player.locationVenues.filter(v => isCityShop(v)),
-                '居民区': this.player.locationVenues.filter(v => !isCityShop(v)),
+                '商业区': this.player.locationVenues.filter(v => isShop(v)),
+                '娱乐区': this.player.locationVenues.filter(v => isEntertainment(v)),
+                '居民区': this.player.locationVenues.filter(v => !isShop(v) && !isEntertainment(v)),
             };
             for (const [label, list] of Object.entries(groups)) {
                 if (list.length > 0) choices.push({ text: label, action: () => this.showGroupVenues(label, list) });
@@ -1021,11 +1022,13 @@ class Game {
             }];
         }
 
+        this._tryRevealCrippleLi(venue);
         const nightTime = this.player.timePeriod === '黄昏' || this.player.timePeriod === '子时';
         const alive = venue.npcs.filter(n =>
             !n._killed
             && !(n.isBeauty && n._beautyData && n._beautyData._chattedToday)
             && !(nightTime && n._forestType)
+            && !n._hidden
         );
         if (alive.length === 0) {
             this.addMessage('里面空无一人……', 'narrator');
@@ -1282,11 +1285,13 @@ class Game {
         if (npc.isChief) { this.chiefAction(venue, npc); return; }
         if (this.isBrothelVenue(venue)) { this.interactBrothel(venue, npc); return; }
         if (venue.name === '街角') {
+            if (npc._isCrippleLi) { this.crippleLiAction(venue, npc); return; }
             if (npc.gamblerLevel) { this.gamblerAction(venue, npc); return; }
             this.beggarAction(venue, npc); return;
         }
         if (npc.factionId) { this.factionAction(venue, npc); return; }
-        if (npc.isButcher && this.questInteractButcher) { this.questInteractButcher(venue, npc); return; }
+        if (npc.gamblerLevel) { this.gamblerAction(venue, npc); return; }
+        if ((npc.isButcher || venue.name === '肉铺') && this.questInteractButcher) { this.questInteractButcher(venue, npc); return; }
         this.clearChoices();
         if (!npc._introduced) {
             this.addMessage(`${npc.npcName}：「${npc.npcDesc}」`, 'info');
@@ -1850,12 +1855,33 @@ class Game {
 
     /* ─── 乞丐系统 ─── */
 
-    beggarAction(venue, npc) {
-        // 瘸子李：满足条件时触发
-        if (this.player.completedQuests && this.player.completedQuests.rescue_ox && !this.player._metCrippleLi && (this.player._evil || 0) === 0 /* && (this.player._chopCount || 0) >= 5 && (this.player._huntCount || 0) >= 5 */) {
-            this.crippleLiAction(venue, npc);
-            return;
+    _initCrippleLi() {
+        const allLocs = [...(WORLD.villages || []), ...(WORLD.small_cities || []), ...(WORLD.big_cities || [])];
+        for (const loc of allLocs) {
+            const corner = loc.venues.find(v => v.name === '街角');
+            if (!corner) continue;
+            corner.npcs.push({
+                npcName: '瘸子李',
+                npcDesc: '一个衣衫褴褛的老乞丐，缩在墙角打盹，身旁靠着一根黑黝黝的竹棒。',
+                civilian: true,
+                combatPower: 80,
+                items: [],
+                _isCrippleLi: true,
+                _hidden: true,
+            });
         }
+    }
+
+    _tryRevealCrippleLi(venue) {
+        if (venue.name !== '街角') return;
+        if (this.player._metCrippleLi) return;
+        if (!this.player.completedQuests || !this.player.completedQuests.rescue_ox) return;
+        if ((this.player._evil || 0) !== 0) return;
+        const cripple = venue.npcs.find(n => n._isCrippleLi);
+        if (cripple) cripple._hidden = false;
+    }
+
+    beggarAction(venue, npc) {
         this.clearChoices();
         this.addMessage(`墙角的老乞丐缩了缩脖子，咧嘴露出一口黄牙：「爷，赏口饭吃吧……」`, 'narrator');
         const choices = [
@@ -1914,6 +1940,7 @@ class Game {
     crippleLiAction(venue, npc) {
         this.clearChoices();
         this.player._metCrippleLi = true;
+        npc._hidden = true;
         this.addMessage('街角蜷缩着一个衣衫褴褛的老乞丐，他一条腿瘸着，身旁靠着一根黑黝黝的竹棒。', 'narrator');
         this.addMessage('你走近时，他缓缓抬起头，一双眼睛却精光四射，与那副落魄模样毫不相称。', 'narrator');
         this.addMessage('「这位爷……行行好，给点赏钱让老瘸子吃口饭吧。」他咧嘴笑道，露出一口黄牙。', 'narrator');

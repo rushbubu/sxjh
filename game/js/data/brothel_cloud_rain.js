@@ -1,12 +1,79 @@
 /* ─── 勾栏云雨系统（独立于云雨系统） ───
    调用方式：
-     startBrothelRain(prostitute, player, {
-       addMessage, showChoices, clearChoices, updateStatsBar,
-       sleepToTomorrow,
-     });
-   其中 prostitute 是 generateProstitutes 生成的妓女对象
-   player = this.player
+      startBrothelRain(prostitute, player, {
+        addMessage, showChoices, clearChoices, updateStatsBar,
+        sleepToTomorrow,
+      });
+    其中 prostitute 是 generateProstitutes 生成的妓女对象
+    player = this.player
 */
+
+// ─── 妓院专属抚触场景数据（独立于通用场景） ───
+
+const BROTHEL_FOREPLAY_SCENES = {
+    face: {
+        common: [
+            ['你捏住她的下巴，将她那张粉黛精致的脸蛋抬起来，端详了片刻：「倒是一副好皮囊。」', '她顺势侧过脸，拿脸颊蹭你的手心，眼波流转：「爷喜欢就好……这张脸往后就是爷的了。」'],
+            ['你拇指按在她唇上，缓缓揉开那一点朱红胭脂：「这张嘴……会伺候人么？」', '她张开嘴含住你的指头，舌尖绕着指腹打转，抬眼媚媚地看着你，含糊不清地「唔」了一声。'],
+            ['你抚过她的眉眼，顺着鼻梁滑到唇边，轻笑道：「长得倒勾人。」', '她仰起脸任你摆弄，狐媚子般的眼睛冲你抛了个媚眼：「那官人可得多来看看奴家……免得被别人勾了魂去。」'],
+            ['你低头吻上她的脸颊，从额头一路轻啄到唇角，温热的鼻息扑在她脸上：「这张脸……怎么亲都亲不够。」', '她搂着你的脖子，眼神软得像化开的蜜：「相公就别停……奴家受得住。」'],
+        ],
+    },
+    chest: {
+        common: [
+            ['你隔着薄薄的衣料覆上她的胸口，掌心下那团软肉温热而富有弹性，拇指在峰顶轻轻打转，隔着布料也清晰地感觉到那一粒{nipple}凸起：「这里……倒是精神。」', '她挺了挺胸往你掌心里送，吃吃笑道：「它知道相公来了……自己就站起来了。」'],
+            ['你解开她领口的扣子，探手进去，握住一团白嫩嫩的乳肉，指尖夹住那{nipple}{nipple_color}的乳头轻轻搓弄：「{nipple_color}的这粒……真够敏感的。」', '她轻吸一口气，酥胸起伏着往你手上贴，声音带喘：「相公……轻点儿……{nipple}乳头疼……」'],
+            ['你从她锁骨一路向下抚摸，指尖绕着那{areola}乳晕画圈，时不时拨弄一下那{nipple}乳头：「这身子……倒是会长。」', '她咬着嘴唇笑了笑，眼神迷离：「专为了伺候官人长的……官人喜欢就多摸摸。」'],
+            ['你指尖勾住她领口的系带轻轻一拉——衣襟散开，一对白嫩嫩的酥胸裹着温热的香气弹跃出来。那{nipple}乳尖在烛光下泛着{nipple_color}的光，娇娇地翘着。你伸手覆上那团温软的乳肉，拇指轻轻碾过那一粒凸起：「好软……好香。」', '她粉面飞红，别过脸去不敢看你，声如蚊蚋：「爷爷这般直白……是要羞死奴家了……」', '你笑着骂了声：「少来，你个小骚浪蹄子！」说罢俯首含住那{nipple}乳头，舌尖轻轻拨弄着那粒{nipple_color}的珠儿——她「啊」地一声软了腰，指尖不觉绞紧了你的衣襟。'],
+        ],
+    },
+    waist: {
+        common: [
+            ['你揽住她那盈盈一握的柳腰往怀里一带，手掌顺着腰线滑到胯骨，那腰肢柔若无骨，隔着薄衫都能感到肌肤的温热：「这腰……扭起来怕是要人命。」', '她蛇一样贴在你身上，腰肢轻轻扭了扭，仰头呵气如兰：「爷要不要试试？保准让爷腿软。」'],
+            ['你的手从她衣摆下面探进去，贴着光裸的腰侧缓缓摩挲，掌心下那截纤腰细腻滑润，白生生的肌肤不见一丝赘肉：「这腰身……怎么养的？」', '她被你摸得腰肢轻颤，却笑着往你怀里拱：「嗯……专门练过……床上扭腰的本事，奴家认第二没人敢认第一。」'],
+            ['你从身后环住她的腰，将她整个人拢进怀里，下巴搁在她肩头，手掌贴着她平坦光洁的小腹缓缓摩挲：「这腰……抱一辈子都不腻。」', '她靠在你怀里，偏过头来蹭你的脸，声音软软的：「那相公可要多来……别让奴家空等。」'],
+            ['你扶着她的腰往下一按，让她俯身撑住桌沿——那截纤腰弯成一道诱人的弧线，腰窝深深陷下去，白嫩的背脊随着呼吸轻轻起伏。你手掌顺着腰线滑到那凹陷处，轻轻揉按：「这个姿势……喜欢么？」', '她塌着腰肢回头看你，眼波如水：「爷喜欢的……奴家都喜欢。爷要怎么摆弄……都依爷。」'],
+        ],
+    },
+    arms: {
+        common: [
+            ['你握住她的手腕，将她两条胳膊举过头顶，打量着她光洁的臂弯：「皮肤倒好。」', '她顺势伸了个懒腰，将玉臂送到你眼前，腻声道：「爷闻闻……奴家日日用花瓣泡澡，浑身上下都是香的。」'],
+            ['你的指尖从她肩头顺着玉臂缓缓滑下，停在她腕间：「这里的脉跳得这么快……紧张？」', '她翻过手腕，在你掌心轻轻画着圈：「不是紧张……是盼官人盼了一整天，总算把官人盼来了，心里头热得慌。」'],
+            ['你低头吻了吻她手腕内侧，抬眼看着她：「一股胭脂气。」', '她咯咯笑起来，拿手指点了点你的鼻尖：「胭脂气也是香的……等会儿还有更香的地方，官人要不要尝尝？」'],
+        ],
+    },
+    hips: {
+        common: [
+            ['你握住她那{butt_short}捏了一把，满掌都是白嫩嫩的臀肉，弹滑得腻手：「这屁股……练过？」', '她回头冲你抛了个媚眼，故意晃了晃腰，让那{butt_short}在你手心里颠了颠：「专门练的……就是为了让相公摸着舒服。」'],
+            ['你一巴掌轻拍在她那{butt_short}上，响声清脆，白生生的臀肉微微泛红：「趴好。」', '她乖乖地撑住桌沿，将{butt_short}翘得高高的，回头浪声道：「官人想怎么弄都行……奴家受得住。」'],
+            ['你双手掰开那{butt_short}，目光在那道深深的股缝间流连，低头啐了一口：「这里……今天洗过没有？」', '她脸红了一红，声音却更媚了：「知道相公要来……特地用香汤洗了三遍……相公放心尝。」'],
+            ['你双手揉捏着那{butt_short}，十指深深陷进那白嫩饱满的臀肉里，指尖顺着股缝缓缓下滑，在那一处轻轻按压：「这里……想不想让爷碰？」', '她「嗯」地一声，整个身子都酥了半边，回头时眼底已蒙上一层水雾：「想……冤家碰哪里……奴家都想……」'],
+        ],
+    },
+    legs: {
+        common: [
+            ['你的手沿着她雪白的大腿外侧缓缓上滑，指腹陷入那紧绷而富有弹性的肌肤，感受着她的轻颤：「腿夹紧点。」', '她依言夹紧双腿，把你的手夹在了温热的腿缝间，咬着下唇吃吃地笑：「爷……这样行不行？」'],
+            ['你分开她一双白嫩修长的玉腿，手掌贴着大腿内侧那滑腻的嫩肉摩挲，指尖在腿根处打着转：「这里……滑得跟缎子似的。」', '她任由你摆弄，腿微微分得更开了一些，声如游丝：「相公……您往上摸摸……上面更嫩……」'],
+            ['你从她脚踝一路向上抚摸，在小腿肚上揉捏了一把，又顺着膝弯内侧那滑腻的肌肤缓缓上滑：「这小腿绷得真紧……别紧张。」', '她深吸一口气，努力放松了身体，可当你手指滑到大腿根时，她还是不受控制地哆嗦了一下，花径深处涌出一股热流：「冤家……您别逗奴家了……快进来吧……」'],
+            ['你抬起她一条腿盘在自己腰间，手掌托着她白嫩的大腿根让她靠稳，那{pp_name}隔着薄薄一层布料贴在你身上，温温热热的：「夹紧了……别掉下来。」', '她双手搂住你的脖子，腿紧紧盘住你的腰，整个人挂在你身上，声音又颤又软：「官人……你顶到奴家了……」'],
+        ],
+    },
+    feet: {
+        common: [
+            ['你握住她一只小脚，除去绣鞋，拇指在她白嫩的足心划过：「脚倒是小。」', '她痒得脚趾蜷了蜷，却没有缩回去，反而往你手里送了送：「爷……您要是喜欢……奴家这双脚也能伺候爷……」'],
+            ['你揉捏着她的足弓，一根一根地拨弄她白嫩嫩的脚趾：「这里……敏感么？」', '她呼吸乱了一瞬，声音又轻又颤：「敏……敏感……相公别捏了……再捏奴家要受不住了……」'],
+            ['你抬起她的脚，低头在白皙的脚背上落下一吻，抬眼看着她：「什么味？」', '她脸红透了，声音小了许多：「刚……刚洗过的……没味……」随即又鼓起勇气补了一句：「爷要是嫌……奴家下次用花瓣泡……」'],
+        ],
+    },
+    garden: {
+        common: [
+            ['你的手掌顺着她光洁的小腹缓缓滑入腿间，隔着那层薄薄的亵裤轻轻按压，掌心感受到一片温热的潮意——那层薄布已经湿透了：「这里……倒是诚实。」', '她「唔」地一声夹紧了腿，把你的手夹在了腿缝里，脸红得发烫：「还不是……都怪爷爷撩拨的……」'],
+            ['你拨开那层湿透的布料，{ph}的花丛间泉水已经涓涓渗出，指尖顺着那{pp_name}轻轻一滑，沾了满指晶亮亮的花蜜，在烛光下泛着{pp_color}的光：「湿成这样……想爷了？」', '她咬着嘴唇点头，声音又软又颤：「想……从官人进门那一刻……就在想了……」'],
+            ['你拨开那{pp_name}，寻着那粒藏着的花珠，拇指轻轻揉弄起来：「这里……才是要命的地方吧？」', '她「啊——」地一声仰起头，腰肢猛地一颤，双手死死抓住了你的胳膊：「冤家……那里……别……别停……」'],
+            ['你拨开那{pp_name}，中指顺着滑腻的花蜜缓缓探入——{pp_color}的花径又紧又热，嫩肉紧紧地吸着你的手指，一抽一送间发出咕叽咕叽的水声。你含住她的耳垂低语：「里面……咬得这么紧。」', '她「啊……啊……」地喘着，腰肢随着你的手指轻轻扭动，眼角泛红，声音带着哭腔：「哥哥……你这不是要了奴家的命么……」'],
+        ],
+    },
+};
 
 // ─── 独立页面 DOM 管理 ───
 
@@ -129,8 +196,8 @@ function _brShowForeplayMenu(prostitute, player, callbacks) {
     const parts = [
         { key: 'face', label: '脸蛋' }, { key: 'chest', label: '胸脯' },
         { key: 'waist', label: '腰肢' }, { key: 'arms', label: '玉臂' },
-        { key: 'hips', label: '臀部' }, { key: 'legs', label: '玉腿' },
-        { key: 'feet', label: '玉足' },
+        { key: 'hips', label: '臀部' }, { key: 'garden', label: '私处' },
+        { key: 'legs', label: '玉腿' }, { key: 'feet', label: '玉足' },
     ];
     const choices = parts.map(p => ({
         text: '抚摸' + p.label,
@@ -141,99 +208,33 @@ function _brShowForeplayMenu(prostitute, player, callbacks) {
 }
 
 function _brGetForeplayPair(part, prostitute) {
-    const scenes = FOREPLAY_SCENES[part];
-    if (!scenes) return ['你抚摸着她的身体。', ''];
+    const scenes = BROTHEL_FOREPLAY_SCENES[part];
+    if (!scenes) return ['你抚摸着她的身体。'];
     const pool = [];
     if (scenes.common) pool.push(...scenes.common);
-    const inner = prostitute ? prostitute.inner : null;
-    if (inner && scenes[inner]) pool.push(...scenes[inner]);
-    if (pool.length === 0) return ['你抚摸着她的身体。', ''];
-    const pair = pool[Math.floor(Math.random() * pool.length)];
+    if (pool.length === 0) return ['你抚摸着她的身体。'];
+    const state = prostitute._brState;
+    if (!state._fpIdx) state._fpIdx = {};
+    if (!state._fpIdx[part]) state._fpIdx[part] = 0;
+    const idx = state._fpIdx[part];
+    state._fpIdx[part] = (idx + 1) % pool.length;
+    let pair = pool[idx];
+    const render = typeof _renderPosDesc === 'function';
+    if (render) {
+        pair = pair.map(s => s.indexOf('{') >= 0 ? _renderPosDesc(s, prostitute) : s);
+    }
     return pair;
 }
 
 function _brDoForeplay(prostitute, player, callbacks, part) {
     callbacks.clearChoices();
-    const pair = _brGetForeplayPair(part, prostitute);
-    _brAddMessage(pair[0], 'narrator');
+    const lines = _brGetForeplayPair(part, prostitute);
+    lines.forEach(l => _brAddMessage(l, 'narrator'));
     const s = prostitute._brState;
     s.femaleArousal = Math.min(100, s.femaleArousal + 5);
-    const mAValues = { chest: 4, hips: 4, waist: 2, legs: 2, face: 1, arms: 1, feet: 1 };
+    const mAValues = { chest: 4, hips: 4, garden: 4, waist: 2, legs: 2, face: 1, arms: 1, feet: 1 };
     s.maleArousal = Math.min(100, s.maleArousal + (mAValues[part] || 1));
     _brUpdatePanel(s);
-    const mA = s.maleArousal;
-    const fA = s.femaleArousal;
-
-    const praises = {
-        face: function(p) {
-            const desc = p.faceDesc || '好模样';
-            return '她握住你的手贴在颊边，舌尖轻轻舔了舔你的指缝，眼波盈盈：「爷……您摸摸奴家这张脸，' + desc + '，可入得了爷的眼？」';
-        },
-        chest: function(p) {
-            const breast = _getBreastShort(p);
-            const sizes = _getSizeDesc(p.bust);
-            const color = _getColor(p, COLORS_YOUNG, COLORS_MATURE);
-            return '她挺起' + breast + '，往你掌心里送，咬着下唇吃吃笑：「爷……您捏捏，' + sizes[2] + '奶子，外头可不好找……' + color + '的奶头儿又嫩又翘，您不想尝尝？」';
-        },
-        waist: function(p) {
-            const w = p.waist;
-            const h = p.hips;
-            const label = p.heightLabel || '好';
-            const ratio = w > 0 ? (h / w).toFixed(1) : 0;
-            if (w <= 22) return '她' + label + '的腰肢一扭一扭地往你怀里蹭，仰着脸儿娇声道：「爷……您摸摸奴家这蛇腰……才' + w + '寸，' + ratio + '的腰臀比……勾死个人了……您倒是往下摸摸呀……」';
-            return '她软软地靠进你怀里，拉着你的手按在自己腰间，扭着身子道：「爷……您量量奴家这腰……' + w + '寸的细腰，' + h + '寸的胯……您不想试试这腰扭起来是什么滋味？」';
-        },
-        arms: function(p) {
-            const h = p.height;
-            if (h >= 168) return '她攀着你的肩头，将两条藕臂举到你面前，腻声道：「爷闻闻……奴家日日用玫瑰花露泡着，专等着爷来疼呢……您看奴家这胳膊，又细又长，缠在您脖子上不知道有多舒服……」';
-            return '她攀着你的肩头，两条白生生的胳膊挂在你脖子上，整个人挂在你身上，吐气如兰：「爷……您抱紧奴家……奴家这胳膊没多大力气……全靠爷搂着呢……」';
-        },
-        hips: function(p) {
-            const buttDesc = _getButtDesc(p);
-            const buttNoun = _getButtNoun(p);
-            const hips = p.hips;
-            const ph = _getPHLabel(p);
-            if (hips >= 35) return '她扭过身去，将那' + buttDesc + '的大白腚子凑到你手边，回头浪笑道：「爷……您摸摸奴家这肥腚……' + hips + '寸的肉臀，又圆又弹，' + ph + '的骚毛儿底下那水帘洞早等着爷来探了……您不想试试？」';
-            return '她扭过身去，将那一双' + buttNoun + '送到你手边，回头媚笑道：「爷……您摸摸……' + buttDesc + '，比外头那些黄花大闺女的有肉头多了……您要是不信，掰开来瞧瞧，保管满意。」';
-        },
-        legs: function(p) {
-            const h = p.height;
-            const hips = p.hips;
-            if (h >= 168) return '她撩起裙角，露出一截' + (h >= 172 ? '白生生' : '修长') + '的腿，拿脚尖轻轻蹭你的小腿肚，声音又媚又黏：「爷……您说奴家这双' + (h >= 172 ? '大长腿' : '长腿') + '……要是盘在您腰上……那' + hips + '寸的胯骨夹着您的腰……您受不受得住？」';
-            return '她拉起你的手放在自己大腿上，顺着那' + (h >= 160 ? '匀称' : '浑圆') + '的腿线缓缓滑动，吃吃笑道：「爷……您摸摸奴家这腿……别看个子不高，这腿上的肉可结实着呢……夹起人来……哼……」';
-        },
-        feet: function(p) {
-            const h = p.height;
-            if (h >= 170) return '她褪了绣鞋，将一双' + (h >= 174 ? '大' : '纤长') + '脚送到你面前，脚趾灵活地勾了勾你的裤管，咯咯浪笑：「爷……您可别嫌奴家脚大……这双大脚伺候起爷来，比那些小脚娘儿们有劲儿多了……」';
-            return '她褪了绣鞋，露出一双白嫩嫩的小脚，拿足尖轻轻拨弄你的掌心，咬着嘴唇道：「爷……您要是不嫌脏，奴家这双脚……也能让您快活似神仙……」';
-        },
-    };
-    const praise = praises[part](prostitute);
-
-    callbacks.showChoices([{ text: '继续', action: () => _brForeplayStep2(prostitute, player, callbacks, pair[1], praise, mA, fA) }]);
-}
-
-function _brForeplayStep2(prostitute, player, callbacks, line2, praise, mA, fA) {
-    callbacks.clearChoices();
-    const s = prostitute._brState;
-    s.maleArousal = mA;
-    s.femaleArousal = fA;
-    _brUpdatePanel(s);
-    if (line2) _brAddMessage(line2, 'narrator');
-    if (praise) {
-        callbacks.showChoices([{ text: '继续', action: () => _brForeplayStep3(prostitute, player, callbacks, praise, mA, fA) }]);
-    } else {
-        callbacks.showChoices([{ text: '继续', action: () => _brRenderMain(prostitute, player, callbacks) }]);
-    }
-}
-
-function _brForeplayStep3(prostitute, player, callbacks, praise, mA, fA) {
-    callbacks.clearChoices();
-    const s = prostitute._brState;
-    s.maleArousal = mA;
-    s.femaleArousal = fA;
-    _brUpdatePanel(s);
-    _brAddMessage(praise, 'event');
     callbacks.showChoices([{ text: '继续', action: () => _brRenderMain(prostitute, player, callbacks) }]);
 }
 
