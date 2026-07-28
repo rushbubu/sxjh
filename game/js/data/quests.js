@@ -2,6 +2,7 @@
 
 const QUESTS = {
     rescue_ox: {
+        order: 1,
         id: 'rescue_ox',
         name: '救牛',
         desc: '村口遇到一对爷孙因卖牛起冲突，帮他们把牛赎回来。',

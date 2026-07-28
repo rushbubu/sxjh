@@ -77,6 +77,7 @@ Game.prototype._questRescueOx = function(q) {
     const s = q.stage;
     if (s === 'TRIGGER') {
         this._questSeq([
+            '【支线任务·其一：救牛】',
             '你走出大门，沿着村道前行……',
             '忽然，你听到不远处传来打斗声和叫骂声。',
             '似乎是一个年轻人正在殴打老人。',
@@ -208,7 +209,7 @@ Game.prototype.questInteractButcher = function(venue, npc) {
     this.addMessage(`${npc.npcName}：「买肉？」他手中的剔骨刀在灯光下泛着寒光。`, 'narrator');
     const choices = [];
     if (this.player.activeQuests && this.player.activeQuests.rescue_ox && ['SPAWN_BUTCHER','BUTCHER_ACTIVE'].includes(this.player.activeQuests.rescue_ox.stage)) {
-        choices.push({ text: '【支线】要求还牛', action: () => this._questButcherNegotiate(venue, npc) });
+        choices.push({ text: '【支线1】要求还牛', action: () => this._questButcherNegotiate(venue, npc) });
     }
     choices.push({ text: '买肉', action: () => this.buyFromNpc(venue, npc) });
     choices.push({ text: '出售', action: () => this.sellToNpc(venue, npc) });
