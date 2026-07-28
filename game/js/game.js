@@ -778,6 +778,7 @@ class Game {
         this.showChoices([
             { text: '外出 · 四处走走', action: () => this.showOutdoorChoices() },
             { text: '居家 · 闭门修炼', action: () => this.showHomeChoices() },
+            { text: '前往其他地方', action: () => this.showTravelOptions() },
             { text: '【睡到明天】', action: () => this.sleepToTomorrow() },
             { text: '【个人状态】', action: () => this.showCharacterStatus() },
             { text: '【红颜录】', action: () => this.showRedRecord() },
@@ -824,7 +825,6 @@ class Game {
                 if (list.length > 0) choices.push({ text: label, action: () => this.showGroupVenues(label, list) });
             }
         }
-        choices.push({ text: '前往其他地方', action: () => this.showTravelOptions() });
         choices.push({ text: '回去', action: () => this.showLocationChoices() });
         this.addMessage(`—— ${loc.name}的街市 ——`, 'system');
         this.showChoices(choices);
@@ -1958,7 +1958,7 @@ class Game {
         if (this.player.gold < 5) {
             this._questSeq([
                 '你摸了摸钱袋，窘迫地发现连五两碎银都拿不出来。老瘸子摆摆手：「无妨无妨，有心就好。」',
-                '他顿了顿，忽然道：「你虽穷，却有一副侠义心肠。我那不成器的徒子徒孙传了我一套棒法，留在我这儿也是浪费——拿去！」',
+                '他顿了顿，忽然道：「你虽穷，却有一副侠义心肠。我那不成器的徒子徒孙传了我一套掌法，留在我这儿也是浪费——拿去！」',
                 '他将身旁那根黑黝黝的竹棒抛给你。',
             ], () => {
                 this.teachCrippleLiSkill();
@@ -1969,8 +1969,42 @@ class Game {
         this.updateStatsBar();
         this._questSeq([
             '你掏出五两碎银放进他碗里。',
-            '老瘸子看了一眼银子，又抬头看了看你，忽然哈哈大笑。',
-            '「好！好心有好报！老瘸子我漂泊半生，也没什么值钱家当——这套棒法，你收着！」',
+        ], () => {
+            this._crippleLiAskQuestion(venue, npc);
+        });
+    }
+
+    _crippleLiAskQuestion(venue, npc) {
+        this._questSeq([
+            '老瘸子没有急着收钱，而是抬眼定定地看着你，缓缓开口：',
+            '「小伙子慢着——老夫问你，你平生……有没有当过坏人、干过坏事啊？」',
+        ], () => {
+            this.showChoices([
+                { text: '本人生平光明磊落，自信是个正人君子', action: () => {
+                    this._crippleLiAnswerGood(venue, npc);
+                }},
+                { text: '是是非非很难说，但求无愧我心，无愧苍生', action: () => {
+                    this._crippleLiAnswerGreat(venue, npc);
+                }},
+            ]);
+        });
+    }
+
+    _crippleLiAnswerGood(venue, npc) {
+        this._questSeq([
+            '老瘸子看了你半晌，捋须点了点头，忽而哈哈大笑。',
+            '「好！好心有好报！老瘸子我漂泊半生，也没什么值钱家当——这套掌法，你收着！」',
+        ], () => {
+            this.teachCrippleLiSkill();
+        });
+    }
+
+    _crippleLiAnswerGreat(venue, npc) {
+        this._questSeq([
+            '老瘸子闻言一怔，随即仰天大笑，笑声在幽深的巷子里回荡不绝。',
+            '「哈哈哈哈——好一个无愧苍生！」',
+            '他笑罢，抹了把眼角，正色道：',
+            '「有你这句话，老瘸子这身功夫没白留。拿去！」',
         ], () => {
             this.teachCrippleLiSkill();
         });
