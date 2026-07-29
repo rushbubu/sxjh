@@ -153,7 +153,9 @@ function _doForeplay(bd, player, callbacks, part) {
     callbacks.clearChoices();
     const s = bd._sexState;
     const tier = Math.min(3, (s.ejacCount || 0) + 1);
-    _sexAddMessage(pickForeplay(part, bd, tier), 'narrator');
+    let msg = pickForeplay(part, bd, tier);
+    if (typeof _renderPosDesc === 'function') msg = _renderPosDesc(msg, bd);
+    _sexAddMessage(msg, 'narrator');
     s.femaleArousal = Math.min(100, s.femaleArousal + 5);
     const mAValues = { chest: 4, hips: 4, waist: 2, legs: 2, face: 1, arms: 1, feet: 1 };
     s.maleArousal = Math.min(100, s.maleArousal + (mAValues[part] || 1));
@@ -226,7 +228,8 @@ function _doService(bd, player, callbacks, type) {
     const s = bd._sexState;
     s.lastAction = 'service';
     const tier = Math.min(3, (s.ejacCount || 0) + 1);
-    const desc = pickServiceDesc(type, tier);
+    let desc = pickServiceDesc(type, tier);
+    if (typeof _renderPosDesc === 'function') desc = _renderPosDesc(desc, bd);
     const segments = (_splitDesc || function(t){return[t]})(desc);
     _sexAddMessage(segments[0], 'narrator');
     if (type === 'kiss') {
@@ -584,9 +587,12 @@ function _endSexScene(bd, player, callbacks) {
         callbacks.clearChoices();
         _sexAddMessage(feedback.text, 'narrator');
         const afterglowNext = () => {
-            let msg = pickAfterglowDesc(bd);
-            if (s.wasInternal && bd._wasVirgin) {
-                msg += ' 那白浊之间搀着缕缕血丝，顺着红肿的花唇缓缓淌下——处子之血与阳精混在一起，在身下晕开一片。';
+            let msg = '';
+            if (s.wasInternal) {
+                msg = pickAfterglowDesc(bd);
+                if (bd._wasVirgin) {
+                    msg += ' 那白浊之间搀着缕缕血丝，顺着红肿的花唇缓缓淌下——处子之血与阳精混在一起，在身下晕开一片。';
+                }
             }
             if (msg) {
                 callbacks.clearChoices();

@@ -405,7 +405,28 @@ class Game {
     /* ─── 序章 ─── */
 
     showIntro() {
-        this.afterIntro();
+        this.clearLog();
+        this.clearChoices();
+        const segs = [
+            '你猛地睁开双眼。',
+            '最后的记忆，是华山之巅。',
+            '那一剑从背后刺入，穿胸而过——你的师弟沈清寒，你最信任的师弟，在你全力激战之时，递出了致命一剑。',
+            '你——华山派大弟子，江湖上赫赫有名的剑客——坠入了万劫深渊。',
+            '耳边还回响着他冷冰冰的声音：「师兄，这掌门之位就归我了。」',
+            '万劫深渊，深不见底，自古无人能生还。但你竟没有死。',
+            '坠落途中，怀里的古老竹简突然发光——是师父交给你的天之书残本。',
+            '那是《天之书》残本，上古无上心法。经文虽不全，却已深深刻入你的魂魄。',
+            '你，重生了。',
+            '这一世，你要从零开始，一步一步——让那些背叛你的人，付出代价。',
+        ];
+        let i = 0;
+        const next = () => {
+            if (i < segs.length) {
+                this.addMessage(segs[i], 'narrator'); i++;
+                this.showChoices([{ text: i === segs.length ? '缓缓睁开双眼' : '继续……', action: i === segs.length ? () => this.afterIntro() : next }]);
+            }
+        };
+        next();
     }
 
     afterIntro() {
@@ -606,6 +627,7 @@ class Game {
 
     getItemStock(item) {
         if (item.special) return 1;
+        if (item.slot) return 1;
         if (item.value <= 3) return 5;
         if (item.value <= 10) return 3;
         if (item.value <= 20) return 2;
@@ -1072,12 +1094,20 @@ class Game {
                         this.updateStatsBar();
                         setTimeout(() => this.enterVenueInner(venue), 400);
                     }},
+                    { text: '采药', action: () => { this.clearChoices(); this._herbGatherMenu(venue); } },
+                    { text: '离开', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
+                ]);
+            } else if (venue.name === '小树林') {
+                this.showChoices([
+                    { text: '采药', action: () => { this.clearChoices(); this._herbGatherMenu(venue); } },
                     { text: '离开', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
                 ]);
             } else if (venue.name === '废弃矿坑') {
                 this._mineMenu(venue);
             } else if (venue.name === '小溪') {
                 this._fishingMenu(venue);
+            } else if (venue.name === '田埂') {
+                this._herbGatherMenu(venue);
             } else {
                 setTimeout(() => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()), 400);
             }
@@ -1113,6 +1143,12 @@ class Game {
                 this.updateStatsBar();
                 setTimeout(() => this.enterVenueInner(venue), 400);
             }});
+        }
+        if (venue.name === '田埂') {
+            choices.splice(choices.length, 0, { text: '采药', action: () => { this.clearChoices(); this._herbGatherMenu(venue); } });
+        }
+        if (venue.name === '小树林') {
+            choices.splice(choices.length, 0, { text: '采药', action: () => { this.clearChoices(); this._herbGatherMenu(venue); } });
         }
         choices.push({ text: `离开${venue.name}`, action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) });
         this.showChoices(choices);
@@ -1246,6 +1282,86 @@ class Game {
                 setTimeout(() => this._fishingMenu(venue), 400);
             }},
             { text: '收起鱼竿', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
+        ];
+        this.showChoices(choices);
+    }
+
+    /* ─── 采药系统 ─── */
+
+    _getSeason() {
+        return ['春', '夏', '秋', '冬'][this.player.day % 4];
+    }
+
+    _herbTable(venue) {
+        const season = this._getSeason();
+        if (venue.name === '田埂') {
+            const pools = {
+                '春': [{ id: 'cheqiancao', w: 35 }, { id: 'pugongying', w: 30 }, { id: 'aicao', w: 20 }, { id: 'herb_bandage', w: 10 }, { id: 'fuling', w: 5 }],
+                '夏': [{ id: 'pugongying', w: 35 }, { id: 'cheqiancao', w: 25 }, { id: 'aicao', w: 15 }, { id: 'herb_bandage', w: 15 }, { id: 'fuling', w: 10 }],
+                '秋': [{ id: 'aicao', w: 35 }, { id: 'cheqiancao', w: 25 }, { id: 'pugongying', w: 20 }, { id: 'herb_bandage', w: 15 }, { id: 'fuling', w: 5 }],
+                '冬': [{ id: 'cheqiancao', w: 30 }, { id: 'aicao', w: 30 }, { id: 'pugongying', w: 20 }, { id: 'herb_bandage', w: 15 }, { id: 'fuling', w: 5 }],
+            };
+            return pools[season] || pools['春'];
+        }
+        if (venue.name === '小树林') {
+            const pools = {
+                '春': [{ id: 'herb_ginseng_small', w: 25 }, { id: 'fuling', w: 25 }, { id: 'lingzhi', w: 15 }, { id: 'cheqiancao', w: 20 }, { id: 'aicao', w: 15 }],
+                '夏': [{ id: 'fuling', w: 30 }, { id: 'herb_ginseng_small', w: 20 }, { id: 'lingzhi', w: 15 }, { id: 'pugongying', w: 20 }, { id: 'ginseng_100', w: 5 }],
+                '秋': [{ id: 'lingzhi', w: 25 }, { id: 'herb_ginseng_small', w: 25 }, { id: 'fuling', w: 20 }, { id: 'cheqiancao', w: 15 }, { id: 'ginseng_100', w: 5 }],
+                '冬': [{ id: 'herb_ginseng_small', w: 30 }, { id: 'fuling', w: 25 }, { id: 'lingzhi', w: 10 }, { id: 'cheqiancao', w: 20 }, { id: 'aicao', w: 15 }, { id: 'ginseng_100', w: 1 }],
+            };
+            return pools[season] || pools['春'];
+        }
+        return [];
+    }
+
+    _herbGatherDesc(venue, season) {
+        const descs = {
+            '田埂': {
+                '春': '田埂上的野草在春风吹拂下嫩绿欲滴，你弯下腰仔细翻找着药草。',
+                '夏': '夏日的田野一片生机，各种草药在烈日下长得正旺。你蹲在田埂边，拨开杂草挑选可用的药材。',
+                '秋': '秋风拂过金黄的稻田，田埂上的草药已经结籽。你趁天高气爽，细细采收成熟的药草。',
+                '冬': '田埂上一片萧瑟，枯草间偶有几株耐寒的药草仍在生长。你耐着寒意仔细搜寻。',
+            },
+            '小树林': {
+                '春': '春雨过后，林间弥漫着泥土和草木的气息。松树下、枯木旁，各种药材正悄然生长。',
+                '夏': '树林里浓荫蔽日，闷热潮湿的林间是诸多喜阴药草生长的好时节。你穿梭在树影间，搜寻着珍贵的药材。',
+                '秋': '秋日的树林里落叶满地，灵芝和茯苓正是采收的好时节。你拨开落叶仔细查看每一处朽木和树根。',
+                '冬': '林间一片寂静，枯枝上挂着薄霜。耐寒的草药在雪地下蛰伏，只有最细心的采药人才能发现它们的踪迹。',
+            },
+        };
+        return (descs[venue.name] && descs[venue.name][season]) || '你仔细搜寻着四周，看看有什么可采的药材。';
+    }
+
+    _herbGatherMenu(venue) {
+        this.clearChoices();
+        const season = this._getSeason();
+        this.addMessage(this._herbGatherDesc(venue, season), 'narrator');
+        const choices = [
+            { text: '采药', action: () => {
+                this.clearChoices();
+                const table = this._herbTable(venue);
+                const total = table.reduce((s, h) => s + h.w, 0);
+                let roll = Math.random() * total;
+                let picked = table[0].id;
+                for (const h of table) {
+                    roll -= h.w;
+                    if (roll <= 0) { picked = h.id; break; }
+                }
+                const num = 1 + Math.floor(Math.random() * (venue.name === '小树林' ? 2 : 3));
+                for (let i = 0; i < num; i++) this.player.items.push({ ...getItem(picked) });
+                const itemName = (getItem(picked) || { name: picked }).name;
+                this.addMessage(`你${venue.name === '田埂' ? '沿着田埂仔细翻找' : '在林间穿行搜寻'}，采到了${itemName}×${num}。`, 'narrator');
+                this.addMessage(`获得 ${itemName}×${num}`, 'system');
+                if (Math.random() < 0.05) {
+                    this.player.items.push({ ...getItem('herb_ginseng_small') });
+                    this.addMessage('你在一处隐蔽的角落发现了一株小参！额外获得小参×1', 'event');
+                }
+                this.advanceTime();
+                this.updateStatsBar();
+                setTimeout(() => this._herbGatherMenu(venue), 400);
+            }},
+            { text: '离开', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
         ];
         this.showChoices(choices);
     }
@@ -1470,16 +1586,16 @@ class Game {
         if (venue.name === '铁匠铺') {
             choices.splice(choices.findIndex(c => c.text === '出售') + 1, 0, { text: '装备制造', action: () => this.showForgeMenu(venue, npc) });
         }
+        const huntQuest = this._getActiveBoardHuntQuest();
+        if (huntQuest && venue.name === '小树林' && !npc._killed) {
+            choices.splice(choices.length, 0, { text: `猎杀${huntQuest.beastName}（告示栏任务）`, action: () => this._startBoardHuntBattle(huntQuest) });
+        }
         // 小树林：猎人或樵夫专属
         if (npc._forestType === 'hunter' && !npc._killed) {
             choices.splice(choices.length, 0, { text: '帮助打猎', action: () => this.huntWithHunter(venue, npc) });
         }
         if (npc._forestType === 'woodcutter' && !npc._killed) {
             choices.splice(choices.length, 0, { text: '帮助砍柴', action: () => this.chopWithWoodcutter(venue, npc) });
-        }
-        const huntQuest = this._getActiveBoardHuntQuest();
-        if (huntQuest && venue.name === '小树林' && !npc._killed) {
-            choices.push({ text: `猎杀${huntQuest.beastName}（告示栏任务）`, action: () => this._startBoardHuntBattle(huntQuest) });
         }
         if (!npc.civilian && npc.combatPower > 0 && !npc._defeated) {
             choices.push({ text: '邀请切磋', action: () => this.duelWithNpc(venue, npc, { label: '邀请切磋' }) });
@@ -2518,9 +2634,9 @@ class Game {
             }
             const choices = [
             { text: '闲谈', action: () => this.chatWithNpc(venue, npc) },
+            { text: '查看告示栏', action: () => this._showNoticeBoard(venue, npc) },
             { text: '购买', action: () => this.buyFromNpc(venue, npc) },
             { text: '出售', action: () => this.sellToNpc(venue, npc) },
-            { text: '查看告示栏', action: () => this._showNoticeBoard(venue, npc) },
             { text: '打探消息', action: () => this.chiefIntel(venue, npc) },
         ];
             if (!npc.civilian && npc.combatPower > 0 && !npc._defeated) {
@@ -4114,6 +4230,7 @@ class Game {
             { text: '练习外功', action: () => this.showExternalPractice() },
             { text: '练习心法', action: () => this.practiceInternal() },
             { text: '生火做饭', action: () => this.showCooking() },
+            { text: '炼制丹药', action: () => this._alchemyMenu() },
             { text: '睡到明天', action: () => this.sleepToTomorrow() },
             { text: '回去', action: () => this.showLocationChoices() },
         ]);
@@ -4163,6 +4280,58 @@ class Game {
                     { text: '再烤一份', action: () => this.showCooking() },
                     { text: '回去', action: () => this.showHomeChoices() },
                 ]);
+            },
+        }));
+        choices.push({ text: '回去', action: () => this.showHomeChoices() });
+        this.showChoices(choices);
+    }
+
+    /* ─── 炼丹系统 ─── */
+
+    _alchemyMenu() {
+        this.clearChoices();
+        const ALCHEMY_RECIPES = [
+            { name: '金疮药', productId: 'jinchuang', ings: { herb_bandage: 2 }, desc: '止血草×2 → 金疮药' },
+            { name: '止血膏', productId: 'zhixue_gao', ings: { herb_bandage: 3, aicao: 1 }, desc: '止血草×3 + 艾草×1 → 止血膏' },
+            { name: '养气丹', productId: 'neili_dan', ings: { fuling: 2, herb_ginseng_small: 1 }, desc: '茯苓×2 + 小参×1 → 养气丹' },
+            { name: '清心丸', productId: 'qingxin_wan', ings: { cheqiancao: 2, aicao: 1 }, desc: '车前草×2 + 艾草×1 → 清心丸' },
+            { name: '解毒散', productId: 'jiedu_san', ings: { pugongying: 2, fuling: 1 }, desc: '蒲公英×2 + 茯苓×1 → 解毒散' },
+            { name: '回魂丹', productId: 'huisheng', ings: { lingzhi: 2, herb_ginseng_small: 2, ginseng_100: 1 }, desc: '灵芝×2 + 小参×2 + 百年山参×1 → 回魂丹' },
+        ];
+        const available = ALCHEMY_RECIPES.filter(r => {
+            const inv = this.player.items;
+            return Object.keys(r.ings).every(id => inv.filter(i => i.id === id).length >= r.ings[id]);
+        });
+        if (available.length === 0) {
+            this.addMessage('你取出药罐和火炉，翻了一遍背包——没有足够的药材可以炼丹。', 'narrator');
+            this.addMessage('去田埂或小树林采些药材回来吧。', 'narrator');
+            this.showChoices([{ text: '回去', action: () => this.showHomeChoices() }]);
+            return;
+        }
+        this.addMessage('你取出药罐，升起炉火，准备炼制丹药。', 'narrator');
+        const choices = available.map(r => ({
+            text: `炼制${r.name}（${r.desc}）`,
+            action: () => {
+                this.clearChoices();
+                const inv = this.player.items;
+                const hasAll = Object.keys(r.ings).every(id => inv.filter(i => i.id === id).length >= r.ings[id]);
+                if (!hasAll) {
+                    this.addMessage('药材不够了。', 'narrator');
+                    this.showChoices([{ text: '回去', action: () => this.showHomeChoices() }]);
+                    return;
+                }
+                for (const id of Object.keys(r.ings)) {
+                    let need = r.ings[id];
+                    for (let i = inv.length - 1; i >= 0 && need > 0; i--) {
+                        if (inv[i].id === id) { inv.splice(i, 1); need--; }
+                    }
+                }
+                this.player.items.push({ ...getItem(r.productId) });
+                this.addMessage(`你按方配药，守在炉边控制火候。半个时辰后，药香四溢——${r.name}炼成了！`, 'narrator');
+                this.addMessage(`获得 ${r.name}×1`, 'system');
+                this.advanceTime();
+                this.updateStatsBar();
+                setTimeout(() => this._alchemyMenu(), 400);
             },
         }));
         choices.push({ text: '回去', action: () => this.showHomeChoices() });
@@ -4592,7 +4761,7 @@ class Game {
         if (!beauties || beauties.length === 0) return;
         const venues = this.player.locationVenues;
         if (venues.length === 0) return;
-        const publicVenues = venues.filter(v => !v.name.includes('家') && !v.name.includes('府') && v.name !== '小树林' && !this.isBrothelVenue(v));
+        const publicVenues = venues.filter(v => !v.name.includes('家') && !v.name.includes('府') && v.name !== '小树林' && v.name !== '废弃矿坑' && v.name !== '街角' && !this.isBrothelVenue(v));
         if (publicVenues.length === 0) return;
         for (const b of beauties) {
             if (this.killedNpcs.has('beauty_' + b.id)) continue;
@@ -5128,8 +5297,8 @@ class Game {
                         }
                     } else {
                         if (Math.random() < 0.5) {
-                            this.addMessage(`${bd.name}叹了口气，低声道：「夫君在家……改日吧。」`, 'narrator');
-                            this._showCloudRainChoices(venue, beauty, returnTo);
+                            this.addMessage(`${bd.name}低声道：「夫君在家……我们去客栈吧。」`, 'narrator');
+                            this._goToInnSex(venue, beauty);
                         } else {
                             this.addMessage(`${bd.name}低声道：「夫君出门了……家里方便。」`, 'narrator');
                             this._goToHomeSex(venue, beauty);

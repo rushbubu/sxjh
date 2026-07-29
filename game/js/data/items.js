@@ -21,6 +21,11 @@ const ITEMS = {
     iron_command:    { id: 'iron_command',    name: '玄铁令',    desc: '刻着古怪符文的铁牌，似乎与某个秘密有关。',             value: 18,  stealDiff: 45, category: 'token', special: true },
 
     herb_ginseng_small:{ id: 'herb_ginseng_small', name: '小参',      desc: '山中采来的小野参，虽年份不足但也有补气之效。',          value: 8,   stealDiff: 15, category: 'medicine' },
+    cheqiancao:      { id: 'cheqiancao',      name: '车前草',    desc: '田埂边常见的野草，晒干后可入药，有利水之效。',             value: 2,   stealDiff: 8,  category: 'medicine' },
+    aicao:           { id: 'aicao',           name: '艾草',      desc: '散发着特殊香气的草药，端午时节常用来驱虫避邪。',           value: 2,   stealDiff: 8,  category: 'medicine' },
+    pugongying:      { id: 'pugongying',      name: '蒲公英',    desc: '漫山遍野的野菜，嫩叶可食，全株入药可清热解毒。',           value: 1,   stealDiff: 5,  category: 'medicine' },
+    fuling:          { id: 'fuling',          name: '茯苓',      desc: '寄生松根而生的菌核，利水渗湿，宁心安神，是常见的药材。',   value: 5,   stealDiff: 15, category: 'medicine' },
+    lingzhi:         { id: 'lingzhi',         name: '灵芝',      desc: '生长于枯木之上的仙草，山中珍品，有延年益寿之效。',         value: 15,  stealDiff: 30, category: 'medicine' },
 
     // ═══ 小城通用物品 ═══
     silk_robe:       { id: 'silk_robe',       name: '绸缎衣',    desc: '上等丝绸制成的衣衫，穿在身上轻软舒适。',               value: 10,  stealDiff: 25, category: 'clothing', slot: 'upperBody', tier: 'green' },
