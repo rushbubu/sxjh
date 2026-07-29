@@ -151,6 +151,7 @@ class Game {
             _massageLevel: 0,       // 按摩心经修炼等级（0-5）
             _tianzhishuLevel: 0,    // 天之书修炼次数（上限10）
             _huntUnlockLevel: 0,
+            _drunk: 0,
         };
 
         setupStreetGamblers(WORLD);
@@ -587,6 +588,8 @@ class Game {
         if (activeStatuses.length > 0) {
             st.textContent += (st.textContent ? ' | ' : '') + activeStatuses.join('|');
         }
+        const drunk = p._drunk || 0;
+        if (drunk > 0) st.textContent += (st.textContent ? ' | ' : '') + `醉意 ${drunk}`;
         p.hp = Math.max(0, p.hp); p.neili = Math.max(0, p.neili);
         if (p.reputation <= -40) this._triggerRepGameOver();
         const ri = this.getRepInfo(p.reputation);
@@ -3249,16 +3252,27 @@ class Game {
             const p = this.player;
             const found = (p.statuses || []).findIndex(s => s.type === use.cure);
             if (found !== -1) {
-                p.statuses.splice(found, 1);
-                msg += ` 身上的「${statusNames[use.cure] || use.cure}」状态解除了。`;
+                if (item.id === 'herb_bandage' && Math.random() >= 0.5) {
+                    msg += ` 但止血草药力不足，没能止住伤口。`;
+                } else {
+                    p.statuses.splice(found, 1);
+                    msg += ` 身上的「${statusNames[use.cure] || use.cure}」状态解除了。`;
+                }
             } else {
                 msg += ` 但你没有${statusNames[use.cure] || use.cure}状态。`;
             }
             this.battleState.log.push({ text: msg, cls: 'battle-log-info' });
         } else if (use.healNeili) {
             this.player.neili = Math.min(this.player.maxNeili, this.player.neili + use.healNeili);
-            msg += ` 内力恢复 ${use.healNeili} 点。`;
+            this.player._drunk = (this.player._drunk || 0) + use.healNeili;
+            msg += ` 内力恢复 ${use.healNeili} 点。醉意 +${use.healNeili}。`;
             this.battleState.log.push({ text: msg, cls: 'battle-log-info' });
+            if (this.player._drunk >= 100) {
+                this.battleState.log.push({ text: `你喝得烂醉如泥，一头栽倒在地，不省人事……`, cls: 'battle-log-danger' });
+                this.player._drunk = 0;
+                this.gameOver('你醉得不省人事，战斗失败……');
+                return;
+            }
         } else if (use.healHp) {
             this.player.hp = Math.min(this.player.maxHp, this.player.hp + use.healHp);
             msg += ` 气血恢复 ${use.healHp} 点。`;
@@ -3791,14 +3805,25 @@ class Game {
             const p = this.player;
             const found = (p.statuses || []).findIndex(s => s.type === use.cure);
             if (found !== -1) {
-                p.statuses.splice(found, 1);
-                msg += ` 身上的「${statusNames[use.cure] || use.cure}」状态解除了。`;
+                if (item.id === 'herb_bandage' && Math.random() >= 0.5) {
+                    msg += ` 但止血草药力不足，没能止住伤口。`;
+                } else {
+                    p.statuses.splice(found, 1);
+                    msg += ` 身上的「${statusNames[use.cure] || use.cure}」状态解除了。`;
+                }
             } else {
                 msg += ` 但你没有${statusNames[use.cure] || use.cure}状态。`;
             }
         } else if (use.healNeili) {
             this.player.neili = Math.min(this.player.maxNeili, this.player.neili + use.healNeili);
-            msg += ` 内力恢复 ${use.healNeili} 点。`;
+            this.player._drunk = (this.player._drunk || 0) + use.healNeili;
+            msg += ` 内力恢复 ${use.healNeili} 点。醉意 +${use.healNeili}。`;
+            if (this.player._drunk >= 100) {
+                this.addMessage(`你喝得烂醉如泥，一头栽倒在地，不省人事……`, 'danger');
+                this.player._drunk = 0;
+                this.sleepToTomorrow(true);
+                return;
+            }
         } else if (use.healHp) {
             this.player.hp = Math.min(this.player.maxHp, this.player.hp + use.healHp);
             msg += ` 气血恢复 ${use.healHp} 点。`;
@@ -4186,8 +4211,9 @@ class Game {
         if (skill.level >= skill.maxLevel) {
             this.addMessage(`你反复演练${skill.name}，招式已臻化境，再练也无寸进了。`, 'narrator');
             this.player.exp += 5;
-            this.player.day += 1;
-            this.player.timePeriod = '清晨';
+        this.player._drunk = Math.max(0, (this.player._drunk || 0) - 30);
+        this.player.day += 1;
+        this.player.timePeriod = '清晨';
             this.addMessage('经验 +5', 'system');
             this.addMessage('练完后，你精疲力竭，倒头便睡了过去。', 'narrator');
             this.checkLevelUp();
