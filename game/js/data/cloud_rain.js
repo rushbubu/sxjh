@@ -209,6 +209,7 @@ function _showServiceMenu(bd, player, callbacks) {
         { text: '接吻', action: () => _doService(bd, player, callbacks, 'kiss') },
         { text: '口交', action: () => _doService(bd, player, callbacks, 'blowjob') },
         { text: '足交', action: () => _doService(bd, player, callbacks, 'footjob') },
+        { text: '臀部素股', action: () => _doService(bd, player, callbacks, 'sumata') },
     ];
     if (hasCupC(bd.bust)) {
         choices.push({ text: '乳交', action: () => _doService(bd, player, callbacks, 'titjob') });
@@ -240,6 +241,9 @@ function _doService(bd, player, callbacks, type) {
     } else if (type === 'garden') {
         s.femaleArousal = Math.min(100, s.femaleArousal + 10);
         s.maleArousal = Math.min(100, s.maleArousal + 3);
+    } else if (type === 'sumata') {
+        s.femaleArousal = Math.min(100, s.femaleArousal + 5);
+        s.maleArousal = Math.min(100, s.maleArousal + 8);
     } else {
         s.maleArousal = Math.min(100, s.maleArousal + 10);
         s.femaleArousal = Math.min(100, s.femaleArousal + 4);
@@ -270,7 +274,6 @@ function _showSexMenu(bd, player, callbacks) {
         { text: '女上位', action: () => _doSex(bd, player, callbacks, 'cowgirl') },
         { text: '后入式', action: () => _doSex(bd, player, callbacks, 'doggy') },
         { text: '侧入式', action: () => _doSex(bd, player, callbacks, 'spoon') },
-        { text: '臀部素股', action: () => _doSex(bd, player, callbacks, 'sumata') },
     ];
     choices.push({ text: '立位', action: () => _doSex(bd, player, callbacks, 'standing') });
     choices.push({ text: '桌沿', action: () => _doSex(bd, player, callbacks, 'edge') });
@@ -344,6 +347,9 @@ const _FEMALE_SOLO_ORGASM = [
         '她浑身剧烈地颤抖起来，阴道痉挛着死死咬住你，一股热流从花心深处涌出。她仰着头，喉间发出破碎的呻吟。',
         '那湿热紧窒的软肉紧紧地裹着你，一收一放地绞动，你咬着牙勉强守住精关。',
     ],
+    [
+        '"啊……啊……天哪……"她仰着头呻吟道。体内多年的空虚在这一刻被彻底填满，她不禁抱着你的脸吻了上去。',
+    ],
 ];
 
 // 正戏同步高潮文本链（插入中，双方同时到）
@@ -387,7 +393,7 @@ function _handleImpendingOrgasm(bd, player, callbacks) {
 
 function _serviceSoloOrgasm(bd, player, callbacks) {
     const s = bd._sexState;
-    _sexAddMessage('她身子猛地绷紧，双腿之间一阵剧烈的痉挛收缩——竟在侍奉中达到了高潮。', 'narrator');
+    _sexAddMessage('她身子猛地绷紧，双腿之间一阵剧烈的痉挛收缩。', 'narrator');
     s.orgasmCount++;
     s.femaleArousal = Math.max(0, s.femaleArousal - 30);
     _sexUpdatePanel(s);
@@ -612,7 +618,6 @@ function _finishCloudRain(bd, player, callbacks) {
     const scene = _crPickScene(bd);
     _sexAddMessage(scene.end, 'narrator');
     bd._hadSex = true;
-    bd.favorability = Math.min(100, bd.favorability + 8);
     player.neili -= 20;
     if (callbacks.ensureRedRecord) callbacks.ensureRedRecord(bd);
     delete bd._flirtPoem;

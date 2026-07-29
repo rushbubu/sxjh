@@ -2700,7 +2700,7 @@ class Game {
                             this.player.reputation -= 2;
                             this.player.villageBlacklist[loc.id] = this.player.day + 30;
                             this.updateStatsBar();
-                            if (this.player.reputation < 0) { this.gameOver(`你在${loc.name}恶行败露，声名狼藉，再无容身之处……`); return; }
+                            if (this.player.reputation <= -40) { this.gameOver(`你在${loc.name}恶行败露，声名狼藉，再无容身之处……`); return; }
                             const escapeDest = this.findRegionEscape(loc.id);
                             this.showMessageSequence([
                                 { text: '你一声长啸，掌风呼啸而出，将护卫击退数步！', type: 'event' },
@@ -2737,7 +2737,7 @@ class Game {
                     this.player.reputation -= 2;
                     this.player.villageBlacklist[loc.id] = this.player.day + 30;
                     this.updateStatsBar();
-                    if (this.player.reputation < 0) { this.gameOver(`你在${loc.name}犯下的事已经传遍四方，江湖再无容身之处……`); return; }
+                    if (this.player.reputation <= -40) { this.gameOver(`你在${loc.name}犯下的事已经传遍四方，江湖再无容身之处……`); return; }
                     const escapeDest2 = this.findRegionEscape(loc.id);
                     this.showMessageSequence([
                         { text: `你趁乱夺门而出，但慌乱中丢了 ${goldLoss} 两银子。`, type: 'narrator' },
@@ -2850,12 +2850,8 @@ class Game {
         this.player.reputation -= 1;
         this.player.shadowRep += 1;
         this.addMessage(`你趁${npc.npcName}不备猛然出手！偷袭扣除了 1 点声望。`, 'system');
-        if (this.player.reputation < 0) {
-            this.updateStatsBar();
-            this.gameOver(`你名声已臭，连对${npc.npcName}下黑手的资格都没有了……`);
-            return;
-        }
         this.updateStatsBar();
+        if (this.player.reputation <= -40) { this.gameOver(`你名声已臭，连对${npc.npcName}下黑手的资格都没有了……`); return; }
 
         const enemy = generateNpcEnemy(npc);
         enemy.hp = Math.max(5, Math.floor(enemy.hp * 0.8));
@@ -3496,8 +3492,7 @@ class Game {
         const allRecipes = [
             { id: 'knife_wood',    name: '柴刀',      tier: 'white', cost: 3,  ings: { iron_ore: 2 }, desc: '劈柴用的铁刀' },
             { id: 'dagger',        name: '匕首',      tier: 'white', cost: 3,  ings: { iron_ore: 2 }, desc: '短小锋利的匕首' },
-            { id: 'fishing_rod',   name: '鱼竿',      tier: 'white', cost: 3,  ings: { iron_ore: 1, wood_hard: 1 }, desc: '竹竿配麻线铁钩' },
-            { id: 'steel_blade',   name: '精铁刀',    tier: 'green', cost: 10, ings: { iron_ore: 4, wood_hard: 2 }, desc: '百炼精铁打造的腰刀' },
+            { id: 'fishing_rod',   name: '鱼竿',      tier: 'white', cost: 3, ings: { iron_ore: 1, wood_hard: 1 }, desc: '竹竿配麻线铁钩' },
             { id: 'chest_mirror',  name: '护心镜',    tier: 'green', cost: 10, ings: { iron_ore: 4, leather_raw: 2 }, desc: '可挡暗箭的铜镜' },
             { id: 'blue_blade',    name: '砍山刀',    tier: 'blue',  cost: 30, ings: { iron_ore: 6, leather_raw: 4, wood_hard: 2 }, desc: '刃口厚重的砍刀' },
             { id: 'blue_sword',    name: '青锋剑',    tier: 'blue',  cost: 35, ings: { iron_ore: 8, wood_hard: 4 }, desc: '剑身泛青光的利器' },
@@ -3664,11 +3659,8 @@ class Game {
             this.player.reputation -= 1;
             npc._caught = true;
             this.addMessage(`声望 -1（当前 ${this.player.reputation}）`, 'system');
-            if (this.player.reputation < 0) {
-                this.gameOver('你偷盗失手被当场拿获，被扭送官府。江湖之路，到此为止……');
-                return;
-            }
             this.player.neili -= 10;
+            if (this.player.reputation <= -40) { this.gameOver('你偷盗失手被当场拿获，被扭送官府。江湖之路，到此为止……'); return; }
             this.updateStatsBar();
             setTimeout(() => this.enterVenue(venue), 500);
         }
@@ -4522,7 +4514,7 @@ class Game {
                 `路人失望地看着你：「见死不救，算什么江湖中人！」`,
                 `声望 -${penalty}（当前 ${this.player.reputation}）`,
             ], () => {
-                if (this.player.reputation < 0) { this.gameOver('你声名狼藉，江湖再无容身之处……'); return; }
+                if (this.player.reputation <= -40) { this.gameOver('你声名狼藉，江湖再无容身之处……'); return; }
                 this.updateStatsBar();
                 setTimeout(() => this.enterLocation(locationId), 400);
             });
@@ -4584,7 +4576,6 @@ class Game {
             ]);
             return;
         }
-        const effFav = computeFavorability(this.player, bd) >= 80 ? computeFavorability(this.player, bd) : bd.favorability;
         this.addMessage(`${bd.name}「${bd.faceDesc}」`, 'html');
         const choices = [
             { text: '鉴赏', action: () => this.appreciateBeauty(venue, beauty) },
@@ -4594,7 +4585,7 @@ class Game {
             } },
             { text: '行动', action: () => this.actBeauty(venue, beauty) },
         ];
-        if (effFav >= 80) choices.push({ text: '亲密行为', action: () => this.intimateBeauty(venue, beauty) });
+        if (bd.chatLevel >= 4) choices.push({ text: '亲密行为', action: () => this.intimateBeauty(venue, beauty) });
         choices.push({ text: '不义之举', action: () => this.evilBeauty(venue, beauty) });
         choices.push({ text: '离开', action: () => this.enterVenue(venue) });
         this.showChoices(choices);
@@ -4626,7 +4617,7 @@ class Game {
         const bd = beauty._beautyData;
         const msgs = [
             { text: `你细细打量着${bd.name}……`, type: 'narrator' },
-            { text: (() => { const f = computeFavorability(this.player, bd) >= 80 ? computeFavorability(this.player, bd) : bd.favorability; return f >= 50 ? '她似乎已经倾心于你。' : f >= 30 ? '她看起来很喜欢你。' : f >= 20 ? '她似乎对你有些好感。' : f >= 10 ? '她对你还算客气。' : f >= 5 ? '她对你态度平淡。' : '她态度冷冷，不愿搭理你。'; })(), type: 'html' },
+            { text: this._getAttitudeText(bd) || '她态度冷冷，不愿搭理你。', type: 'html' },
             { text: `<span style="color:${bd.beautyTierColor}">【${bd.beautyTierLabel}】</span> 颜值 ${bd.faceScore||'?'}  身材 ${bd.bodyScore||'?'}  评分 ${bd.beautyScore}`, type: 'html' },
         ];
         if (bd._revealed.body) msgs.push({ text: `身材：${bd.bodyDesc}`, type: 'html' });
@@ -4666,8 +4657,9 @@ class Game {
         }
     }
 
-    _getAttitudeText(fav) {
-        return fav >= 50 ? '她似乎已经倾心于你。' : fav >= 30 ? '她看起来很喜欢你。' : fav >= 20 ? '她似乎对你有些好感。' : fav >= 10 ? '她对你还算客气。' : fav >= 5 ? '她对你态度平淡。' : null;
+    _getAttitudeText(bd) {
+        const stage = bd.chatLevel;
+        return stage >= 4 ? '她似乎已经倾心于你。' : stage >= 3 ? '她看起来很喜欢你。' : stage >= 2 ? '她似乎对你有些好感。' : stage >= 1 ? '她对你态度平淡。' : null;
     }
 
     _pickChatLine(bd, stage) {
@@ -4684,9 +4676,19 @@ class Game {
 
     _chatFirstMet(venue, beauty) {
         const bd = beauty._beautyData;
-        const fav = computeFavorability(this.player, bd) >= 80 ? computeFavorability(this.player, bd) : bd.favorability;
-        const attitudeText = this._getAttitudeText(fav);
-        if (!attitudeText) {
+        if (bd.chatLevel === 0) {
+            if (computeFavorability(this.player, bd) >= 80) {
+                bd.chatLevel = 4;
+                this.showMessageSequence([
+                    { text: `你走向${bd.name}，她见到你后眼中闪过一丝欣喜。`, type: 'narrator' },
+                    { text: `你与她一番交谈，她对你颇为倾心，无所不谈。`, type: 'narrator' },
+                ], () => {
+                    this._ensureRedRecord(bd);
+                    this.addMessage(`已将${bd.name}记入红颜录，可通过红颜录查询她的去向。`, 'system');
+                    this.showChoices([{ text: '离开', action: () => this.showOutdoorChoices() }]);
+                });
+                return;
+            }
             const outdoorVenues = ['断桥', '小溪', '田埂', '小树林', '街角', '集市'];
             if (outdoorVenues.includes(venue.name) && Math.random() < 0.5) {
                 this._beautyOutdoorBattle(venue, beauty);
@@ -4697,7 +4699,6 @@ class Game {
             ], () => this.enterVenue(venue));
             return;
         }
-        bd.chatLevel = 1;
         const c = this._pickChatLine(bd, 0);
         bd._revealed.body = true;
         const msgs = [
@@ -4739,7 +4740,7 @@ class Game {
                             () => {
                                 this.addMessage(`你干净利落地击败了${enemy.name}！`, 'event');
                                 this.addMessage(`${bd.name}松了口气，看向你的眼神多了几分感激和敬佩。`, 'narrator');
-                                bd.favorability = Math.max(bd.favorability, 5);
+                                bd.chatLevel = 1;
                                 this._chatFirstMet(venue, beauty);
                             },
                             () => this.gameOver(`你被${enemy.name}打成重伤，不治身亡。`),
@@ -4750,7 +4751,6 @@ class Game {
                     this.addMessage(isWild
                         ? `你犹豫了一下，没有出手。${bd.name}惊叫着被${enemy.name}逼得步步后退。等你再回过神来，她已经不见了踪影。`
                         : `你犹豫了一下，没有上前。${bd.name}失望地看了你一眼，转身快步离开了。`, 'narrator');
-                    bd.favorability = Math.max(0, bd.favorability - 2);
                     this.showChoices([{ text: '离开', action: () => this.showOutdoorChoices() }]);
                 } },
             ]);
@@ -4761,7 +4761,6 @@ class Game {
         const bd = beauty._beautyData;
         const stage = bd.chatLevel;
         const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧心长谈', '深入交流'];
-        bd.chatLevel = stage + 1;
         const c = this._pickChatLine(bd, stage);
         if (stage === 1) { bd._revealed.clothing = true; bd._revealed.height = true; }
         else if (stage === 2) { bd._revealed.age = true; }
@@ -4832,7 +4831,7 @@ class Game {
         ];
         if (this.isPublicVenue(venue)) {
             intChoices.push({ text: '云雨', action: () => this._negotiateCloudRain(venue, beauty, () => this._chatPostIntimate(venue, beauty)) });
-        } else if (bd.favorability >= bd.chastity || computeFavorability(this.player, bd) >= bd.chastity) {
+        } else {
             intChoices.push({ text: '云雨', action: () => this.sexBeauty(venue, beauty) });
         }
         intChoices.push({ text: '离开', action: () => this.showOutdoorChoices() });
@@ -4848,23 +4847,11 @@ class Game {
             return;
         }
         const stage = bd.chatLevel;
-        const threshold = [10, 30, 50, 70];
-        const fav = computeFavorability(this.player, bd) >= 80 ? computeFavorability(this.player, bd) : bd.favorability;
-
         if (stage >= 4) {
             if (bd._hadSex) return this._chatFlirtMode(venue, beauty);
             return this._chatPostIntimate(venue, beauty);
         }
         if (stage === 0) return this._chatFirstMet(venue, beauty);
-        if (fav < threshold[stage]) {
-const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧心长谈', '深入交流'];
-            this.showMessageSequence([
-                { text: `（${stageLabels[stage]}）`, type: 'system' },
-                { text: `${bd.name}对你还不够信任，不愿深谈。（需要好感度≥${threshold[stage]}）`, type: 'narrator' },
-                { text: '不妨送些礼物增进感情？', type: 'narrator' },
-            ], () => this.showChoices([{ text: '返回', action: () => this.interactBeauty(venue, beauty) }]));
-            return;
-        }
         this._chatProgressive(venue, beauty);
     }
 
@@ -4879,7 +4866,9 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
         const bd = beauty._beautyData;
         const choices = [];
         if (bd.chatLevel > 0) {
-          choices.push({ text: '送礼', action: () => this.giftBeauty(venue, beauty) });
+          if (bd._wantedGift && this.player.items.some(i => i.id === bd._wantedGift)) {
+            choices.push({ text: '送礼', action: () => this.giftBeauty(venue, beauty) });
+          }
           choices.push({ text: '送诗', action: () => this.poemBeauty(venue, beauty) });
         }
         choices.push({ text: '返回', action: () => this.interactBeauty(venue, beauty) });
@@ -4890,33 +4879,36 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
         this.clearChoices();
         const p = this.player;
         const bd = beauty._beautyData;
-        if (p.items.length === 0) {
-            this.addMessage('你翻遍行囊，空空如也。', 'narrator');
+        const wantedId = bd._wantedGift;
+        const idx = p.items.findIndex(i => i.id === wantedId);
+        if (idx === -1) {
+            this.addMessage(`${bd.name}想要的东西你好像没有……`, 'narrator');
             setTimeout(() => this.actBeauty(venue, beauty), 400);
             return;
         }
-        this.addMessage(`挑一件礼物送给${bd.name}：`, 'narrator');
-        const choices = p.items.map((item, idx) => {
-            const favGain = Math.max(1, Math.floor(item.value * 0.5));
-            return { text: `${item.name}（好感 +${favGain}）`, action: () => this.doGift(venue, beauty, item, idx, favGain) };
-        });
-        choices.push({ text: '算了', action: () => this.actBeauty(venue, beauty) });
-        this.showChoices(choices);
+        const item = p.items[idx];
+        const favGain = Math.max(1, Math.floor(item.value * 0.5));
+        this.addMessage(`${bd.name}上次提到她想要一件「${item.name}」，你正好有。`, 'narrator');
+        this.showChoices([
+            { text: `送出${item.name}`, action: () => this.doGift(venue, beauty, item, idx, favGain) },
+            { text: '算了', action: () => this.actBeauty(venue, beauty) },
+        ]);
     }
 
     doGift(venue, beauty, item, idx, favGain) {
         this.clearChoices();
         const bd = beauty._beautyData;
         this.player.items.splice(idx, 1);
-        let bonus = 0;
         if (bd._wantedGift && item.id === bd._wantedGift) {
-            bonus = 15;
             bd._wantedGift = null;
             this.addMessage(`这正是她想要的！她眼中闪过惊喜的光芒。`, 'event');
         }
-        bd.favorability = Math.min(100, bd.favorability + favGain + bonus);
+        bd.chatLevel = Math.min(4, (bd.chatLevel || 0) + 1);
         this.addMessage(`你将${item.name}送给${bd.name}，她很高兴。`, 'event');
-        this.addMessage(`好感度 +${favGain + bonus}（当前 ${bd.favorability}）`, 'system');
+        if (bd.chatLevel < 4) {
+            const gift = pickRegionalGift(this.currentLocation.id, bd.chatLevel);
+            if (gift) { bd._wantedGift = gift.id; this.addMessage(`${bd.name}提到她还想要一件「${gift.name}」。`, 'event'); }
+        }
         setTimeout(() => this.interactBeauty(venue, beauty), 400);
     }
 
@@ -4930,13 +4922,9 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
         }
         const success = Math.random() < this.player.attrs.wit / 100;
         if (success) {
-            const gain = 5 + Math.floor(this.player.attrs.wit * 0.1);
-            bd.favorability = Math.min(100, bd.favorability + gain);
             this.addMessage(`你吟了一首自己作的小诗，${bd.name}眼中闪过一丝惊喜。`, 'event');
-            this.addMessage(`好感度 +${gain}（当前 ${bd.favorability}）`, 'system');
         } else {
             this.addMessage(`你吟了一首诗，但${bd.name}似乎没听懂，尴尬地笑了笑。`, 'narrator');
-            bd.favorability = Math.max(0, bd.favorability - 1);
         }
         setTimeout(() => this.interactBeauty(venue, beauty), 400);
     }
@@ -4951,10 +4939,8 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
         if (bd.chatLevel >= 4) {
             if (this.isPublicVenue(venue)) {
                 choices.push({ text: '云雨', action: () => this._negotiateCloudRain(venue, beauty, () => this.intimateBeauty(venue, beauty)) });
-            } else if (bd.favorability >= bd.chastity || computeFavorability(this.player, bd) >= bd.chastity) {
-                choices.push({ text: '云雨', action: () => this.sexBeauty(venue, beauty) });
             } else {
-                choices.push({ text: `云雨（需好感≥${bd.chastity}，当前${bd.favorability}）`, action: null });
+                choices.push({ text: '云雨', action: () => this.sexBeauty(venue, beauty) });
             }
         }
         choices.push({ text: '返回', action: () => this.interactBeauty(venue, beauty) });
@@ -4973,7 +4959,6 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
                 this.showChoices([{ text: '继续', action: () => showNext(i + 1) }]);
             } else {
                 this.addMessage(scene.line, 'narrator');
-                bd.favorability = Math.min(100, bd.favorability + 3);
                 this.updateStatsBar();
                 setTimeout(() => this.interactBeauty(venue, beauty), 500);
             }
@@ -5017,7 +5002,6 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
         const bd = beauty._beautyData;
         const line = pickGropeBodyScene(bd, bodyPart);
         this.addMessage(line, 'narrator');
-        bd.favorability = Math.min(100, bd.favorability + 2);
         this.updateStatsBar();
         this.showChoices([
             { text: '继续', action: () => this.gropeBeauty(venue, beauty) },
