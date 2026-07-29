@@ -77,7 +77,7 @@ Game.prototype._questRescueOx = function(q) {
     const s = q.stage;
     if (s === 'TRIGGER') {
         this._questSeq([
-            '【支线任务·其一：救牛】',
+            questDisplayName('rescue_ox'),
             '你走出大门，沿着村道前行……',
             '忽然，你听到不远处传来打斗声和叫骂声。',
             '似乎是一个年轻人正在殴打老人。',
@@ -209,7 +209,7 @@ Game.prototype.questInteractButcher = function(venue, npc) {
     this.addMessage(`${npc.npcName}：「买肉？」他手中的剔骨刀在灯光下泛着寒光。`, 'narrator');
     const choices = [];
     if (this.player.activeQuests && this.player.activeQuests.rescue_ox && ['SPAWN_BUTCHER','BUTCHER_ACTIVE'].includes(this.player.activeQuests.rescue_ox.stage)) {
-        choices.push({ text: '【支线1】要求还牛', action: () => this._questButcherNegotiate(venue, npc) });
+        choices.push({ text: '要求还牛', action: () => this._questButcherNegotiate(venue, npc) });
     }
     choices.push({ text: '买肉', action: () => this.buyFromNpc(venue, npc) });
     choices.push({ text: '出售', action: () => this.sellToNpc(venue, npc) });
@@ -234,8 +234,10 @@ Game.prototype._questButcherNegotiate = function(venue, npc) {
                             '你冷冷道：「给我个饶你的理由。」',
                             '「你以为我真是黑心屠户？」他苦笑道，「那牛都四十了，瘦得皮包骨，身上切不出十斤肉，谁家买去？」',
                             '你冷笑道：「这么说来，你倒是个好人。」',
-                            '「我张屠户是粗人，但也干不出这种缺德事！」',
-                            '你默然。你想起前世在华山派时，有华山派罩着，周遭村庄百姓虽不说大富大贵，却也衣食无忧。',
+                            '「他们家穷得揭不开锅，若是没这十两银子，只怕熬不过月底。我张屠户虽是粗人，却也干不出这种缺德事！」',
+                            '你默然片刻，冷冷道：「暂且饶了你。」',
+                            '回想起一路上的见闻，你沉默无声。',
+                            '你想起前世在华山派时，有华山派罩着左近，周遭村庄百姓虽不说大富大贵，却也衣食无忧。',
                             '想不到这偏僻之地，竟有如此疾苦。',
                         ], () => {
                             this.showChoices([
@@ -270,13 +272,19 @@ Game.prototype._questButcherNegotiate = function(venue, npc) {
                                     this.updateStatsBar();
                                     this._questSeq([
                                         '你叹了口气，掏出十两银子：「牛我买了，这钱你拿着。」',
-                                        '又数出三十两：「这钱给小虎一家，就说牛已经有人买了，让他们安心过日子。」',
                                         '张屠户愣愣地看着你，半晌才接过银子，点了点头。',
                                         '你牵着牛找到小虎把牛交给他，又交给他三十两银子。',
                                         '他抱着牛脖子哭了好一阵，又捧着银子连连道谢。',
+                                        '小虎忽然想起什么，在怀里摸索半天，掏出一本泛黄的旧册子。',
+                                        '「恩公，这是我家祖上传下来的《按摩心经》，虽不是什么高深功夫，但长期习练可疏通气血……」',
+                                        '他将册子塞进你手里，深深一揖。',
                                         '牛用他浑浊的眼神看着你，似乎在感激你的所作所为。',
                                         '你叹了口气，只道众生皆苦。',
-                                    ], () => { this._completeRescueOx(25); });
+                                    ], () => {
+                                        this.player.items.push({ ...getItem('massage_manual') });
+                                        this.addMessage('获得秘籍·按摩心经', 'system');
+                                        this._completeRescueOx(25);
+                                    });
                                 } },
                             ]);
                         });

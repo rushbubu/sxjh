@@ -82,6 +82,10 @@ const ITEMS = {
 
     // ═══ 锻造材料 ═══
     iron_ore:        { id: 'iron_ore',        name: '铁矿石',    desc: '山中开采的铁矿石，可熔炼成铁。',                         value: 3,   stealDiff: 10, category: 'material' },
+    copper_ore:      { id: 'copper_ore',      name: '铜矿石',    desc: '泛着暗红色的铜矿石，可熔炼成铜。',                       value: 3,   stealDiff: 10, category: 'material' },
+    tin_ore:         { id: 'tin_ore',         name: '锡矿石',    desc: '灰黑色的锡矿石，熔炼后可得锡。',                         value: 3,   stealDiff: 10, category: 'material' },
+    lead_ore:        { id: 'lead_ore',        name: '铅矿石',    desc: '沉重的铅矿石，质地柔软密度极大。',                       value: 2,   stealDiff: 8,  category: 'material' },
+    coal:            { id: 'coal',            name: '煤炭',      desc: '上好的石炭，耐烧火旺，是锻造的好燃料。',                 value: 2,   stealDiff: 8,  category: 'material' },
     leather_raw:     { id: 'leather_raw',     name: '兽皮',      desc: '处理过的兽皮，可用于制作皮具铠甲。',                     value: 3,   stealDiff: 10, category: 'material' },
     wood_hard:       { id: 'wood_hard',       name: '硬木',      desc: '坚硬耐用的木材，适合做兵器握柄或盾牌。',                 value: 2,   stealDiff: 8,  category: 'material' },
 
@@ -107,10 +111,26 @@ const ITEMS = {
     gall_bear:        { id: 'gall_bear',      name: '熊胆',      desc: '黑熊之胆，大补内力。',                                    value: 20,  stealDiff: 25, category: 'medicine' },
     gall_tiger:       { id: 'gall_tiger',     name: '虎胆',      desc: '猛虎之胆，稀世珍品，可大幅提升内力。',                    value: 40,  stealDiff: 40, category: 'medicine' },
 
+    // ═══ 渔获与杂物 ═══
+    bait_bug:        { id: 'bait_bug',        name: '虫饵',      desc: '从树干上捉到的肥虫，穿在鱼钩上活蹦乱跳。',              value: 1,   stealDiff: 2,  category: 'material' },
+    fishing_rod:     { id: 'fishing_rod',     name: '鱼竿',      desc: '竹竿配上麻线和铁钩，虽简陋但足以垂钓。',                 value: 5,   stealDiff: 15, category: 'tool' },
+    fish_carp:       { id: 'fish_carp',       name: '鲤鱼',      desc: '一尾红鳞大鲤鱼，少说有三斤重。',                         value: 3,   stealDiff: 5,  category: 'food' },
+    fish_grass_carp: { id: 'fish_grass_carp', name: '草鱼',      desc: '肥美的草鱼，适合红烧或炖汤。',                           value: 4,   stealDiff: 5,  category: 'food' },
+    fish_catfish:    { id: 'fish_catfish',    name: '鲶鱼',      desc: '光溜溜的大鲶鱼，肉质细嫩无小刺。',                       value: 5,   stealDiff: 6,  category: 'food' },
+    fish_crab:       { id: 'fish_crab',       name: '螃蟹',      desc: '张牙舞爪的大螃蟹，壳硬肉肥。',                           value: 4,   stealDiff: 6,  category: 'food' },
+    fish_shrimp:     { id: 'fish_shrimp',     name: '河虾',      desc: '晶莹剔透的河虾，鲜美弹牙。',                             value: 3,   stealDiff: 4,  category: 'food' },
+    fish_yuanbao:    { id: 'fish_yuanbao',    name: '元宝鱼',    desc: '鱼身泛着金光，形似元宝的奇鱼，据说能带来好运。',        value: 30,  stealDiff: 40, category: 'treasure', special: true },
+    water_weed:      { id: 'water_weed',      name: '水草',      desc: '湿漉漉的水草，缠了一团，没什么用。',                     value: 0,   stealDiff: 1,  category: 'material' },
+    old_shoe:        { id: 'old_shoe',        name: '破鞋子',    desc: '不知被水泡了多久的破布鞋，散发着一股怪味。',             value: 0,   stealDiff: 1,  category: 'household' },
+    rusty_can:       { id: 'rusty_can',       name: '锈铁罐',    desc: '锈迹斑斑的铁罐子，不知道装了什么东西。',                 value: 0,   stealDiff: 2,  category: 'household' },
+
     // ═══ 锻造图纸 ═══
     blueprint_steel_blade:{ id: 'blueprint_steel_blade', name: '精铁刀图纸', desc: '记载着精铁刀的锻造之法。',                  value: 5,   stealDiff: 20, category: 'blueprint', blueprint: { id: 'steel_blade', ings: { iron_ore: 4, wood_hard: 2 }, cost: 10 } },
     blueprint_blue_sword: { id: 'blueprint_blue_sword',  name: '青锋剑图纸', desc: '记载着青锋剑的锻造之法。',                  value: 15,  stealDiff: 35, category: 'blueprint', blueprint: { id: 'blue_sword', ings: { iron_ore: 8, wood_hard: 4 }, cost: 35 } },
     blueprint_gold_armor: { id: 'blueprint_gold_armor',  name: '金丝软甲图纸', desc: '记载着金丝软甲的锻造之法。',             value: 25,  stealDiff: 50, category: 'blueprint', blueprint: { id: 'gold_silk_armor', ings: { iron_ore: 10, leather_raw: 8 }, cost: 60 } },
+
+    // ═══ 心法秘籍 ═══
+    massage_manual:  { id: 'massage_manual',  name: '按摩心经',  desc: '记载着经络按摩秘术的古册，习之可疏通气血、驻颜养容。', value: 5,   stealDiff: 15, category: 'skill', use: { learnInternalSkill: '按摩心经' } },
 
     // ═══ 赌徒心经 ═══
     sutra_gambler_1:  { id: 'sutra_gambler_1', name: '初级赌徒心经', desc: '一本皱巴巴的旧册子，记着些出千和听骰的粗浅门道。',   value: 1,   stealDiff: 5,  category: 'skill', use: { learnInternalSkill: '初级赌徒心经' } },

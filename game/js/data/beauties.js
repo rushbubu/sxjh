@@ -244,7 +244,7 @@ function pickRegionalGift(locationId, chatLevel) {
         const venues = l.venues || [];
         return venues.flatMap(v => v.npcs ? v.npcs.flatMap(n => n.items || []) : []);
     });
-    const giftPool = allItems.filter(it => it && it.value >= 5 && it.value <= 100);
+    const giftPool = allItems.filter(it => it && it.value >= 5 && it.value <= 100 && it.category !== 'blueprint');
     if (giftPool.length === 0) return null;
     // 按价格从低到高排序
     giftPool.sort((a, b) => a.value - b.value);

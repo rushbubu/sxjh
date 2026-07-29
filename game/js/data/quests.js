@@ -1,3 +1,28 @@
+/* ─── 辅助：数字转中文序数 ─── */
+const _CN_ORD = ['零','其一','其二','其三','其四','其五','其六','其七','其八','其九','其十'];
+
+function questOrderLabel(order) {
+    return _CN_ORD[order] || '第' + order;
+}
+
+function _findQuest(questId) {
+    return QUESTS[questId] || MAIN_QUESTS[questId];
+}
+
+function questDisplayName(questId) {
+    const q = _findQuest(questId);
+    if (!q) return '【未知】';
+    const prefix = QUESTS[questId] ? '支线任务' : '主线';
+    return '【' + prefix + '·' + questOrderLabel(q.order) + '：' + q.name + '】';
+}
+
+function questShortLabel(questId) {
+    const q = _findQuest(questId);
+    if (!q) return '【?】';
+    const prefix = QUESTS[questId] ? '支线' : '主线';
+    return '【' + prefix + q.order + '】';
+}
+
 /* ─── 支线任务数据 ─── */
 
 const QUESTS = {
@@ -14,6 +39,23 @@ const QUESTS = {
             SPAWN_BUTCHER: 'BUTCHER_ACTIVE',
             BUTCHER_ACTIVE: null,
         },
+    },
+};
+
+/* ─── 主线任务数据 ─── */
+
+const MAIN_QUESTS = {
+    main_1: {
+        order: 1,
+        id: 'main_1',
+        name: '村长问话',
+        desc: '向村长打听师弟沈清寒的下落。',
+    },
+    main_2: {
+        order: 2,
+        id: 'main_2',
+        name: '大户问话',
+        desc: '向大户询问沈清寒的消息。',
     },
 };
 

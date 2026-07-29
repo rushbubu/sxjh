@@ -263,6 +263,7 @@ const WORLD = {
             venues.push({ name: '断桥', npcs: [] });
             venues.push({ name: '小溪', npcs: [] });
             venues.push({ name: '田埂', npcs: [] });
+            venues.push({ name: '废弃矿坑', npcs: [] });
             const villageRep = { destitute:12, poor:12, subsistence:14, moderate:16 }[economy] || 12;
             const guardBase = { destitute:10, poor:12, subsistence:15, moderate:20 }[economy] || 10;
             return { id, name, desc, population:pop, area, areaUnit:'km²', economy, nearestCity, distanceToCity:distance,

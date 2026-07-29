@@ -144,7 +144,12 @@ class Game {
             _worldHelp: 0,
             _theftCount: 0,
             _assassinationCount: 0,
-            _chopRootBonus: 0,
+            _villageRoot: {},       // 砍柴根骨（每村庄上限5）
+            _villageMineRoot: {},   // 挖矿根骨（每村庄上限10）
+            _villageMineDex: {},    // 矿难灵巧（每村庄上限10）
+            _villageFishGold: {},   // 每村庄元宝鱼已钓数（最多5条）
+            _massageLevel: 0,       // 按摩心经修炼等级（0-5）
+            _tianzhishuLevel: 0,    // 天之书修炼次数（上限10）
             _huntUnlockLevel: 0,
         };
 
@@ -798,10 +803,10 @@ class Game {
         if (isVillage) {
             const groups = {
                 '市集': this.player.locationVenues.filter(v => ['草药铺', '铁匠铺', '酒馆', '肉铺'].includes(v.name)),
-                '村外': this.player.locationVenues.filter(v => ['小树林', '断桥', '小溪', '田埂'].includes(v.name)),
+                '村外': this.player.locationVenues.filter(v => ['小树林', '断桥', '小溪', '田埂', '废弃矿坑'].includes(v.name)),
             };
             const others = this.player.locationVenues.filter(v =>
-                !['草药铺', '铁匠铺', '酒馆', '肉铺', '断桥', '小溪', '田埂', '小树林'].includes(v.name)
+                !['草药铺', '铁匠铺', '酒馆', '肉铺', '断桥', '小溪', '田埂', '小树林', '废弃矿坑'].includes(v.name)
             );
             for (const [label, list] of Object.entries(groups)) {
                 if (list.length > 0) choices.push({ text: label, action: () => this.showGroupVenues(label, list) });
@@ -854,12 +859,12 @@ class Game {
         const t = this.player.timePeriod;
         // 子时所有室内场所关闭
         if (t === '子时') {
-            if (['街角', '断桥', '小溪', '田埂', '小树林'].includes(venue.name)) return false;
+            if (['街角', '断桥', '小溪', '田埂', '小树林', '废弃矿坑'].includes(venue.name)) return false;
             return true;
         }
         // 黄昏商店歇业，住宅/怡红院等仍营业
         if (t === '黄昏') {
-            if (['街角', '断桥', '小溪', '田埂', '小树林'].includes(venue.name)) return false;
+            if (['街角', '断桥', '小溪', '田埂', '小树林', '废弃矿坑'].includes(venue.name)) return false;
             if (['草药铺', '铁匠铺', '酒馆'].includes(venue.name)) return true;
             return false;
         }
@@ -1040,27 +1045,36 @@ class Game {
             this.addMessage('里面空无一人……', 'narrator');
             if (venue.name === '小树林' && this.player.items.some(i => i.id === 'knife_wood')) {
                 this.showChoices([
-                    { text: '砍柴' + (this.player._chopRootBonus < 10 ? '（根骨 +1）' : '（已至瓶颈）'), action: () => {
+                    { text: '砍柴' + ((this.player._villageRoot[this.player.locationId] || 0) < 5 ? '（根骨 +1）' : ''), action: () => {
                         this.clearChoices();
-                        const chopBonus = this.player._chopRootBonus || 0;
-                        if (chopBonus < 10) {
+                        const vid = this.player.locationId;
+                        const chopBonus = this.player._villageRoot[vid] || 0;
+                        if (chopBonus < 5) {
                             this.player.attrs.root += 1;
-                            this.player._chopRootBonus = chopBonus + 1;
+                            this.player._villageRoot[vid] = chopBonus + 1;
                             this.player.exp += 2;
                             this.addMessage('你抡起柴刀，劈了半个时辰的柴火。出了一身汗，但筋骨更结实了。', 'narrator');
                             this.addMessage(`根骨 +1（当前 ${this.player.attrs.root}），经验 +2`, 'system');
                         } else {
-                            this.addMessage('你抡起柴刀劈了半个时辰的柴，但筋骨已到瓶颈，再砍也无寸进。', 'narrator');
+                            this.addMessage('你抡起柴刀劈了半个时辰的柴，但此地已无益筋骨，再砍也无寸进。', 'narrator');
                         }
                         this.player.items.push({ ...getItem('firewood') });
                         this.player.items.push({ ...getItem('firewood') });
                         this.addMessage('获得柴火×2', 'system');
+                        if (Math.random() < 0.25) {
+                            this.player.items.push({ ...getItem('bait_bug') });
+                            this.addMessage('一条肥虫从树干上掉落，正好落入你手中——获得虫饵×1', 'system');
+                        }
                         this.advanceTime();
                         this.updateStatsBar();
                         setTimeout(() => this.enterVenueInner(venue), 400);
                     }},
                     { text: '离开', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
                 ]);
+            } else if (venue.name === '废弃矿坑') {
+                this._mineMenu(venue);
+            } else if (venue.name === '小溪') {
+                this._fishingMenu(venue);
             } else {
                 setTimeout(() => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()), 400);
             }
@@ -1074,25 +1088,162 @@ class Game {
         if (venue.name === '小树林' && this.player.items.some(i => i.id === 'knife_wood')) {
             choices.splice(choices.length, 0, { text: '砍柴（根骨 +1）', action: () => {
                 this.clearChoices();
-                const chopRoot = this.player._chopRootBonus || 0;
-                if (chopRoot < 10) {
+                const vid = this.player.locationId;
+                const chopRoot = this.player._villageRoot[vid] || 0;
+                if (chopRoot < 5) {
                     this.player.attrs.root += 1;
-                    this.player._chopRootBonus = chopRoot + 1;
+                    this.player._villageRoot[vid] = chopRoot + 1;
                     this.player.exp += 2;
                     this.addMessage('你抡起柴刀，劈了半个时辰的柴火。出了一身汗，但筋骨更结实了。', 'narrator');
                     this.addMessage(`根骨 +1（当前 ${this.player.attrs.root}），经验 +2`, 'system');
                 } else {
-                    this.addMessage('你抡起柴刀劈了半个时辰的柴，但筋骨已到瓶颈，再砍也无寸进。', 'narrator');
+                    this.addMessage('你抡起柴刀劈了半个时辰的柴，但此地已无益筋骨，再砍也无寸进。', 'narrator');
                 }
                 this.player.items.push({ ...getItem('firewood') });
                 this.player.items.push({ ...getItem('firewood') });
                 this.addMessage('获得柴火×2', 'system');
+                if (Math.random() < 0.25) {
+                    this.player.items.push({ ...getItem('bait_bug') });
+                    this.addMessage('一条肥虫从树干上掉落，正好落入你手中——获得虫饵×1', 'system');
+                }
                 this.advanceTime();
                 this.updateStatsBar();
                 setTimeout(() => this.enterVenueInner(venue), 400);
             }});
         }
         choices.push({ text: `离开${venue.name}`, action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) });
+        this.showChoices(choices);
+    }
+
+    /* ─── 废弃矿坑 ─── */
+
+    _mineMenu(venue) {
+        this.addMessage('你发现一处废弃的矿坑，洞口散落着几把生锈的铁锹，看来是前人留下的。', 'narrator');
+        const vid = this.player.locationId;
+        const rootBonus = this.player._villageMineRoot[vid] || 0;
+        const dexBonus = this.player._villageMineDex[vid] || 0;
+        const rootLabel = rootBonus < 5 ? '（根骨 +1）' : '';
+        const choices = [
+            { text: `挖掘${rootLabel}`, action: () => {
+                this.clearChoices();
+                if (Math.random() < 0.1) {
+                    if (dexBonus < 10) {
+                        this.player.attrs.dexterity += 1;
+                        this.player._villageMineDex[vid] = dexBonus + 1;
+                    }
+                    this.addMessage('你正挥锹挖掘，忽然头顶传来"咔嚓"声——矿坑塌了！你扔下铁锹连滚带爬逃了出来，灰头土脸，所幸没受伤。', 'narrator');
+                    this.addMessage(`灵巧 +1（当前 ${this.player.attrs.dexterity}）`, 'system');
+                } else {
+                    const ores = [
+                        { id: 'iron_ore', weight: 35 },
+                        { id: 'copper_ore', weight: 25 },
+                        { id: 'tin_ore', weight: 15 },
+                        { id: 'lead_ore', weight: 10 },
+                        { id: 'coal', weight: 15 },
+                    ];
+                    const total = ores.reduce((s, o) => s + o.weight, 0);
+                    let roll = Math.random() * total;
+                    let picked = ores[0].id;
+                    for (const o of ores) {
+                        roll -= o.weight;
+                        if (roll <= 0) { picked = o.id; break; }
+                    }
+                    const num = 1 + Math.floor(Math.random() * 3);
+                    for (let i = 0; i < num; i++) this.player.items.push({ ...getItem(picked) });
+                    const itemName = (getItem(picked) || { name: picked }).name;
+                    this.addMessage('你抡起铁锹在矿壁上奋力挖掘，碎岩纷纷落下。', 'narrator');
+                    this.addMessage(`获得${itemName}×${num}`, 'system');
+                    if (rootBonus < 5) {
+                        this.player.attrs.root += 1;
+                        this.player._villageMineRoot[vid] = rootBonus + 1;
+                        this.player.exp += 2;
+                        this.addMessage(`根骨 +1（当前 ${this.player.attrs.root}），经验 +2`, 'system');
+                    }
+                }
+                this.advanceTime();
+                this.updateStatsBar();
+                setTimeout(() => this._mineMenu(venue), 400);
+            }},
+            { text: '离开', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
+        ];
+        this.showChoices(choices);
+    }
+
+    /* ─── 小溪垂钓 ─── */
+
+    _fishingMenu(venue) {
+        const hasRod = this.player.items.some(i => i.id === 'fishing_rod');
+        const hasBait = this.player.items.some(i => i.id === 'bait_bug');
+        if (!hasRod) {
+            this.addMessage('溪水潺潺，清澈见底，偶尔能看到鱼儿游过。可惜你没有鱼竿，只能望水兴叹。', 'narrator');
+            const choices = [{ text: '离开', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) }];
+            this.showChoices(choices);
+            return;
+        }
+        if (!hasBait) {
+            this.addMessage('你拿出鱼竿在溪边坐下，却发现鱼钩上空空如也——没有鱼饵，鱼儿不会上钩的。', 'narrator');
+            const choices = [{ text: '离开', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) }];
+            this.showChoices(choices);
+            return;
+        }
+        const vid = this.player.locationId;
+        const goldCount = this.player._villageFishGold[vid] || 0;
+        const canGold = goldCount < 5;
+        const choices = [
+            { text: '垂钓', action: () => {
+                this.clearChoices();
+                // 消耗一个虫饵
+                const idx = this.player.items.findIndex(i => i.id === 'bait_bug');
+                if (idx !== -1) this.player.items.splice(idx, 1);
+                if (Math.random() < 0.1 && canGold) {
+                    const newCount = goldCount + 1;
+                    this.player._villageFishGold[vid] = newCount;
+                    this.player.items.push({ ...getItem('fish_yuanbao') });
+                    this.player.attrs.luck += 5;
+                    this.addMessage('鱼漂猛地一沉，你奋力收线——一条金光闪闪的鱼被甩上岸来！鱼身状如元宝，在阳光下熠熠生辉。', 'narrator');
+                    this.addMessage('获得元宝鱼×1  福缘 +5（当前 ' + this.player.attrs.luck + '）', 'system');
+                    if (newCount >= 5) {
+                        this.addMessage('此地的元宝鱼已被你钓光了，换个地方试试吧。', 'info');
+                    }
+                } else {
+                    const catches = [
+                        { id: 'fish_carp', weight: 25 },
+                        { id: 'fish_grass_carp', weight: 20 },
+                        { id: 'fish_catfish', weight: 15 },
+                        { id: 'fish_crab', weight: 10 },
+                        { id: 'fish_shrimp', weight: 15 },
+                        { id: 'water_weed', weight: 8 },
+                        { id: 'old_shoe', weight: 4 },
+                        { id: 'rusty_can', weight: 3 },
+                    ];
+                    const total = catches.reduce((s, c) => s + c.weight, 0);
+                    let roll = Math.random() * total;
+                    let picked = catches[0].id;
+                    for (const c of catches) {
+                        roll -= c.weight;
+                        if (roll <= 0) { picked = c.id; break; }
+                    }
+                    this.player.items.push({ ...getItem(picked) });
+                    const itemName = (getItem(picked) || { name: picked }).name;
+                    const msgs = {
+                        fish_carp: '鱼漂轻点，你提竿一收——一尾红鳞大鲤鱼在阳光下闪着光。',
+                        fish_grass_carp: '浮漂猛地一沉，你用力提竿，一条肥美的草鱼挣扎着被拉出水面。',
+                        fish_catfish: '鱼漂缓缓沉入水中，你一拉竿，手感沉重——一条光溜溜的大鲶鱼！',
+                        fish_crab: '鱼漂一阵乱晃，你提起来一看——一只大螃蟹正死死钳住你的鱼钩。',
+                        fish_shrimp: '你感觉鱼线轻轻一颤，提起来一看，几只晶莹剔透的河虾挂在钩上。',
+                        water_weed: '你感觉挂到了什么东西，提起来是一团湿漉漉的水草。',
+                        old_shoe: '你费力地拉起鱼线，钩上挂着一只泡得发胀的破布鞋。',
+                        rusty_can: '鱼钩挂到了什么沉甸甸的东西，拉上来是个锈迹斑斑的铁罐子。',
+                    };
+                    this.addMessage(msgs[picked] || '你收起鱼线，看看钓到了什么。', 'narrator');
+                    this.addMessage(`获得${itemName}×1`, 'system');
+                }
+                this.advanceTime();
+                this.updateStatsBar();
+                setTimeout(() => this._fishingMenu(venue), 400);
+            }},
+            { text: '收起鱼竿', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
+        ];
         this.showChoices(choices);
     }
 
@@ -1207,6 +1358,8 @@ class Game {
                 { text: `${landlord.npcName}：「天色不早了，少侠请便吧。」`, type: 'narrator' },
             );
             this.player.mainQuest = 2;
+            if (!this.player.completedQuests) this.player.completedQuests = {};
+            this.player.completedQuests.main_2 = true;
             this.showMessageSequence(seq, () => {
                 this.showChoices([
                     { text: '告辞', action: () => {
@@ -1221,6 +1374,8 @@ class Game {
                 this.showChoices([
                     { text: '告辞', action: () => {
                         this.player.mainQuest = 2;
+                        if (!this.player.completedQuests) this.player.completedQuests = {};
+                        this.player.completedQuests.main_2 = true;
                         this.addMessage('你辞别了员外，走出了大门。', 'narrator');
                         setTimeout(() => this._afterLandlordQuest(), 400);
                     } },
@@ -1229,6 +1384,8 @@ class Game {
                         this.player.gold += gift;
                         this.updateStatsBar();
                         this.player.mainQuest = 2;
+                        if (!this.player.completedQuests) this.player.completedQuests = {};
+                        this.player.completedQuests.main_2 = true;
                         this.showMessageSequence([
                             { text: `${landlord.npcName}哈哈一笑：「区区小事，何足挂齿。」`, type: 'narrator' },
                             { text: `${landlord.npcName}：「这点盘缠你拿着，就当老夫结个善缘。」`, type: 'narrator' },
@@ -1249,12 +1406,7 @@ class Game {
     }
 
     _afterLandlordQuest() {
-        if (typeof this._triggerRescueOx === 'function') {
-            this._triggerRescueOx();
-        } else {
-            this.addMessage('（支线系统未就绪）', 'danger');
-            this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices();
-        }
+        this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices();
     }
 
     landlordFightGuards(venue) {
@@ -1282,7 +1434,7 @@ class Game {
         if (this.isBrothelVenue(venue)) return false;
         const name = venue.name;
         if (name.includes('家') || name.includes('府')) return false;
-        if (['断桥', '小溪', '田埂', '小树林'].includes(name)) return false;
+        if (['断桥', '小溪', '田埂', '小树林', '废弃矿坑'].includes(name)) return false;
         return true;
     }
 
@@ -1319,7 +1471,7 @@ class Game {
             choices.splice(choices.length, 0, { text: '帮助砍柴', action: () => this.chopWithWoodcutter(venue, npc) });
         }
         if (!npc.civilian && npc.combatPower > 0 && !npc._defeated) {
-            choices.push({ text: '对决', action: () => this.duelWithNpc(venue, npc, { label: '对决' }) });
+            choices.push({ text: '邀请切磋', action: () => this.duelWithNpc(venue, npc, { label: '邀请切磋' }) });
         }
         choices.push({ text: '不义之举', action: () => this.showUnrighteousActs(venue, npc) });
         choices.push({ text: '返回', action: () => this.enterVenue(venue) });
@@ -2252,10 +2404,11 @@ class Game {
         this.player.items.push({ ...getItem('firewood') });
         this.player.items.push({ ...getItem('firewood') });
         this.addMessage('获得柴火×2', 'system');
-        const chopRoot = this.player._chopRootBonus || 0;
-        if (chopRoot < 10) {
+        const vid = this.player.locationId;
+        const chopRoot = this.player._villageRoot[vid] || 0;
+        if (chopRoot < 5) {
             this.player.attrs.root += 1;
-            this.player._chopRootBonus = chopRoot + 1;
+            this.player._villageRoot[vid] = chopRoot + 1;
             this.player.exp += 3;
             this.addMessage(`根骨 +1（当前 ${this.player.attrs.root}），经验 +3`, 'system');
         } else {
@@ -2358,7 +2511,7 @@ class Game {
                 { text: '打探消息', action: () => this.chiefIntel(venue, npc) },
             ];
             if (!npc.civilian && npc.combatPower > 0 && !npc._defeated) {
-                choices.push({ text: '对决', action: () => this.duelWithNpc(venue, npc, { label: '对决' }) });
+                choices.push({ text: '邀请切磋', action: () => this.duelWithNpc(venue, npc, { label: '邀请切磋' }) });
             }
             choices.push({ text: '不义之举', action: () => this.showUnrighteousActs(venue, npc) });
             choices.push({ text: '离开', action: () => this.enterVenue(venue) });
@@ -2418,6 +2571,8 @@ class Game {
             const hasLandlord = loc.venues.some(v => v.name.endsWith('府'));
             if (hasLandlord) {
                 this.player.mainQuest = 1;
+                if (!this.player.completedQuests) this.player.completedQuests = {};
+                this.player.completedQuests.main_1 = true;
                 this.showMessageSequence([
                     { text: `你提起「沈清寒」这个名字，${npc.npcName}皱眉思索了片刻。`, type: 'narrator' },
                     { text: `${npc.npcName}：「沈清寒……恕老夫孤陋寡闻，不曾听过这个名字。」`, type: 'narrator' },
@@ -2429,6 +2584,9 @@ class Game {
                 const target = cityLocs.length > 0 ? cityLocs[Math.floor(Math.random() * cityLocs.length)] : null;
                 this.player.gold += 50;
                 this.player.mainQuest = 2;
+                if (!this.player.completedQuests) this.player.completedQuests = {};
+                this.player.completedQuests.main_1 = true;
+                this.player.completedQuests.main_2 = true;
                 this.showMessageSequence([
                     { text: `你提起「沈清寒」这个名字，${npc.npcName}叹了口气。`, type: 'narrator' },
                     { text: `${npc.npcName}：「沈清寒……老夫知道一些，但此中干系重大，不是你能掺和的。」`, type: 'narrator' },
@@ -2622,7 +2780,7 @@ class Game {
     }
 
     duelWithNpc(venue, npc, options = {}) {
-        const { powerMult = 1, initRepCost = 0, noCombatRepChange = false, winGetAllItems = false, label = '对决' } = options;
+        const { powerMult = 1, initRepCost = 0, noCombatRepChange = false, winGetAllItems = false, label = '邀请切磋' } = options;
         this.clearChoices();
 
         if (initRepCost > 0) {
@@ -3242,6 +3400,7 @@ class Game {
             return;
         }
         this.addMessage(`—— ${venue.name} · ${npc.npcName}的货 ——`, 'system');
+        avail.sort((a, b) => a.value - b.value);
         const choices = avail.map((item, idx) => {
             const price = item.value * 3;
             return {
@@ -3337,6 +3496,7 @@ class Game {
         const allRecipes = [
             { id: 'knife_wood',    name: '柴刀',      tier: 'white', cost: 3,  ings: { iron_ore: 2 }, desc: '劈柴用的铁刀' },
             { id: 'dagger',        name: '匕首',      tier: 'white', cost: 3,  ings: { iron_ore: 2 }, desc: '短小锋利的匕首' },
+            { id: 'fishing_rod',   name: '鱼竿',      tier: 'white', cost: 3,  ings: { iron_ore: 1, wood_hard: 1 }, desc: '竹竿配麻线铁钩' },
             { id: 'steel_blade',   name: '精铁刀',    tier: 'green', cost: 10, ings: { iron_ore: 4, wood_hard: 2 }, desc: '百炼精铁打造的腰刀' },
             { id: 'chest_mirror',  name: '护心镜',    tier: 'green', cost: 10, ings: { iron_ore: 4, leather_raw: 2 }, desc: '可挡暗箭的铜镜' },
             { id: 'blue_blade',    name: '砍山刀',    tier: 'blue',  cost: 30, ings: { iron_ore: 6, leather_raw: 4, wood_hard: 2 }, desc: '刃口厚重的砍刀' },
@@ -4053,15 +4213,49 @@ class Game {
         this.clearChoices();
         this.addMessage(`你盘膝坐下，五心朝天，默运「${name}」心法口诀……`, 'narrator');
         this.addMessage('一缕微弱的真气在经脉中缓缓流转，虽然渺小，却真实存在。', 'event');
-        this.player.maxNeili += 1;
-        this.player.neili = this.player.maxNeili;
+
+        let neiliMsg = null;
+        if (name === '天之书') {
+            const level = this.player._tianzhishuLevel || 0;
+            if (level >= 10) {
+                this.addMessage('但真气运行至丹田处便凝滞不前，似有瓶颈阻隔，难以寸进。看来需得另寻机缘方可突破。', 'narrator');
+                this.player.exp += 5;
+                this.player.day += 1;
+                this.player.timePeriod = '清晨';
+                this.addMessage('经验 +5', 'system');
+                this.addMessage('运功完毕，你收功归元，沉沉睡去。', 'narrator');
+                this.checkLevelUp();
+                this.updateStatsBar();
+                setTimeout(() => this.showLocationChoices(), 400);
+                return;
+            }
+            this.player.maxNeili += 2;
+            this.player.neili = this.player.maxNeili;
+            this.player._tianzhishuLevel = level + 1;
+            neiliMsg = `内力上限 +2（${this.player.maxNeili}）`;
+        } else if (name !== '按摩心经') {
+            this.player.maxNeili += 1;
+            this.player.neili = this.player.maxNeili;
+            neiliMsg = `内力上限 +1（${this.player.maxNeili}）`;
+        }
+
         this.player.exp += 5;
         this.player.day += 1;
         this.player.timePeriod = '清晨';
-        this.addMessage(`内力上限 +1（${this.player.maxNeili}），经验 +5`, 'system');
+        this.addMessage((neiliMsg ? neiliMsg + '，' : '') + '经验 +5', 'system');
         // 沿袭赌徒心经解锁赌技
         if (name.endsWith('赌徒心经')) {
             this._unlockGamblingSkill(name);
+        }
+        if (name === '按摩心经') {
+            const level = this.player._massageLevel || 0;
+            if (level < 5) {
+                this.player.attrs.appearance += 2;
+                this.player._massageLevel = level + 1;
+                this.addMessage(`容颜焕发，颜值 +2（当前 ${this.player.attrs.appearance}）`, 'system');
+            } else {
+                this.addMessage('此心法已至圆满，再无寸进。', 'info');
+            }
         }
         this.addMessage('运功完毕，你收功归元，沉沉睡去。', 'narrator');
         this.checkLevelUp();
@@ -4171,6 +4365,14 @@ class Game {
                 { text: `师弟沈清寒的下落还毫无头绪，现在离开村庄，无异于大海捞针。`, type: 'narrator' },
                 { text: `还是先在村里把消息打听清楚再说吧……`, type: 'narrator' },
             ], () => this.showChoices([{ text: '回去', action: () => this.showOutdoorChoices() }]));
+            return;
+        }
+        // 离开新手村时触发支线一（救牛）
+        if (current === this.player.startingVillage &&
+            (!this.player.completedQuests || !this.player.completedQuests.rescue_ox) &&
+            (!this.player.failedQuests || !this.player.failedQuests.rescue_ox) &&
+            (!this.player.activeQuests || !this.player.activeQuests.rescue_ox)) {
+            this._triggerRescueOx();
             return;
         }
         const currentRegion = getRegion(current);
@@ -5249,7 +5451,7 @@ const stageLabels = ['粗谈一番', '你们再次相遇，相谈甚欢', '卧�
 
     _inlineQuestTrigger(q) {
         this._questSeq_fallback([
-            '【支线任务·其一：救牛】',
+            questDisplayName('rescue_ox'),
             '你走出大门，沿着村道前行……',
             '忽然，你听到不远处传来打斗声和叫骂声。',
             '似乎是一个年轻人正在殴打老人。',
