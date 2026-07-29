@@ -1463,6 +1463,10 @@ class Game {
             { text: '购买', action: () => this.buyFromNpc(venue, npc) },
             { text: '出售', action: () => this.sellToNpc(venue, npc) },
         ];
+        const deliverQuest = this._getBoardDeliverMatch(npc.npcName, venue.name);
+        if (deliverQuest) {
+            choices.splice(0, 0, { text: '有给你的信', action: () => this._boardDeliverLetter(deliverQuest, venue) });
+        }
         if (venue.name === '铁匠铺') {
             choices.splice(choices.findIndex(c => c.text === '出售') + 1, 0, { text: '装备制造', action: () => this.showForgeMenu(venue, npc) });
         }
@@ -1472,6 +1476,10 @@ class Game {
         }
         if (npc._forestType === 'woodcutter' && !npc._killed) {
             choices.splice(choices.length, 0, { text: '帮助砍柴', action: () => this.chopWithWoodcutter(venue, npc) });
+        }
+        const huntQuest = this._getActiveBoardHuntQuest();
+        if (huntQuest && venue.name === '小树林' && !npc._killed) {
+            choices.push({ text: `猎杀${huntQuest.beastName}（告示栏任务）`, action: () => this._startBoardHuntBattle(huntQuest) });
         }
         if (!npc.civilian && npc.combatPower > 0 && !npc._defeated) {
             choices.push({ text: '邀请切磋', action: () => this.duelWithNpc(venue, npc, { label: '邀请切磋' }) });
@@ -2493,6 +2501,7 @@ class Game {
             ], () => {
                 const exitVenue = () => this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices();
                 this.showChoices([
+                    { text: '查看告示栏', action: () => this._showNoticeBoard(venue, npc) },
                     { text: '忍气吞声', action: () => { this.addMessage('你咬了咬牙没有发作，转身默默离开。', 'narrator'); setTimeout(() => exitVenue(), 300); } },
                     { text: '一顿毒打', action: () => this.confrontChief(venue, npc, 'beat') },
                     { text: '痛下杀手', action: () => this.confrontChief(venue, npc, 'kill') },
@@ -2508,11 +2517,12 @@ class Game {
                 npc._greeted = true;
             }
             const choices = [
-                { text: '闲谈', action: () => this.chatWithNpc(venue, npc) },
-                { text: '购买', action: () => this.buyFromNpc(venue, npc) },
-                { text: '出售', action: () => this.sellToNpc(venue, npc) },
-                { text: '打探消息', action: () => this.chiefIntel(venue, npc) },
-            ];
+            { text: '闲谈', action: () => this.chatWithNpc(venue, npc) },
+            { text: '购买', action: () => this.buyFromNpc(venue, npc) },
+            { text: '出售', action: () => this.sellToNpc(venue, npc) },
+            { text: '查看告示栏', action: () => this._showNoticeBoard(venue, npc) },
+            { text: '打探消息', action: () => this.chiefIntel(venue, npc) },
+        ];
             if (!npc.civilian && npc.combatPower > 0 && !npc._defeated) {
                 choices.push({ text: '邀请切磋', action: () => this.duelWithNpc(venue, npc, { label: '邀请切磋' }) });
             }
@@ -5667,6 +5677,199 @@ class Game {
                 this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices();
             } },
         ]);
+    }
+
+    /* ─── 告示栏系统 ─── */
+
+    _generateBoardQuests() {
+        if (!this.player || !this.currentLocation) return;
+        const loc = this.currentLocation;
+        if (!loc.id) return;
+        const village = WORLD.villages.find(v => v.id === loc.id);
+        if (!village || village.venues.length < 4) return;
+        const existing = this.player._boardQuests || [];
+        const hasIncomplete = existing.some(q => !q.completed);
+        if (hasIncomplete) return;
+        const rng = Math.random;
+        const quests = [];
+        const targetVillages = WORLD.villages.filter(v => v.id !== loc.id);
+        if (targetVillages.length > 0) {
+            const tv = targetVillages[Math.floor(rng() * targetVillages.length)];
+            const validVenues = tv.venues.filter(v =>
+                v.npcs && v.npcs.length > 0
+                && !['街角', '村长家', '小树林', '黑市', '肉铺'].includes(v.name)
+            );
+            if (validVenues.length > 0) {
+                const vv = validVenues[Math.floor(rng() * validVenues.length)];
+                const npc = vv.npcs[0];
+                quests.push({
+                    type: 'deliver',
+                    title: `送信到${tv.name}`,
+                    desc: `请将一封书信送到${tv.name}的${vv.name}，交给${npc.npcName}。`,
+                    targetVillageId: tv.id,
+                    targetVillageName: tv.name,
+                    targetVenueName: vv.name,
+                    targetNpcName: npc.npcName,
+                    reward: 10,
+                    accepted: false,
+                    completed: false,
+                });
+            }
+        }
+        const beasts = [
+            { key: 'wolf', name: '野狼', cp: 15, desc: '最近小树林里来了一条野狼，常常在夜间出没，请前往狩猎。' },
+            { key: 'boar', name: '野猪', cp: 22, desc: '一头野猪在小树林里乱窜，拱坏了不少地，请前往猎杀。' },
+            { key: 'python', name: '巨蟒', cp: 18, desc: '小树林里出现了一条巨蟒，路人纷纷绕道，请前往铲除。' },
+            { key: 'bear', name: '黑熊', cp: 35, desc: '一只黑熊从深山里跑了出来，在小树林里伤人，请前往讨伐！' },
+            { key: 'tiger', name: '猛虎', cp: 45, desc: '不得了！一只吊睛白额猛虎盘踞在小树林中，村中无人敢近。请壮士务必出手！' },
+        ];
+        const huntCount = 1 + Math.floor(rng() * 2);
+        const shuffled = [...beasts].sort(() => rng() - 0.5);
+        for (let i = 0; i < Math.min(huntCount, shuffled.length); i++) {
+            const b = shuffled[i];
+            const rewardMap = { wolf: 12, boar: 18, python: 15, bear: 28, tiger: 35 };
+            quests.push({
+                type: 'hunt', title: `猎杀${b.name}`, desc: b.desc,
+                beastKey: b.key, beastName: b.name, beastCp: b.cp,
+                count: 1, progress: 0, reward: rewardMap[b.key],
+                accepted: false, completed: false,
+            });
+        }
+        const gatherTasks = [
+            { item: 'firewood', name: '柴火', count: 5, reward: 8, label: '捆' },
+            { item: 'iron_ore', name: '铁矿', count: 3, reward: 12, label: '块' },
+            { item: 'coal', name: '煤炭', count: 3, reward: 10, label: '块' },
+            { item: 'fish_carp', name: '鲤鱼', count: 3, reward: 10, label: '条' },
+            { item: 'meat_rabbit', name: '兔肉', count: 3, reward: 10, label: '份' },
+        ];
+        if (rng() < 0.6) {
+            const gt = gatherTasks[Math.floor(rng() * gatherTasks.length)];
+            quests.push({
+                type: 'gather', title: `收集${gt.name}`,
+                desc: `请收集${gt.count}${gt.label}${gt.name}，交给村里。`,
+                itemId: gt.item, itemName: gt.name,
+                count: gt.count, progress: 0, reward: gt.reward,
+                accepted: false, completed: false,
+            });
+        }
+        this.player._boardQuests = quests;
+    }
+
+    _showNoticeBoard(venue, npc) {
+        this.clearChoices();
+        const loc = this.currentLocation;
+        let quests = this.player._boardQuests;
+        if (!quests || quests.every(q => q.completed)) {
+            this._generateBoardQuests();
+            quests = this.player._boardQuests;
+        }
+        if (!quests || quests.length === 0) {
+            this.addMessage('告示栏上空空如也，什么任务也没有。', 'narrator');
+            setTimeout(() => this.chiefAction(venue, npc), 300);
+            return;
+        }
+        this.addMessage(`你走到${loc.name}的告示栏前，上面贴着几张告示：`, 'narrator');
+        const choices = quests.map((q, i) => {
+            if (q.completed) {
+                return { text: `✓ ${q.title}（可领取赏银${q.reward}两）`, action: () => this._collectBoardReward(i, venue, npc) };
+            } else if (q.accepted) {
+                let prog = '已接取', canClaim = false;
+                if (q.type === 'hunt') { prog = q.progress >= q.count ? '可领取奖励' : `进度 ${q.progress}/${q.count}`; canClaim = q.progress >= q.count; }
+                else if (q.type === 'gather') {
+                    const has = (this.player.items || []).filter(it => it.id === q.itemId).length;
+                    q.progress = Math.min(q.count, has);
+                    prog = q.progress >= q.count ? '可提交领取奖励' : `进度 ${q.progress}/${q.count}`;
+                    canClaim = q.progress >= q.count;
+                }
+                if (canClaim) return { text: `${q.title}（${prog}）`, action: () => this._collectBoardReward(i, venue, npc) };
+                return { text: `${q.title}（${prog}）`, action: () => this._showNoticeBoard(venue, npc) };
+            } else {
+                return { text: `${q.title}（报酬 ${q.reward}两·揭榜）`, action: () => this._acceptBoardQuest(i, venue, npc) };
+            }
+        });
+        choices.push({ text: '返回', action: () => this.chiefAction(venue, npc) });
+        this.showChoices(choices);
+    }
+
+    _acceptBoardQuest(idx, venue, npc) {
+        const q = this.player._boardQuests[idx];
+        if (!q || q.accepted) return;
+        q.accepted = true;
+        this.addMessage(`你揭下了「${q.title}」的告示。`, 'narrator');
+        setTimeout(() => this._showNoticeBoard(venue, npc), 300);
+    }
+
+    _collectBoardReward(idx, venue, npc) {
+        const q = this.player._boardQuests[idx];
+        if (!q) return;
+        if (q.type === 'gather') {
+            if (q.progress < q.count) return;
+            let remaining = q.count;
+            for (let i = this.player.items.length - 1; i >= 0 && remaining > 0; i--) {
+                if (this.player.items[i].id === q.itemId) {
+                    this.player.items.splice(i, 1);
+                    remaining--;
+                }
+            }
+        } else if (!q.completed) {
+            return;
+        }
+        this.player.gold += q.reward;
+        this.addMessage(`你完成了「${q.title}」，获得 ${q.reward}两赏银。`, 'system');
+        if (q.type === 'hunt') {
+            const repGain = q.beastCp <= 10 ? 1 : q.beastCp <= 20 ? 2 : q.beastCp <= 35 ? 3 : 5;
+            this.player.reputation += repGain;
+            this.addMessage(`声望 +${repGain}`, 'system');
+        } else {
+            this.player.reputation += 1;
+            this.addMessage(`声望 +1`, 'system');
+        }
+        this.player._boardQuests.splice(idx, 1);
+        this.updateStatsBar();
+        setTimeout(() => this._showNoticeBoard(venue, npc), 300);
+    }
+
+    _getActiveBoardHuntQuest() {
+        if (!this.player._boardQuests) return null;
+        return this.player._boardQuests.find(q => q.type === 'hunt' && q.accepted && !q.completed && q.progress < q.count) || null;
+    }
+
+    _getBoardDeliverMatch(npcName, venueName) {
+        if (!this.player._boardQuests) return null;
+        return this.player._boardQuests.find(q =>
+            q.type === 'deliver' && q.accepted && !q.completed
+            && q.targetNpcName === npcName && q.targetVenueName === venueName
+        ) || null;
+    }
+
+    _startBoardHuntBattle(quest) {
+        const enemy = createGenericEnemy(quest.beastName, quest.beastCp);
+        this.startBattle(enemy, () => {
+            quest.progress = Math.min(quest.count, quest.progress + 1);
+            this.addMessage(`你成功猎杀了${quest.beastName}！`, 'event');
+            if (quest.progress >= quest.count) {
+                quest.completed = true;
+                this.addMessage(`「${quest.title}」已完成，可以回告示栏领取赏银了。`, 'event');
+            }
+            this.updateStatsBar();
+            setTimeout(() => this.showOutdoorChoices(), 400);
+        }, () => {
+            this.addMessage('你被野兽击败了……', 'narrator');
+            setTimeout(() => this.showOutdoorChoices(), 400);
+        }, () => {
+            this.addMessage('你仓皇逃离了小树林。', 'narrator');
+            setTimeout(() => this.showOutdoorChoices(), 400);
+        });
+    }
+
+    _boardDeliverLetter(quest, venue) {
+        quest.completed = true;
+        this.clearChoices();
+        this.addMessage(`你取出一封书信，递了过去：「这是${quest.targetVillageName}给您的信。」`, 'narrator');
+        this.addMessage(`${quest.targetNpcName}接过信，拆开看了看，点头道：「有劳了，替我谢谢${quest.targetVillageName}的老朋友。」`, 'info');
+        this.addMessage(`送信完成！可以回告示栏领取赏银了。`, 'system');
+        this.updateStatsBar();
+        setTimeout(() => this.enterVenue(venue), 400);
     }
 
 }
