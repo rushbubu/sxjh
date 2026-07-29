@@ -121,7 +121,7 @@ class Game {
             hp: startMaxHp, maxHp: startMaxHp,
             neili: 0, maxNeili: 0,
             day: 1, level: 1, exp: 0,
-            gold: 50000, reputation: 10,
+            gold: 500000000, reputation: 10,
             shadowRep: 0,
             // ─── 三套声望系统 ───
             // _evil:     罪恶值 (+为恶), 用于判定心魔/入魔事件
@@ -457,6 +457,12 @@ class Game {
         return { label: '江湖神话', color: '#ff6040' };
     }
 
+    formatGold(gold) {
+        if (gold >= 100000000) return (gold / 100000000).toFixed(1).replace(/\.0$/, '') + '亿两';
+        if (gold >= 10000) return (gold / 10000).toFixed(1).replace(/\.0$/, '') + '万两';
+        return gold + ' 两';
+    }
+
     getWealthInfo(gold) {
         if (gold < 0) return { label: '负债累累', color: '#804040' };
         if (gold <= 10) return { label: '穷困潦倒', color: '#806060' };
@@ -621,7 +627,7 @@ class Game {
         const effectiveRep = p.reputation + houseRepBonus;
         const ri = this.getRepInfo(effectiveRep);
         const wi = this.getWealthInfo(p.gold);
-        document.getElementById('gold-text').textContent = p.gold + ' 两';
+        document.getElementById('gold-text').textContent = this.formatGold(p.gold);
         document.getElementById('rep-text').textContent = ri.label;
         document.getElementById('rep-text').style.color = ri.color;
         document.getElementById('wealth-text').textContent = wi.label;
@@ -671,7 +677,7 @@ class Game {
             <div class="stat-line"><span>经验</span><span>${p.exp}/${this.getExpToNextLevel(p.level)}</span></div>
             <div class="stat-line"><span>气血</span><span>${p.hp}/${p.maxHp}</span></div>
             <div class="stat-line"><span>内力</span><span>${p.neili}/${p.maxNeili}</span></div>
-            <div class="stat-line"><span>银两</span><span>${p.gold} 两</span></div>
+            <div class="stat-line"><span>银两</span><span>${this.formatGold(p.gold)}</span></div>
             <div class="stat-line" style="margin-top:6px;"><span>心法</span><span>${intSkills}</span></div>
             <div class="stat-line"><span>外功</span><span>${extSkills}</span></div>
         `;
