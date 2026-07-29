@@ -13,7 +13,7 @@ const GAMBLING_SKILL_TIERS = [
     { level: 4, name: '大师赌技', internalName: '大师赌徒心经', netLossReq: -120, luckReq: 70, neiliCost: 20, boost: 0.20 },
 ];
 
-// ─── 初始化：为所有街角添加赌徒NPC ───
+// ─── 初始化：为所有村角添加赌徒NPC ───
 
 function setupStreetGamblers(world) {
     const names = ['刘三', '胡老六', '王麻子', '赵四', '李拐子', '钱串子', '孙瘸子', '周赖子'];
@@ -28,7 +28,7 @@ function setupStreetGamblers(world) {
         3: '气派的赌坊大厅里灯火通明，数十张赌桌一字排开，坐镇的老板目光如炬。',
     };
     for (const loc of world.villages || []) {
-        const corner = loc.venues.find(v => v.name === '街角');
+        const corner = loc.venues.find(v => v.name === '村角');
         if (!corner) continue;
         const n = names[Math.floor(Math.random() * names.length)];
         corner.npcs.push({

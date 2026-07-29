@@ -125,6 +125,9 @@ const ITEMS = {
     fish_crab:       { id: 'fish_crab',       name: '螃蟹',      desc: '张牙舞爪的大螃蟹，壳硬肉肥。',                           value: 4,   stealDiff: 6,  category: 'food' },
     fish_shrimp:     { id: 'fish_shrimp',     name: '河虾',      desc: '晶莹剔透的河虾，鲜美弹牙。',                             value: 3,   stealDiff: 4,  category: 'food' },
     fish_yuanbao:    { id: 'fish_yuanbao',    name: '元宝鱼',    desc: '鱼身泛着金光，形似元宝的奇鱼，据说能带来好运。',        value: 30,  stealDiff: 40, category: 'treasure', special: true },
+    pond_goldfish:   { id: 'pond_goldfish',   name: '金鱼',      desc: '小巧玲珑的金鱼，红白相间，鳞片在光下闪闪发亮。',          value: 30,  stealDiff: 15, category: 'ornament' },
+    pond_koi:        { id: 'pond_koi',        name: '锦鲤',      desc: '色彩斑斓的观赏鲤鱼，寓意吉祥富贵，深得文人雅士喜爱。',   value: 150, stealDiff: 30, category: 'ornament' },
+    pond_turtle:     { id: 'pond_turtle',     name: '灵龟',      desc: '通灵的老龟，背上刻着玄奥纹路，据说能辟邪纳福。',         value: 400, stealDiff: 50, category: 'ornament' },
     water_weed:      { id: 'water_weed',      name: '水草',      desc: '湿漉漉的水草，缠了一团，没什么用。',                     value: 0,   stealDiff: 1,  category: 'material' },
     old_shoe:        { id: 'old_shoe',        name: '破鞋子',    desc: '不知被水泡了多久的破布鞋，散发着一股怪味。',             value: 0,   stealDiff: 1,  category: 'household' },
     rusty_can:       { id: 'rusty_can',       name: '锈铁罐',    desc: '锈迹斑斑的铁罐子，不知道装了什么东西。',                 value: 0,   stealDiff: 2,  category: 'household' },
@@ -142,6 +145,21 @@ const ITEMS = {
     sutra_gambler_2:  { id: 'sutra_gambler_2', name: '中级赌徒心经', desc: '笔记更深的赌术心得，但习练需有一定福缘。',            value: 1,   stealDiff: 5,  category: 'skill', use: { learnInternalSkill: '中级赌徒心经' } },
     sutra_gambler_3:  { id: 'sutra_gambler_3', name: '高级赌徒心经', desc: '密不外传的赌门要诀，非大福缘之人不可窥其门径。',   value: 1,   stealDiff: 5,  category: 'skill', use: { learnInternalSkill: '高级赌徒心经' } },
     sutra_gambler_4:  { id: 'sutra_gambler_4', name: '大师赌徒心经', desc: '赌门至高秘典，据传练成可逢赌必赢。',                   value: 1,   stealDiff: 5,  category: 'skill', use: { learnInternalSkill: '大师赌徒心经' } },
+    pond_portable:    { id: 'pond_portable',   name: '随身鱼袋',    desc: '一只上好的青瓷缸，可暂养一尾活鱼随身携带。',            value: 2000, stealDiff: 80, category: 'tool', special: true },
+    // ═══ 观赏鱼（花鸟鱼市场） ═══
+    fish_mkt_white:   { id: 'fish_mkt_white',  name: '白鲤',        desc: '通体雪白的鲤鱼，池中一景，清雅脱俗。',                    value: 50,   stealDiff: 10, category: 'ornament', tier: 'white' },
+    fish_mkt_green:   { id: 'fish_mkt_green',  name: '青鲤',        desc: '鳞片泛着青光，游动时如一泓碧水。',                        value: 200,  stealDiff: 15, category: 'ornament', tier: 'green' },
+    fish_mkt_blue:    { id: 'fish_mkt_blue',   name: '蓝龙睛',      desc: '双眼如龙，通体湛蓝，在池中格外显眼。',                     value: 800,  stealDiff: 25, category: 'ornament', tier: 'blue' },
+    fish_mkt_purple:  { id: 'fish_mkt_purple', name: '紫珍珠',      desc: '通体紫红，鳞片圆润如珠，极为名贵。',                       value: 3000, stealDiff: 40, category: 'ornament', tier: 'purple' },
+    fish_mkt_orange:  { id: 'fish_mkt_orange', name: '橙丹顶',      desc: '额顶一抹丹橙，如旭日东升，万金难求。',                     value: 12000, stealDiff: 60, category: 'ornament', tier: 'orange' },
+    fish_mkt_gold:    { id: 'fish_mkt_gold',   name: '金锦',        desc: '周身金鳞，在水中如一团流动的黄金，皇亲国戚亦求之不得。',   value: 50000, stealDiff: 90, category: 'ornament', tier: 'gold' },
+    fish_mkt_red:     { id: 'fish_mkt_red',    name: '赤焰鲤',      desc: '通体赤红如烈焰，传说乃龙种遗脉，池中有此鱼可镇宅辟邪。',   value: 200000, stealDiff: 130, category: 'ornament', tier: 'red' },
+    // ═══ 鱼竿（任务奖励） ═══
+    rod_green:        { id: 'rod_green',       name: '青竹竿',      desc: '上等青竹所制，弹性极佳，可抛投更远。',                     value: 100,  stealDiff: 30, category: 'tool', tier: 'green' },
+    rod_blue:         { id: 'rod_blue',        name: '翠竹钓竿',    desc: '百年翠竹配天蚕丝线，坚韧非凡。',                           value: 500,  stealDiff: 50, category: 'tool', tier: 'blue' },
+    rod_purple:       { id: 'rod_purple',      name: '紫檀钓竿',    desc: '紫檀木为柄，玄铁丝为线，名家手制。',                       value: 2500, stealDiff: 70, category: 'tool', tier: 'purple' },
+    rod_orange:       { id: 'rod_orange',      name: '玄铁钓竿',    desc: '玄铁打造，百炼成钢，可钓千斤巨鱼。',                       value: 10000, stealDiff: 100, category: 'tool', tier: 'orange' },
+    rod_gold:         { id: 'rod_gold',        name: '金龙钓竿',    desc: '南海龙筋为线，九天玄铁为钩，传说之物。',                   value: 50000, stealDiff: 140, category: 'tool', tier: 'gold' },
 };
 
 function getItem(id) {

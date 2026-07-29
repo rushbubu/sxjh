@@ -24,7 +24,7 @@ function getTierInfo(tier) {
     return TIERS[tier] || TIERS.white;
 }
 
-const ITEM_TIER_LABELS = { white:'凡品', green:'良品', blue:'精品', purple:'上品', orange:'绝品', gold:'神品' };
+const ITEM_TIER_LABELS = { white:'凡品', green:'良品', blue:'精品', purple:'上品', orange:'绝品', gold:'神品', red:'仙品' };
 
 class Game {
     constructor() {
@@ -152,6 +152,9 @@ class Game {
             _tianzhishuLevel: 0,    // 天之书修炼次数（上限10）
             _huntUnlockLevel: 0,
             _drunk: 0,
+            houses: {},
+            _portablePond: null,
+            _fishQuestDone: 0,
         };
 
         setupStreetGamblers(WORLD);
@@ -186,6 +189,7 @@ class Game {
         }
         document.getElementById('create-overlay').classList.add('hidden');
         this.updateStatsBar();
+        this.houseManager = new HouseManager(this);
         this.showIntro();
     }
 
@@ -613,7 +617,9 @@ class Game {
         if (drunk > 0) st.textContent += (st.textContent ? ' | ' : '') + `醉意 ${drunk}`;
         p.hp = Math.max(0, p.hp); p.neili = Math.max(0, p.neili);
         if (p.reputation <= -40) this._triggerRepGameOver();
-        const ri = this.getRepInfo(p.reputation);
+        const houseRepBonus = this.houseManager ? this.houseManager.getMaxRepBonus() : 0;
+        const effectiveRep = p.reputation + houseRepBonus;
+        const ri = this.getRepInfo(effectiveRep);
         const wi = this.getWealthInfo(p.gold);
         document.getElementById('gold-text').textContent = p.gold + ' 两';
         document.getElementById('rep-text').textContent = ri.label;
@@ -748,16 +754,19 @@ class Game {
         this.currentLocation = loc;
         this.player.locationVenues = loc.venues.map(v => ({
             ...v,
-            npcs: v.npcs.map(n => ({
-                ...n,
-                _defaultItems: n.items.map(i => ({ ...i })),
-                items: n.items.map(i => {
-                    const stock = this.getItemStock(i);
-                    const item = { ...i, stock, maxStock: stock };
-                    if (['blue','purple','orange','gold'].includes(item.tier)) item.name += ` ［${ITEM_TIER_LABELS[item.tier]}］`;
-                    return item;
-                }),
-            })).filter(n => !this.killedNpcs.has(loc.id + ':' + v.name + ':' + n.npcName)),
+            npcs: (v.npcs || []).map(n => {
+                const ni = n.items || [];
+                return {
+                    ...n,
+                    _defaultItems: ni.map(i => ({ ...i })),
+                    items: ni.map(i => {
+                        const stock = this.getItemStock(i);
+                        const item = { ...i, stock, maxStock: stock };
+                        if (['blue','purple','orange','gold'].includes(item.tier)) item.name += ` ［${ITEM_TIER_LABELS[item.tier]}］`;
+                        return item;
+                    }),
+                };
+            }).filter(n => !this.killedNpcs.has(loc.id + ':' + v.name + ':' + n.npcName)),
         }));
         this.assignBeauties(loc);
         const tl = getLocationTypeLabel(loc.id);
@@ -846,7 +855,7 @@ class Game {
             const isEntertainment = v => entertainmentVenues.includes(v.name);
             const isOutskirts = v => v._isOutskirts;
             const isShop = v =>
-                !isEntertainment(v) && !isOutskirts(v) && (v._isCommercialHQ || specialShops.includes(v.name) || shopKeys.some(s => v.name.includes(s)) || v.name.includes('楼'));
+                !isEntertainment(v) && !isOutskirts(v) && (v._isCommercialHQ || specialShops.includes(v.name) || shopKeys.some(s => v.name.includes(s)) || v.name.includes('楼') || ['房产中介', '花鸟鱼市场', '黑市'].includes(v.name));
             const groups = {
                 '城外': this.player.locationVenues.filter(v => isOutskirts(v)),
                 '商业区': this.player.locationVenues.filter(v => isShop(v)),
@@ -884,12 +893,12 @@ class Game {
         const t = this.player.timePeriod;
         // 子时所有室内场所关闭
         if (t === '子时') {
-            if (['街角', '断桥', '小溪', '田埂', '小树林', '废弃矿坑'].includes(venue.name)) return false;
+            if (['村角', '断桥', '小溪', '田埂', '小树林', '废弃矿坑'].includes(venue.name)) return false;
             return true;
         }
         // 黄昏商店歇业，住宅/怡红院等仍营业
         if (t === '黄昏') {
-            if (['街角', '断桥', '小溪', '田埂', '小树林', '废弃矿坑'].includes(venue.name)) return false;
+            if (['村角', '断桥', '小溪', '田埂', '小树林', '废弃矿坑'].includes(venue.name)) return false;
             if (['草药铺', '铁匠铺', '酒馆'].includes(venue.name)) return true;
             return false;
         }
@@ -1117,6 +1126,12 @@ class Game {
             text: npc.isChief ? `村长 · ${npc.npcName}` : npc.npcName,
             action: () => this.interactNpc(venue, npc),
         }));
+        // 子场所（如村角内的学堂、习武堂）
+        if (venue.subVenues) {
+            venue.subVenues.forEach(sv => {
+                choices.push({ text: `进入${sv.name}`, action: () => this._enterSubVenue(venue, sv) });
+            });
+        }
         // 小树林：有柴刀可自行砍柴
         if (venue.name === '小树林' && this.player.items.some(i => i.id === 'knife_wood')) {
             choices.splice(choices.length, 0, { text: '砍柴（根骨 +1）', action: () => {
@@ -1150,7 +1165,29 @@ class Game {
         if (venue.name === '小树林') {
             choices.splice(choices.length, 0, { text: '采药', action: () => { this.clearChoices(); this._herbGatherMenu(venue); } });
         }
+        if (venue.name === '村长家') {
+            choices.splice(choices.length, 0, { text: '查看告示栏', action: () => { this.clearChoices(); this._showNoticeBoard(venue); } });
+        }
         choices.push({ text: `离开${venue.name}`, action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) });
+        this.showChoices(choices);
+    }
+
+    /* ─── 子场所入口（学堂、习武堂等） ─── */
+
+    _enterSubVenue(parentVenue, subVenue) {
+        this.clearChoices();
+        this.addMessage(`你走进${subVenue.name}。`, 'narrator');
+        const alive = (subVenue.npcs || []).filter(n => !n._killed && !n._hidden);
+        if (alive.length === 0) {
+            this.addMessage('里面空无一人……', 'narrator');
+            this.showChoices([{ text: '离开', action: () => this.enterVenueInner(parentVenue) }]);
+            return;
+        }
+        const choices = alive.map(npc => ({
+            text: npc.npcName,
+            action: () => this.interactNpc(parentVenue, npc),
+        }));
+        choices.push({ text: `离开${subVenue.name}`, action: () => this.enterVenueInner(parentVenue) });
         this.showChoices(choices);
     }
 
@@ -1283,6 +1320,39 @@ class Game {
             }},
             { text: '收起鱼竿', action: () => (this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices()) },
         ];
+        // 随身鱼袋
+        if (this.player.items.some(i => i.id === 'pond_portable') && !this.player._portablePond) {
+            const fishItems = this.player.items.filter(i => i.id.startsWith('fish_') && !['water_weed', 'old_shoe', 'rusty_can'].includes(i.id));
+            if (fishItems.length > 0) {
+                choices.splice(choices.length - 1, 0, { text: '将鱼放入随身鱼袋', action: () => this._showPortablePondStore(venue) });
+            }
+        }
+        this.showChoices(choices);
+    }
+
+    /* ─── 随身鱼袋 ─── */
+
+    _showPortablePondStore(venue) {
+        this.clearChoices();
+        const fishItems = this.player.items.filter(i => i.id.startsWith('fish_') && !['water_weed', 'old_shoe', 'rusty_can'].includes(i.id));
+        if (fishItems.length === 0) {
+            this.addMessage('你翻了翻随身鱼袋——里面空空如也。', 'narrator');
+            this._fishingMenu(venue);
+            return;
+        }
+        this.addMessage('你想把哪条鱼放入随身鱼袋？（只能暂养一尾）', 'narrator');
+        const choices = fishItems.map((item, idx) => ({
+            text: item.name,
+            action: () => {
+                this.clearChoices();
+                this.player.items.splice(this.player.items.indexOf(item), 1);
+                this.player._portablePond = { id: item.id, name: item.name };
+                this.addMessage(`你将${item.name}小心地放入青瓷缸中。鱼儿在缸中打了个转，似乎对新家颇为满意。`, 'narrator');
+                this.updateStatsBar();
+                setTimeout(() => this._fishingMenu(venue), 400);
+            },
+        }));
+        choices.push({ text: '算了', action: () => this._fishingMenu(venue) });
         this.showChoices(choices);
     }
 
@@ -1561,7 +1631,9 @@ class Game {
         if (npc.isBeauty) { this.interactBeauty(venue, npc); return; }
         if (npc.isChief) { this.chiefAction(venue, npc); return; }
         if (this.isBrothelVenue(venue)) { this.interactBrothel(venue, npc); return; }
-        if (venue.name === '街角') {
+        if (npc.isTeacher) { this._schoolAction(venue, npc); return; }
+        if (npc.isMartialTeacher) { this._martialHallAction(venue, npc); return; }
+        if (venue.name === '村角') {
             if (npc._isCrippleLi) { this.crippleLiAction(venue, npc); return; }
             if (npc.gamblerLevel) { this.gamblerAction(venue, npc); return; }
             this.beggarAction(venue, npc); return;
@@ -1569,6 +1641,8 @@ class Game {
         if (npc.factionId) { this.factionAction(venue, npc); return; }
         if (npc.gamblerLevel) { this.gamblerAction(venue, npc); return; }
         if ((npc.isButcher || venue.name === '肉铺') && this.questInteractButcher) { this.questInteractButcher(venue, npc); return; }
+        if (npc.isEstateAgent) { this.houseManager.showEstateAgent(venue, this.player.locationId); return; }
+        if (npc.isFishMarket) { this._fishMarketMenu(venue, npc); return; }
         this.clearChoices();
         if (!npc._introduced) {
             this.addMessage(`${npc.npcName}：「${npc.npcDesc}」`, 'info');
@@ -1603,6 +1677,218 @@ class Game {
         choices.push({ text: '不义之举', action: () => this.showUnrighteousActs(venue, npc) });
         choices.push({ text: '返回', action: () => this.enterVenue(venue) });
         this.showChoices(choices);
+    }
+
+    /* ─── 学堂 ─── */
+
+    _schoolAction(venue, npc) {
+        this.clearChoices();
+        if (!npc._introduced) {
+            this.addMessage(`${npc.npcName}：「${npc.npcDesc}」`, 'info');
+            npc._introduced = true;
+        }
+        const studied = (this.player._studiedAt || {})[this.player.locationId] || 0;
+        if (studied >= 3) {
+            this.addMessage(`${npc.npcName}捋着胡须道：「老夫已倾囊相授，你再学也难有寸进了。」`, 'narrator');
+            this.showChoices([{ text: '离开', action: () => this.enterVenue(venue) }]);
+            return;
+        }
+        this.addMessage(`${npc.npcName}：「又是来求学的？老夫这里有《千字文》《论语》《周易》……你想学哪本？」`, 'narrator');
+        const choices = [
+            { text: `读书（悟性 +2 · 10两）`, action: () => {
+                this.clearChoices();
+                if (this.player.gold < 10) {
+                    this.addMessage('你摸了摸钱袋——囊中羞涩。', 'narrator');
+                    this.showChoices([{ text: '回去', action: () => this._schoolAction(venue, npc) }]);
+                    return;
+                }
+                this.player.gold -= 10;
+                const cur = this.player._studiedAt || {};
+                cur[this.player.locationId] = (cur[this.player.locationId] || 0) + 1;
+                this.player._studiedAt = cur;
+                this.player.attrs.wit += 2;
+                this.addMessage(`你坐在窗边，跟着老先生读了半日书。窗外蝉鸣阵阵，书声琅琅。`, 'narrator');
+                this.addMessage(`悟性 +2（当前 ${this.player.attrs.wit}）`, 'system');
+                this.advanceTime();
+                this.updateStatsBar();
+                setTimeout(() => this._schoolAction(venue, npc), 400);
+            }},
+        ];
+        choices.push({ text: '离开', action: () => this.enterVenue(venue) });
+        this.showChoices(choices);
+    }
+
+    /* ─── 习武堂 ─── */
+
+    _martialHallAction(venue, npc) {
+        this.clearChoices();
+        if (!npc._introduced) {
+            this.addMessage(`${npc.npcName}：「${npc.npcDesc}」`, 'info');
+            npc._introduced = true;
+        }
+        const hasChangquan = this.player.externalSkills.some(s => s.id === 'chang_quan');
+        if (hasChangquan) {
+            this.addMessage(`${npc.npcName}打量了你一番：「你已学会了长拳，老夫没什么可教你的了。自己勤加练习便是。」`, 'narrator');
+            this.showChoices([{ text: '离开', action: () => this.enterVenue(venue) }]);
+            return;
+        }
+        this.addMessage(`${npc.npcName}拍了拍你的肩膀：「小伙子筋骨不错，想学功夫？老夫这里有一套长拳，虽然只是入门功夫，但练好了走江湖也够用。」`, 'narrator');
+        const choices = [
+            { text: '学拳（习得长拳 · 15两）', action: () => {
+                this.clearChoices();
+                if (this.player.gold < 15) {
+                    this.addMessage('你摸了摸钱袋——囊中羞涩。', 'narrator');
+                    this.showChoices([{ text: '回去', action: () => this._martialHallAction(venue, npc) }]);
+                    return;
+                }
+                this.player.gold -= 15;
+                this.player.externalSkills.push({ id: 'chang_quan', name: '长拳', desc: '江湖最常见的入门拳法，四平八稳，招正势圆。', level: 1 });
+                this.addMessage(`你跟着老武师在院子里扎马步、练冲拳，一个时辰下来汗流浃背。`, 'narrator');
+                this.addMessage(`你学会了「长拳」！江湖最常见的入门拳法，四平八稳，招正势圆。`, 'event');
+                this.advanceTime();
+                this.updateStatsBar();
+                setTimeout(() => this._martialHallAction(venue, npc), 400);
+            }},
+        ];
+        choices.push({ text: '离开', action: () => this.enterVenue(venue) });
+        this.showChoices(choices);
+    }
+
+    /* ─── 花鸟鱼市场 ─── */
+
+    _fishMarketMenu(venue, npc) {
+        this.clearChoices();
+        this.addMessage(`你走进${venue.name}，${npc.npcName}正在给水盆换水。`, 'narrator');
+        this.addMessage(`「客官来得巧！今儿个刚到的几尾好鱼，您瞧瞧？」`, 'info');
+        const stock = this._getFishMarketStock();
+        const hasPondPortable = this.player.items.some(i => i.id === 'pond_portable');
+        const quest = this._getFishMarketQuest();
+        const choices = [];
+        // 每日鱼货
+        if (stock.length > 0) {
+            const label = stock.map(s => `「${s.name}」`).join('');
+            choices.push({ text: `看看今日鱼货${label}`, action: () => this._fishMarketBuy(venue, npc) });
+        }
+        // 随身鱼袋
+        if (!hasPondPortable) {
+            choices.push({ text: '买一个随身鱼袋（2,000两）', action: () => {
+                this.clearChoices();
+                if (this.player.gold < 2000) {
+                    this.addMessage('囊中羞涩。', 'narrator');
+                    this._fishMarketMenu(venue, npc);
+                    return;
+                }
+                this.player.gold -= 2000;
+                this.player.items.push({ ...getItem('pond_portable') });
+                this.addMessage('你买下一只青瓷鱼缸。老板叮嘱道：「这缸金贵，别摔了，一尾鱼也别贪多。」', 'narrator');
+                this.updateStatsBar();
+                setTimeout(() => this._fishMarketMenu(venue, npc), 500);
+            }});
+        }
+        // 任务
+        if (quest) {
+            const hasFish = this.player.items.some(i => i.id === quest.targetId);
+            choices.push({ text: `交付任务：${quest.desc}`, action: () => this._fishMarketDeliver(venue, npc, quest) });
+        }
+        choices.push({ text: '闲聊', action: () => {
+            this.clearChoices();
+            this.addMessage(`${npc.npcName}擦了擦手：「这花鸟鱼市场热闹着呢，您常来逛逛。」`, 'narrator');
+            this.addMessage('他告诉你一些养鱼的心得，还提到了城外某处深潭似乎有异鱼出没……', 'narrator');
+            this.showChoices([{ text: '回去', action: () => this._fishMarketMenu(venue, npc) }]);
+        }});
+        choices.push({ text: '离开', action: () => this.enterVenue(venue) });
+        this.showChoices(choices);
+    }
+
+    _getFishMarketStock() {
+        const key = 'fishmkt_' + this.player.locationId + '_' + this.player.day;
+        const allFish = ['fish_mkt_white','fish_mkt_green','fish_mkt_blue','fish_mkt_purple','fish_mkt_orange','fish_mkt_gold','fish_mkt_red'];
+        if (this._fishStockCache && this._fishStockCache._key === key) return this._fishStockCache.stock;
+        const shuffled = [...allFish].sort(() => Math.random() - 0.5);
+        const picked = shuffled.slice(0, 3);
+        const stock = picked.map(id => ({ ...getItem(id) }));
+        this._fishStockCache = { _key: key, stock };
+        return stock;
+    }
+
+    _fishMarketBuy(venue, npc) {
+        this.clearChoices();
+        const stock = this._getFishMarketStock();
+        this.addMessage(`${npc.npcName}指着几个水盆：「今儿个就这三尾，您瞅瞅——」`, 'narrator');
+        const choices = stock.map(fish => ({
+            text: `${fish.name}【${ITEM_TIER_LABELS[fish.tier] || fish.tier}】— ${fish.value.toLocaleString()}两`,
+            action: () => {
+                this.clearChoices();
+                if (this.player.gold < fish.value) {
+                    this.addMessage('囊中羞涩。', 'narrator');
+                    this._fishMarketBuy(venue, npc);
+                    return;
+                }
+                this.player.gold -= fish.value;
+                this.player.items.push({ ...fish });
+                this.addMessage(`你买下${fish.name}，老板小心翼翼地帮你装进水袋。`, 'narrator');
+                this.updateStatsBar();
+                setTimeout(() => this._fishMarketMenu(venue, npc), 500);
+            },
+        }));
+        choices.push({ text: '算了', action: () => this._fishMarketMenu(venue, npc) });
+        this.showChoices(choices);
+    }
+
+    _getFishMarketQuest() {
+        const key = this.player.day + '_fishquest';
+        if (this.player._fishQuestDone === this.player.day) return null;
+        if (this._fishQuestCache && this._fishQuestCache._key === key) return this._fishQuestCache.quest;
+        const targets = [
+            { targetId: 'fish_carp', targetName: '鲤鱼', desc: '送一尾鲤鱼来，我要宴客。', gold: 50, rep: 5, rod: null },
+            { targetId: 'fish_grass_carp', targetName: '草鱼', desc: '家里来客，差条草鱼做菜。', gold: 60, rep: 5, rod: null },
+            { targetId: 'fish_catfish', targetName: '鲶鱼', desc: '想炖锅鲶鱼汤，你帮我弄一条来。', gold: 80, rep: 8, rod: null },
+            { targetId: 'fish_crab', targetName: '螃蟹', desc: '下酒菜就差几只螃蟹了。', gold: 100, rep: 10, rod: null },
+            { targetId: 'fish_shrimp', targetName: '河虾', desc: '要些鲜虾入药，你帮我张罗张罗。', gold: 50, rep: 5, rod: null },
+            { targetId: 'fish_yuanbao', targetName: '元宝鱼', desc: '听说你钓到过元宝鱼？卖我如何？', gold: 500, rep: 30, rod: 'rod_green' },
+            { targetId: 'fish_mkt_white', targetName: '白鲤', desc: '有客人想买白鲤放生，我这儿缺货了。', gold: 200, rep: 15, rod: null },
+            { targetId: 'fish_mkt_green', targetName: '青鲤', desc: '一位老主顾指明要青鲤，你帮我寻一条。', gold: 500, rep: 25, rod: 'rod_blue' },
+        ];
+        const picked = targets[Math.floor(Math.random() * targets.length)];
+        const hasRod = !!picked.rod;
+        let quest = { ...picked, hasRodReward: hasRod };
+        // 如果玩家已有同品质或更好的鱼竿，不再奖励鱼竿
+        if (hasRod) {
+            const rodTiers = { rod_green:1, rod_blue:2, rod_purple:3, rod_orange:4, rod_gold:5 };
+            const currentTier = this.player.items.reduce((max, i) => Math.max(max, rodTiers[i.id] || 0), 0);
+            if (currentTier >= (rodTiers[picked.rod] || 0)) {
+                quest.rod = null;
+                quest.hasRodReward = false;
+                quest.gold += 200; // 补偿金
+            }
+        }
+        this._fishQuestCache = { _key: key, quest };
+        return quest;
+    }
+
+    _fishMarketDeliver(venue, npc, quest) {
+        this.clearChoices();
+        const idx = this.player.items.findIndex(i => i.id === quest.targetId);
+        if (idx === -1) {
+            this.addMessage(`${npc.npcName}看了看你的水桶：「空手来的？没事，改天再说。」`, 'narrator');
+            this._fishMarketMenu(venue, npc);
+            return;
+        }
+        this.player.items.splice(idx, 1);
+        this.player.gold += quest.gold;
+        this.player.reputation += quest.rep;
+        this.addMessage(`${npc.npcName}接过${quest.targetName}，喜笑颜开：「好！痛快！」`, 'narrator');
+        this.addMessage(`获得${quest.gold}两，声望+${quest.rep}`, 'system');
+        if (quest.rod) {
+            const rodDef = getItem(quest.rod);
+            if (rodDef) {
+                this.player.items.push({ ...rodDef });
+                this.addMessage(`获得【${rodDef.name}】×1`, 'system');
+            }
+        }
+        this.player._fishQuestDone = this.player.day;
+        this.updateStatsBar();
+        this.showChoices([{ text: '回去', action: () => this._fishMarketMenu(venue, npc) }]);
     }
 
     showUnrighteousActs(venue, npc) {
@@ -2078,20 +2364,20 @@ class Game {
             ],
             '酒馆': [
                 '客官来点什么？本店的酒水可是一绝。', '听说了吗？最近城外好像不太平。', '我这有坛十八年的女儿红，想不想尝尝？',
-                '你要想打听消息，街角那老乞丐消息最灵通，塞几两银子什么都告诉你。', '出门在外，多带些干粮和酒水，路上用得着。',
+                '你要想打听消息，村角那老乞丐消息最灵通，塞几两银子什么都告诉你。', '出门在外，多带些干粮和酒水，路上用得着。',
                 '听说有些村子的铁匠铺能打造上好的兵器，你有材料不妨去试试。',
             ],
             '家': [
                 '村里最近倒是太平，没什么大事。', '你要是想找活干，可以去后山看看。', '唉，今年的收成不太好……',
                 '后山小树林里有猎户打猎，也有樵夫砍柴，年轻人可以去搭把手。', '你需要啥就去村里各铺子转转，草药铺找郎中，铁匠铺找铁匠。',
-                '街角那个乞丐别看邋遢，这十里八乡的事他门儿清。',
+                '村角那个乞丐别看邋遢，这十里八乡的事他门儿清。',
             ],
             '府': [
                 '最近生意不太好做啊……', '你要是有什么好东西，可以卖给我。', '听说镇上来了个陌生人，你可要多加小心。',
                 '我府上缺些山货，你去小树林找猎户樵夫收些来，我出高价。', '这年头各村的郎中都不错，跌打损伤找他们比去大城便宜。',
                 '你想发财的话，小树林里打猎砍柴都能卖钱，攒够了去铁匠铺打身好行头。',
             ],
-            '街角': [
+            '村角': [
                 '行行好，赏口饭吃吧……', '我已经三天没吃东西了……', '这年头，活着真难啊。', '大爷您行行好，我给你磕头了！',
                 '……你要是想赌两手，那边巷子里有人开局，不过别怪我没提醒你，水深的很。', '后山林子里有猎户，你要是想打猎可以去找他，比跟我这老骨头耗着强。',
             ],
@@ -2110,7 +2396,7 @@ class Game {
         const lines = chats[key] || [
             '今天天气不错。', '你好啊，有什么事吗？', '这日子一天天过，平淡是福。',
             '你要想找事做，可以去小树林帮猎户打猎或者帮樵夫砍柴。', '每个村子都有草药铺和铁匠铺，受伤了去找郎中，想打装备去找铁匠。',
-            '街角的乞丐消息灵通，想打听什么事找他准没错。', '赌博有风险，输光了可别怪我没提醒你。',
+            '村角的乞丐消息灵通，想打听什么事找他准没错。', '赌博有风险，输光了可别怪我没提醒你。',
         ];
         this.addMessage(npc.npcName + '：「' + lines[Math.floor(Math.random() * lines.length)] + '」', 'narrator');
         // 主线任务提示
@@ -2153,7 +2439,7 @@ class Game {
     _initCrippleLi() {
         const allLocs = [...(WORLD.villages || []), ...(WORLD.small_cities || []), ...(WORLD.big_cities || [])];
         for (const loc of allLocs) {
-            const corner = loc.venues.find(v => v.name === '街角');
+            const corner = loc.venues.find(v => v.name === '村角');
             if (!corner) continue;
             corner.npcs.push({
                 npcName: '瘸子李',
@@ -2168,7 +2454,7 @@ class Game {
     }
 
     _tryRevealCrippleLi(venue) {
-        if (venue.name !== '街角') return;
+        if (venue.name !== '村角') return;
         if (this.player._metCrippleLi) return;
         if (!this.player.completedQuests || !this.player.completedQuests.rescue_ox) return;
         if ((this.player._evil || 0) !== 0) return;
@@ -2238,7 +2524,7 @@ class Game {
         this.player._metCrippleLi = true;
         npc._hidden = true;
         this._questSeq([
-            '街角蜷缩着一个衣衫褴褛的老乞丐，他一条腿瘸着，身旁靠着一根黑黝黝的竹棒。',
+            '村角蜷缩着一个衣衫褴褛的老乞丐，他一条腿瘸着，身旁靠着一根黑黝黝的竹棒。',
             '你走近时，他缓缓抬起头，一双眼睛却精光四射，与那副落魄模样毫不相称。',
             '「这位爷……行行好，给点赏钱让老瘸子吃口饭吧。」他咧嘴笑道，露出一口黄牙。',
         ], () => {
@@ -2309,13 +2595,13 @@ class Game {
         const skId = 'f_beggar_palm';
         if (this.player.externalSkills.some(s => s.id === skId)) {
             this.addMessage('你早已习得此功，老瘸子赞赏地点了点头。', 'info');
-            setTimeout(() => this.enterVenue(this.currentLocation.venues.find(v => v.name === '街角')), 400);
+            setTimeout(() => this.enterVenue(this.currentLocation.venues.find(v => v.name === '村角')), 400);
             return;
         }
         const sk = getFactionSkill(skId);
         if (!sk) {
             this.addMessage('老瘸子一拍脑袋：「哎呀，老糊涂了，功夫都忘光了！」', 'narrator');
-            setTimeout(() => this.enterVenue(this.currentLocation.venues.find(v => v.name === '街角')), 400);
+            setTimeout(() => this.enterVenue(this.currentLocation.venues.find(v => v.name === '村角')), 400);
             return;
         }
         this.player.externalSkills.push({
@@ -2365,7 +2651,7 @@ class Game {
                 '你站在原地，望着他远去的方向，久久未动。',
             ], () => {
                 this.addMessage('你默默记住了那个佝偻的背影。', 'narrator');
-                setTimeout(() => this.enterVenue(this.currentLocation.venues.find(v => v.name === '街角')), 400);
+                setTimeout(() => this.enterVenue(this.currentLocation.venues.find(v => v.name === '村角')), 400);
             });
         });
     }
@@ -2617,7 +2903,6 @@ class Game {
             ], () => {
                 const exitVenue = () => this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices();
                 this.showChoices([
-                    { text: '查看告示栏', action: () => this._showNoticeBoard(venue, npc) },
                     { text: '忍气吞声', action: () => { this.addMessage('你咬了咬牙没有发作，转身默默离开。', 'narrator'); setTimeout(() => exitVenue(), 300); } },
                     { text: '一顿毒打', action: () => this.confrontChief(venue, npc, 'beat') },
                     { text: '痛下杀手', action: () => this.confrontChief(venue, npc, 'kill') },
@@ -2634,7 +2919,6 @@ class Game {
             }
             const choices = [
             { text: '闲谈', action: () => this.chatWithNpc(venue, npc) },
-            { text: '查看告示栏', action: () => this._showNoticeBoard(venue, npc) },
             { text: '购买', action: () => this.buyFromNpc(venue, npc) },
             { text: '出售', action: () => this.sellToNpc(venue, npc) },
             { text: '打探消息', action: () => this.chiefIntel(venue, npc) },
@@ -4226,14 +4510,19 @@ class Game {
     /* ─── 居家 ─── */
 
     showHomeChoices() {
-        this.showChoices([
+        const choices = [
             { text: '练习外功', action: () => this.showExternalPractice() },
             { text: '练习心法', action: () => this.practiceInternal() },
             { text: '生火做饭', action: () => this.showCooking() },
             { text: '炼制丹药', action: () => this._alchemyMenu() },
-            { text: '睡到明天', action: () => this.sleepToTomorrow() },
-            { text: '回去', action: () => this.showLocationChoices() },
-        ]);
+        ];
+        const houses = this.player.houses || {};
+        if (Object.keys(houses).length > 0) {
+            choices.push({ text: '我的宅院', action: () => this.houseManager._showGlobalHouseMenu() });
+        }
+        choices.push({ text: '睡到明天', action: () => this.sleepToTomorrow() });
+        choices.push({ text: '回去', action: () => this.showLocationChoices() });
+        this.showChoices(choices);
     }
 
     showCooking() {
@@ -4761,7 +5050,7 @@ class Game {
         if (!beauties || beauties.length === 0) return;
         const venues = this.player.locationVenues;
         if (venues.length === 0) return;
-        const publicVenues = venues.filter(v => !v.name.includes('家') && !v.name.includes('府') && v.name !== '小树林' && v.name !== '废弃矿坑' && v.name !== '街角' && !this.isBrothelVenue(v));
+        const publicVenues = venues.filter(v => !v.name.includes('家') && !v.name.includes('府') && v.name !== '小树林' && v.name !== '废弃矿坑' && v.name !== '村角' && !this.isBrothelVenue(v));
         if (publicVenues.length === 0) return;
         for (const b of beauties) {
             if (this.killedNpcs.has('beauty_' + b.id)) continue;
@@ -4922,7 +5211,7 @@ class Game {
                 });
                 return;
             }
-            const outdoorVenues = ['断桥', '小溪', '田埂', '小树林', '街角', '集市'];
+            const outdoorVenues = ['断桥', '小溪', '田埂', '小树林', '村角', '集市'];
             if (outdoorVenues.includes(venue.name) && Math.random() < 0.5) {
                 this._beautyOutdoorBattle(venue, beauty);
                 return;
@@ -5866,7 +6155,7 @@ class Game {
             const tv = targetVillages[Math.floor(rng() * targetVillages.length)];
             const validVenues = tv.venues.filter(v =>
                 v.npcs && v.npcs.length > 0
-                && !['街角', '村长家', '小树林', '黑市', '肉铺'].includes(v.name)
+                && !['村角', '村长家', '小树林', '黑市', '肉铺'].includes(v.name)
             );
             if (validVenues.length > 0) {
                 const vv = validVenues[Math.floor(rng() * validVenues.length)];
@@ -5924,7 +6213,7 @@ class Game {
         this.player._boardQuests = quests;
     }
 
-    _showNoticeBoard(venue, npc) {
+    _showNoticeBoard(venue) {
         this.clearChoices();
         const loc = this.currentLocation;
         let quests = this.player._boardQuests;
@@ -5934,13 +6223,13 @@ class Game {
         }
         if (!quests || quests.length === 0) {
             this.addMessage('告示栏上空空如也，什么任务也没有。', 'narrator');
-            setTimeout(() => this.chiefAction(venue, npc), 300);
+            setTimeout(() => this.enterVenueInner(venue), 300);
             return;
         }
         this.addMessage(`你走到${loc.name}的告示栏前，上面贴着几张告示：`, 'narrator');
         const choices = quests.map((q, i) => {
             if (q.completed) {
-                return { text: `✓ ${q.title}（可领取赏银${q.reward}两）`, action: () => this._collectBoardReward(i, venue, npc) };
+                return { text: `✓ ${q.title}（可领取赏银${q.reward}两）`, action: () => this._collectBoardReward(i, venue) };
             } else if (q.accepted) {
                 let prog = '已接取', canClaim = false;
                 if (q.type === 'hunt') { prog = q.progress >= q.count ? '可领取奖励' : `进度 ${q.progress}/${q.count}`; canClaim = q.progress >= q.count; }
@@ -5950,25 +6239,25 @@ class Game {
                     prog = q.progress >= q.count ? '可提交领取奖励' : `进度 ${q.progress}/${q.count}`;
                     canClaim = q.progress >= q.count;
                 }
-                if (canClaim) return { text: `${q.title}（${prog}）`, action: () => this._collectBoardReward(i, venue, npc) };
-                return { text: `${q.title}（${prog}）`, action: () => this._showNoticeBoard(venue, npc) };
+                if (canClaim) return { text: `${q.title}（${prog}）`, action: () => this._collectBoardReward(i, venue) };
+                return { text: `${q.title}（${prog}）`, action: () => this._showNoticeBoard(venue) };
             } else {
-                return { text: `${q.title}（报酬 ${q.reward}两·揭榜）`, action: () => this._acceptBoardQuest(i, venue, npc) };
+                return { text: `${q.title}（报酬 ${q.reward}两·揭榜）`, action: () => this._acceptBoardQuest(i, venue) };
             }
         });
-        choices.push({ text: '返回', action: () => this.chiefAction(venue, npc) });
+        choices.push({ text: '返回', action: () => this.enterVenueInner(venue) });
         this.showChoices(choices);
     }
 
-    _acceptBoardQuest(idx, venue, npc) {
+    _acceptBoardQuest(idx, venue) {
         const q = this.player._boardQuests[idx];
         if (!q || q.accepted) return;
         q.accepted = true;
         this.addMessage(`你揭下了「${q.title}」的告示。`, 'narrator');
-        setTimeout(() => this._showNoticeBoard(venue, npc), 300);
+        setTimeout(() => this._showNoticeBoard(venue), 300);
     }
 
-    _collectBoardReward(idx, venue, npc) {
+    _collectBoardReward(idx, venue) {
         const q = this.player._boardQuests[idx];
         if (!q) return;
         if (q.type === 'gather') {
@@ -5995,7 +6284,7 @@ class Game {
         }
         this.player._boardQuests.splice(idx, 1);
         this.updateStatsBar();
-        setTimeout(() => this._showNoticeBoard(venue, npc), 300);
+        setTimeout(() => this._showNoticeBoard(venue), 300);
     }
 
     _getActiveBoardHuntQuest() {

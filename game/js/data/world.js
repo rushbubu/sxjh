@@ -35,7 +35,6 @@ const WORLD = {
             factions: ['wulin'],
             venues: [
                 v('武林盟总舵', '上官金虹', '武林盟主，气度沉凝，一双眼睛仿佛能看透人心。他是天下武林的仲裁者。', [], false, 150),
-                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('天机阁', '无名老人', '神秘的情报商人，没有他打听不到的消息。', ['qin_bamboo', 'moon_poem', 'incense'], false, 60),
                 v('聚宝楼', '沈万三', '天下首富，据说他的财产比国库还多。', ['jade_ring', 'necklace_gold', 'silver_ingot', 'bangle_jade', 'nine_dragon_cup']),
                 v('百草堂', '药王', '白发如雪的神医，据说能活死人肉白骨。', ['jinchuang', 'huisheng', 'neili_dan', 'jiedu_san', 'qingxin_wan', 'ginseng_100', 'powder_clear', 'herb_bandage', 'zhixue_gao'], false, 40),
@@ -43,6 +42,8 @@ const WORLD = {
                 v('万象楼', '百晓生', '武林百晓生，天下武学无所不知。', ['stationary', 'writing_brush', 'ink_stick', 'moon_poem'], false, 45),
                 v('神兵阁', '欧冶无名', '铸造神兵的大师，阁中陈列着无数名剑宝刀。', ['blue_sword', 'gold_silk_armor', 'steel_blade', 'chest_mirror', 'dagger', 'fei_shi', 'fei_biao', 'du_biao'], false, 80),
                 v('黑市', '暗影', '一个戴着斗笠的神秘人，斗笠下隐约可见一道刀疤。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 45),
+                { name: '花鸟鱼市场', npcs: [{ npcName: '鱼市老板', npcDesc: '一个精瘦的汉子，满身鱼腥味，正摆弄着几只水盆。', isFishMarket: true }] },
+        { name: '房产中介', npcs: [{ npcName: '孙掌柜', npcDesc: '穿着绸缎长衫的房产中间商，一双眼睛精明地打量着每个进门的客人。', isEstateAgent: true }] },
             ],
         },
         {
@@ -51,7 +52,6 @@ const WORLD = {
             population: 2100000, area: 85, areaUnit: 'km²', economy: 'lavish',
             factions: ['sunmoon', 'beggar'],
             venues: [
-                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('醉仙楼', '莫三千', '笑眯眯的掌柜，一手"醉拳"出神入化，柜台下藏着一坛坛好酒。', ['wine_daughter', 'dragon_tea', 'wine_bamboo', 'nine_dragon_cup'], false, 60),
                 v('兵器铺', '公孙冶', '须发皆白的老铁匠，打造的兵器名动江湖。', ['blue_sword', 'gold_silk_armor', 'steel_blade', 'dagger', 'blueprint_blue_sword', 'blueprint_gold_armor', 'fei_shi', 'fei_biao', 'du_biao'], false, 65),
                 v('珠宝行', '周宝山', '手指上戴着五个翡翠扳指的大商人，店内珠光宝气。', ['necklace_gold', 'jade_ring', 'bangle_jade', 'ring_silver']),
@@ -60,6 +60,8 @@ const WORLD = {
                 v('聚宝阁', '钱四海', '坐在柜台后的神秘商人，据说没有他弄不到的东西。', ['qin_bamboo', 'peony_painting', 'moon_poem', 'silver_ingot'], false, 50),
                 v('镇国武馆', '岳啸天', '气度沉凝的武馆总教头，一双铁掌开碑裂石。', ['chest_mirror', 'steel_blade'], false, 70),
                 v('黑市', '夜枭', '披着黑色斗篷的瘦削男子，腰间挂满了瓶瓶罐罐。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 45),
+                { name: '花鸟鱼市场', npcs: [{ npcName: '鱼市老板', npcDesc: '一个精瘦的汉子，满身鱼腥味，正摆弄着几只水盆。', isFishMarket: true }] },
+        { name: '房产中介', npcs: [{ npcName: '钱掌柜', npcDesc: '油光满面的房产商人，手上戴着三个翡翠扳指。', isEstateAgent: true }] },
             ],
         },
         {
@@ -68,7 +70,6 @@ const WORLD = {
             population: 1500000, area: 62, areaUnit: 'km²', economy: 'very_wealthy',
             factions: ['money', 'wudang'],
             venues: [
-                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('听雨楼', '花想容', '神秘的美人楼主，武功深不可测，消息灵通。', ['dragon_tea', 'wine_bamboo', 'tang_painting', 'screen_2side'], false, 70),
                 v('珍宝阁', '沈万三', '富可敌国的大商人，阁中奇珍异宝无数。', ['jade_ring', 'necklace_gold', 'silver_ingot', 'bangle_jade']),
                 v('绣庄', '苏绣娘', '心灵手巧的绣娘，苏绣技艺冠绝天下。', ['silk_robe', 'silk_scarf', 'screen_2side', 'shu_embroidery']),
@@ -77,6 +78,8 @@ const WORLD = {
                 v('兵器铺', '欧冶子', '自称欧冶子后人，打造的刀剑削铁如泥。', ['blue_sword', 'steel_blade', 'gold_silk_armor', 'fei_shi', 'fei_biao', 'du_biao'], false, 60),
                 v('江南武馆', '柳如风', '一袭白衣的武馆馆主，剑法轻灵飘逸，人称"江南第一剑"。', ['steel_blade', 'chest_mirror'], false, 65),
                 v('黑市', '水鬼', '浑身湿漉漉的船夫，实则专做水路上的走私买卖。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 40),
+                { name: '花鸟鱼市场', npcs: [{ npcName: '鱼市老板', npcDesc: '一个精瘦的汉子，满身鱼腥味，正摆弄着几只水盆。', isFishMarket: true }] },
+        { name: '房产中介', npcs: [{ npcName: '沈掌柜', npcDesc: '温文尔雅的房产商人，手中一把折扇轻轻摇着。', isEstateAgent: true }] },
             ],
         },
         {
@@ -85,7 +88,6 @@ const WORLD = {
             population: 1200000, area: 90, areaUnit: 'km²', economy: 'wealthy',
             factions: ['shaolin', 'xiyue'],
             venues: [
-                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('古玩店', '司徒明', '留着山羊胡的古董商人，店内古物琳琅满目。', ['qin_bamboo', 'peony_painting', 'writing_brush', 'ink_stick']),
                 v('铁匠铺', '雷炎', '肌肉虬结的铁匠，炉火烧得比别家旺三分。', ['iron_ore', 'blue_sword', 'gold_silk_armor', 'steel_blade', 'chest_mirror', 'blueprint_blue_sword', 'blueprint_gold_armor', 'fei_shi', 'fei_biao', 'du_biao'], false, 55),
                 v('药店', '孙思邈', '白发苍苍的老郎中，药柜里摆满了各种丹药瓶罐。', ['jinchuang', 'huisheng', 'neili_dan', 'jiedu_san', 'qingxin_wan', 'ginseng_100', 'powder_clear', 'herb_bandage', 'zhixue_gao']),
@@ -95,6 +97,8 @@ const WORLD = {
                 v('长安武馆', '秦仲', '虎背熊腰的西北硬汉，拳法刚猛霸道，门下弟子数百。', ['steel_blade', 'chest_mirror'], false, 75),
                 v('禅武道场', '无名僧', '来历不明的苦行僧，曾在雪山顶上独坐七日七夜。', ['incense', 'herb_bandage'], false, 110),
                 v('黑市', '驼铃客', '牵着骆驼的西域人，斗篷下藏着违禁货物。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 45),
+                { name: '花鸟鱼市场', npcs: [{ npcName: '鱼市老板', npcDesc: '一个精瘦的汉子，满身鱼腥味，正摆弄着几只水盆。', isFishMarket: true }] },
+        { name: '房产中介', npcs: [{ npcName: '程掌柜', npcDesc: '长安城最大的房产商，据说半个城的地契都在他手里。', isEstateAgent: true }] },
             ],
         },
     ],
@@ -105,7 +109,6 @@ const WORLD = {
             population: 520000, area: 28, areaUnit: 'km²', economy: 'moderate',
             factions: [],
             venues: [
-                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('金刀镖局', '王振威', '"金刀无敌"王振威，正指挥镖师们装卸货物。', ['steel_blade', 'chest_mirror', 'dagger'], false, 45),
                 v('画坊', '唐伯虎', '落魄不羁的画师，身边堆满了画卷。', ['peony_painting', 'stationary', 'writing_brush']),
                 v('铁匠铺', '李铁锤', '膀大腰圆的铁匠，正抡着大锤。', ['iron_ore', 'steel_blade', 'knife_wood', 'hoe_iron'], false, 30),
@@ -114,6 +117,8 @@ const WORLD = {
                 v('酒楼', '宋厨子', '手艺一绝的大厨，招牌菜是洛阳水席。', ['wine_daughter', 'pastry', 'wine_bamboo', 'ration']),
                 v('洛阳武馆', '周侗', '名震中原的拳师，一双铁拳打遍洛阳无敌手。', ['chest_mirror', 'steel_blade'], false, 50),
                 v('黑市', '地鼠', '贼眉鼠眼的矮个子，专门倒卖见不得光的东西。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 30),
+                { name: '花鸟鱼市场', npcs: [{ npcName: '鱼市老板', npcDesc: '一个精瘦的汉子，满身鱼腥味，正摆弄着几只水盆。', isFishMarket: true }] },
+        { name: '房产中介', npcs: [{ npcName: '马掌柜', npcDesc: '洛阳最大的地产中间商，号称"洛阳房市一霸"。', isEstateAgent: true }] },
             ],
         },
         {
@@ -122,7 +127,6 @@ const WORLD = {
             population: 480000, area: 30, areaUnit: 'km²', economy: 'wealthy',
             factions: ['emei', 'tang'],
             venues: [
-                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('蜀绣坊', '云锦绣', '灵巧的绣娘，店内挂满精美绣品。', ['shu_embroidery', 'silk_robe', 'silk_scarf']),
                 v('酒馆', '杜康', '酿酒世家的传人，店中酒香飘十里。', ['wine_daughter', 'wine_bamboo', 'wine_rice', 'pastry']),
                 v('首饰铺', '金巧手', '正在打磨银器的工匠，手艺精湛。', ['ring_silver', 'bangle_jade', 'jade_fish']),
@@ -131,6 +135,8 @@ const WORLD = {
                 v('药店', '白药仙', '背着药箱的郎中，专治疑难杂症，柜中丹药齐全。', ['jinchuang', 'huisheng', 'neili_dan', 'jiedu_san', 'qingxin_wan', 'ginseng_100', 'powder_clear', 'herb_bandage', 'zhixue_gao']),
                 v('蜀中武馆', '铁罗汉', '蜀中唐门的外门弟子，一手铁砂掌威震巴蜀。', ['chest_mirror', 'steel_blade'], false, 45, 'wudu'),
                 v('黑市', '瘸老三', '一瘸一拐的老头子，背篓里装的都是官府禁售的东西。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 25),
+                { name: '花鸟鱼市场', npcs: [{ npcName: '鱼市老板', npcDesc: '一个精瘦的汉子，满身鱼腥味，正摆弄着几只水盆。', isFishMarket: true }] },
+        { name: '房产中介', npcs: [{ npcName: '赵掌柜', npcDesc: '成都府的房产商，在这锦官城经营多年。', isEstateAgent: true }] },
             ],
         },
         {
@@ -139,7 +145,6 @@ const WORLD = {
             population: 380000, area: 22, areaUnit: 'km²', economy: 'subsistence',
             factions: [],
             venues: [
-                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('军需铺', '赵铁衣', '退伍老兵开的铺子，卖的都是军旅硬货。', ['dark_arrow', 'steel_blade', 'chest_mirror'], false, 40),
                 v('杂货铺', '周六斤', '朴实的庄稼汉，店里都是日常所需。', ['cloth_coarse', 'ration', 'flint', 'wine_rice']),
                 v('铁匠铺', '冯大锤', '正在修补兵器的铁匠，墙上挂着各式刀剑。', ['iron_ore', 'steel_blade', 'knife_wood', 'hoe_iron'], false, 30),
@@ -147,6 +152,8 @@ const WORLD = {
                 v('酒楼', '刘一刀', '豪爽的掌柜，招牌菜是红烧狮子头。', ['wine_bamboo', 'ration', 'pastry'], false, 25),
                 v('襄阳武馆', '郭威', '守城将领退下来的老兵，教的全是战场上的杀人技。', ['chest_mirror', 'steel_blade'], false, 55),
                 v('黑市', '逃兵', '脸上带刀疤的壮汉，偷偷兜售军需库里的东西。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 35),
+                { name: '花鸟鱼市场', npcs: [{ npcName: '鱼市老板', npcDesc: '一个精瘦的汉子，满身鱼腥味，正摆弄着几只水盆。', isFishMarket: true }] },
+        { name: '房产中介', npcs: [{ npcName: '吴掌柜', npcDesc: '襄阳城的房产中间人，在此地经营多年。', isEstateAgent: true }] },
             ],
         },
         {
@@ -155,7 +162,6 @@ const WORLD = {
             population: 420000, area: 25, areaUnit: 'km²', economy: 'wealthy',
             factions: [],
             venues: [
-                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('绣坊', '秋娘', '正在赶制绣品的绣娘，双手上下翻飞。', ['screen_2side', 'silk_scarf', 'silk_robe']),
                 v('糕点铺', '甜婆', '慈眉善目的老太太，做的桂花糕远近闻名。', ['pastry', 'tea_cake', 'wine_rice']),
                 v('书斋', '文徵明', '温文尔雅的读书人，收藏了不少名家字帖。', ['stationary', 'writing_brush', 'ink_stick', 'moon_poem']),
@@ -163,6 +169,8 @@ const WORLD = {
                 v('烟雨阁', '苏小小', '温婉的江南女子，轻声细语间别有一番风情。', ['dragon_tea', 'pastry', 'silk_scarf']),
                 v('苏州武馆', '顾云飞', '书香门第出身的武师，一手太极拳使得行云流水。', ['steel_blade', 'chest_mirror'], false, 40),
                 v('黑市', '船老大', '撑着乌篷船的船夫，深夜专做水路上的黑市买卖。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 30),
+                { name: '花鸟鱼市场', npcs: [{ npcName: '鱼市老板', npcDesc: '一个精瘦的汉子，满身鱼腥味，正摆弄着几只水盆。', isFishMarket: true }] },
+        { name: '房产中介', npcs: [{ npcName: '周掌柜', npcDesc: '苏州城的房产商人，对城中园林宅邸了如指掌。', isEstateAgent: true }] },
             ],
         },
         {
@@ -171,13 +179,14 @@ const WORLD = {
             population: 280000, area: 20, areaUnit: 'km²', economy: 'moderate',
             factions: [],
             venues: [
-                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('天龙寺', '本因方丈', '白眉垂肩的高僧，双手合十，庄严肃穆。', ['buddha_relic', 'incense', 'herb_bandage'], false, 55),
                 v('集市', '段三娘', '摆摊的当地妇人，卖些药材和土产。', ['ginseng_100', 'herb_ginseng_small', 'powder_clear']),
                 v('银器铺', '金花婆婆', '白族老匠人，打了一辈子银饰。', ['ring_silver', 'jade_fish', 'bangle_jade']),
                 v('酒馆', '风花雪月', '临街的小酒馆，自酿的青梅酒别具风味。', ['wine_rice', 'wine_bamboo', 'ration']),
                 v('大理武馆', '段正淳', '段氏皇族的旁支子弟，一阳指已有三分火候。', ['steel_blade', 'chest_mirror'], false, 50),
                 v('黑市', '蛇贩子', '腰间挂着几个布袋的苗人，袋子里传出嘶嘶声。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 30),
+                { name: '花鸟鱼市场', npcs: [{ npcName: '鱼市老板', npcDesc: '一个精瘦的汉子，满身鱼腥味，正摆弄着几只水盆。', isFishMarket: true }] },
+        { name: '房产中介', npcs: [{ npcName: '段掌柜', npcDesc: '大理府的房产中介，卖的都是苍山洱海间的好宅子。', isEstateAgent: true }] },
             ],
         },
         {
@@ -186,13 +195,14 @@ const WORLD = {
             population: 340000, area: 18, areaUnit: 'km²', economy: 'wealthy',
             factions: [],
             venues: [
-                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('盐帮总舵', '钱四海', '大腹便便的盐帮帮主，手里盘着两个玉核桃。', ['moon_poem', 'tea_cake', 'dragon_tea', 'silver_ingot'], false, 40),
                 v('醉花楼', '赛西施', '风姿绰约的酒楼女掌柜，花雕酒远近闻名。', ['wine_daughter', 'wine_bamboo', 'pastry']),
                 v('书肆', '柳如是', '才女出身的书肆老板，店内书香四溢。', ['moon_poem', 'stationary', 'writing_brush', 'ink_stick']),
                 v('珠宝铺', '波斯客', '远道而来的波斯商人，带来不少异域珍品。', ['jade_ring', 'necklace_gold', 'ring_silver']),
                 v('扬州武馆', '燕云飞', '轻功冠绝淮左的武师，来去如风，人称"燕云十八骑"传人。', ['steel_blade', 'chest_mirror'], false, 45),
                 v('黑市', '夜行商', '黑衣蒙面的神秘商人，只在大雾天出没。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 35),
+                { name: '花鸟鱼市场', npcs: [{ npcName: '鱼市老板', npcDesc: '一个精瘦的汉子，满身鱼腥味，正摆弄着几只水盆。', isFishMarket: true }] },
+        { name: '房产中介', npcs: [{ npcName: '胡掌柜', npcDesc: '扬州城的房产商人，运河两岸的宅子都经他手。', isEstateAgent: true }] },
             ],
         },
     ],
@@ -227,7 +237,7 @@ const WORLD = {
                 v('草药铺', herbalNpc, `村里的草药郎中。`, ['herb_bandage', 'powder_clear', 'herb_ginseng_small', 'zhixue_gao']),
                 v('铁匠铺', smithNpc, `村里的铁匠，手艺还不错。`, ['iron_ore', 'knife_wood', 'hoe_iron', 'pot_iron', 'dagger', 'band_head', 'pants_coarse', 'bracers_cloth', 'shoes_straw', 'blueprint_steel_blade'], false, baseCp),
                 v('酒馆', tavernNpc, `小酒馆里飘出阵阵酒香。`, ['wine_rice', 'wine_daughter']),
-                v('街角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
+                v('村角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('村长家', chiefNpc, `村长的家，${chiefNpc}正在院子里忙活。`, ['tea_cake', 'incense']),
             ];
             const warriorNames = ['寨主', '庄主', '把头', '渔霸'];
@@ -264,13 +274,21 @@ const WORLD = {
             venues.push({ name: '小溪', npcs: [] });
             venues.push({ name: '田埂', npcs: [] });
             venues.push({ name: '废弃矿坑', npcs: [] });
+            if (villageTier >= 3) {
+                // 学堂和习武堂是村角内的子场所
+                const teacherName = ['张教头', '王武师', '赵拳师', '李教头'][vi % 4];
+                venues[3].subVenues = [
+                    { name: '学堂', npcs: [{ npcName: '老先生', npcDesc: '村里的老塾师，在此教书育人已有数十载。', items: [], isTeacher: true }] },
+                    { name: '习武堂', npcs: [{ npcName: teacherName, npcDesc: '退役的老武师，手脚虽不如当年利索，但教教入门功夫绰绰有余。', items: [], isMartialTeacher: true }] },
+                ];
+            }
             const villageRep = { destitute:12, poor:12, subsistence:14, moderate:16 }[economy] || 12;
             const guardBase = { destitute:10, poor:12, subsistence:15, moderate:20 }[economy] || 10;
             return { id, name, desc, population:pop, area, areaUnit:'km²', economy, nearestCity, distanceToCity:distance,
                 repThreshold: villageRep, guardianPower: guardBase + Math.floor(pop / 100), venues,
                 travelDays: parseTravelDays(distance),
                 hunterNpc, woodcutterNpc,
-                npcs: venues.flatMap(v => v.npcs.map(n => ({ name: n.npcName, desc: n.npcDesc, civilian: n.civilian, combatPower: n.combatPower, items: [...n.items], isChief: n.isChief || false, martialArt: n.martialArt || null }))) };
+                npcs: venues.flatMap(v => v.npcs.map(n => ({ name: n.npcName, desc: n.npcDesc, civilian: n.civilian, combatPower: n.combatPower, items: [...n.items], isChief: n.isChief || false, isTeacher: n.isTeacher || false, isMartialTeacher: n.isMartialTeacher || false, martialArt: n.martialArt || null }))) };
         }),
     ],
 };
@@ -284,6 +302,13 @@ WORLD.villages.forEach((v, vi) => {
                 n.martialArt = VILLAGE_MARTIAL_ARTS[vi % VILLAGE_MARTIAL_ARTS.length];
             }
         });
+        if (ven.subVenues) {
+            ven.subVenues.forEach(sv => sv.npcs.forEach(n => {
+                if (n.combatPower > 0 && !n.martialArt) {
+                    n.martialArt = VILLAGE_MARTIAL_ARTS[vi % VILLAGE_MARTIAL_ARTS.length];
+                }
+            }));
+        }
     });
     v.npcs.forEach(n => {
         if (n.combatPower > 0 && !n.martialArt) {
@@ -294,7 +319,7 @@ WORLD.villages.forEach((v, vi) => {
 
 // Generate flat npcs from venues (for backward compatibility / steal system)
 for (const loc of [...WORLD.big_cities, ...WORLD.small_cities]) {
-    loc.npcs = loc.venues.flatMap(v => v.npcs.map(n => ({ name: n.npcName, desc: n.npcDesc, civilian: n.civilian, combatPower: n.combatPower, items: [...n.items] })));
+    loc.npcs = loc.venues.flatMap(v => (v.npcs || []).map(n => ({ name: n.npcName, desc: n.npcDesc, civilian: n.civilian, combatPower: n.combatPower, items: n.items ? [...n.items] : [] })));
 }
 
 // Add reputation thresholds and guardian power to all locations
