@@ -3451,11 +3451,39 @@ class Game {
             const label = g.count > 1 ? `${g.item.name} ×${g.count} → 共售价 ${price * g.count}两` : `${g.item.name} → 售价 ${price}两`;
             return {
                 text: label,
-                action: () => this.sellItems(venue, npc, g.indices, price, g.count),
+                action: () => {
+                    if (g.count > 1) this._showSellQuantity(venue, npc, g, price);
+                    else this.sellItems(venue, npc, g.indices, price, g.count);
+                },
             };
         });
         choices.push({ text: '算了', action: () => this.interactNpc(venue, npc) });
         this.showChoices(choices);
+    }
+
+    _showSellQuantity(venue, npc, g, unitPrice) {
+        this.clearChoices();
+        let qty = 1;
+        const maxQty = g.count;
+        const render = () => {
+            this.clearChoices();
+            const total = unitPrice * qty;
+            this.addMessage(`—— ${g.item.name} ×${maxQty} ——`, 'system');
+            this.addMessage(`出售数量：${qty}`, 'info');
+            this.addMessage(`售价：${total}两（单价 ${unitPrice}两）`, 'system');
+            this.showChoices([
+                { text: '清空', action: () => { qty = 0; render(); } },
+                { text: '+1', action: () => { if (qty < maxQty) qty++; render(); } },
+                { text: '-1', action: () => { if (qty > 1) qty--; render(); } },
+                { text: '全部', action: () => { qty = maxQty; render(); } },
+                { text: `售卖${qty > 0 ? '（' + qty + '个→' + (unitPrice * qty) + '两）' : ''}`, action: () => {
+                    if (qty <= 0) { this.addMessage('请选择出售数量。', 'narrator'); setTimeout(() => render(), 300); return; }
+                    this.sellItems(venue, npc, g.indices.slice(0, qty), unitPrice, qty);
+                } },
+                { text: '返回', action: () => this.sellToNpc(venue, npc) },
+            ]);
+        };
+        render();
     }
 
     sellItems(venue, npc, indices, price, count) {
