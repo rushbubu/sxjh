@@ -57,6 +57,12 @@ const MAIN_QUESTS = {
         name: '大户问话',
         desc: '向大户询问沈清寒的消息。',
     },
+    main_3: {
+        order: 3,
+        id: 'main_3',
+        name: '城中打探',
+        desc: '去城里的酒楼、赌坊等地方打探沈清寒的消息。',
+    },
 };
 
 const QUEST_ENEMIES = {

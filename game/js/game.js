@@ -168,9 +168,10 @@ class Game {
         this.player.mainQuestSteps = [
             '去村长家打听师弟沈清寒的下落',
             '去大户家询问沈清寒的消息',
-            '出城去附近城市打探消息',
+            '去城里的酒楼、赌坊等地方打探消息',
         ];
         this.player._questFirstEntry = true;
+        this.player._questFirstCityEntry = true;
         const usedNames = new Set();
         this.beautyMap = {};
         for (const loc of getAllLocations()) {
@@ -786,6 +787,11 @@ class Game {
             locSegs.push({ text: '你找了一处荒废之所安顿下来。这里虽然破败，但遮风挡雨总算够了。', type: 'narrator' });
             locSegs.push({ text: '你盘算着下一步——该从哪里打探师弟沈清寒的消息呢……村长的家或许是个合适的去处。', type: 'narrator' });
             this.player._questFirstEntry = false;
+        }
+        if (this.player._questFirstCityEntry && locationId !== this.player.startingVillage && this.player.mainQuest >= 2) {
+            locSegs.push({ text: '你找了一间客栈安顿下来，掸了掸身上的尘土。', type: 'narrator' });
+            locSegs.push({ text: '你盘算着下一步——师弟沈清寒的下落毫无头绪，这城里的酒楼、赌坊、茶肆三教九流云集，或许能打探到些有用的消息。', type: 'narrator' });
+            this.player._questFirstCityEntry = false;
         }
         locSegs.push({ text: `「${loc.desc}」`, type: 'info' });
         locSegs.push({ text: `人口 ${loc.population.toLocaleString()}  |  面积 ${loc.area}${loc.areaUnit}  |  经济 ${getEconomyLabel(loc.economy)}`, type: 'info' });
