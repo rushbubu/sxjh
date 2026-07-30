@@ -171,7 +171,6 @@ class Game {
             '去城里的酒楼、赌坊等地方打探消息',
         ];
         this.player._questFirstEntry = true;
-        this.player._questFirstCityEntry = true;
         const usedNames = new Set();
         this.beautyMap = {};
         for (const loc of getAllLocations()) {
@@ -788,11 +787,6 @@ class Game {
             locSegs.push({ text: '你盘算着下一步——该从哪里打探师弟沈清寒的消息呢……村长的家或许是个合适的去处。', type: 'narrator' });
             this.player._questFirstEntry = false;
         }
-        if (this.player._questFirstCityEntry && locationId !== this.player.startingVillage && this.player.mainQuest >= 2) {
-            locSegs.push({ text: '你找了一间客栈安顿下来，掸了掸身上的尘土。', type: 'narrator' });
-            locSegs.push({ text: '你盘算着下一步——师弟沈清寒的下落毫无头绪，这城里的酒楼、赌坊、茶肆三教九流云集，或许能打探到些有用的消息。', type: 'narrator' });
-            this.player._questFirstCityEntry = false;
-        }
         locSegs.push({ text: `「${loc.desc}」`, type: 'info' });
         locSegs.push({ text: `人口 ${loc.population.toLocaleString()}  |  面积 ${loc.area}${loc.areaUnit}  |  经济 ${getEconomyLabel(loc.economy)}`, type: 'info' });
         if (loc.factions && loc.factions.length) {
@@ -802,15 +796,17 @@ class Game {
             const city = getAllLocations().find(l => l.id === loc.nearestCity);
             if (city) locSegs.push({ text: `最近城镇：${getLocationTypeLabel(city.id).label} · ${city.name}（${loc.distanceToCity}）`, type: 'info' });
         }
-        if (this.player.mainQuest === 2 || locationId !== this.player.startingVillage) {
-            locSegs.push({ text: '你打算怎么做？', type: 'narrator' });
-        } else {
+        if (this.player.mainQuest >= 2) {
+            locSegs.push({ text: '你盘算着下一步——城市的酒楼、赌坊、茶肆三教九流云集，或许能打探到些有用的消息，你觉得应该去那里打探下消息。', type: 'narrator' });
+        } else if (locationId === this.player.startingVillage) {
             const hints = [
                 '你打算怎么做？',
                 '当务之急是打探师弟沈清寒的下落……',
                 '或许该先去村长家问问情况。',
             ];
             locSegs.push({ text: hints[Math.floor(Math.random() * hints.length)], type: 'narrator' });
+        } else {
+            locSegs.push({ text: '你打算怎么做？', type: 'narrator' });
         }
         let li = 0;
         const nextLoc = () => {
