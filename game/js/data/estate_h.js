@@ -1068,12 +1068,20 @@ function _estateDoThreesomeForeplay(bds, player, callbacks, part) {
     const desc2 = bds[1].hips > 32 ? '肥美多汁' : '紧致粉嫩';
     msg = msg.replace(/\{name1\}/g, names[0]).replace(/\{name2\}/g, names[1])
              .replace(/\{desc1\}/g, desc1).replace(/\{desc2\}/g, desc2);
-    _estateAddMessage(msg, 'narrator');
+    const segments = (_splitDesc || function(t) { return [t]; })(msg);
+    _estateAddMessage(segments[0], 'narrator');
     bds[0]._estateState.femaleArousal = Math.min(100, bds[0]._estateState.femaleArousal + 4);
     bds[1]._estateState.femaleArousal = Math.min(100, bds[1]._estateState.femaleArousal + 4);
     bds[0]._estateState.maleArousal = Math.min(100, bds[0]._estateState.maleArousal + 2);
     _estateUpdatePanel(bds[0]._estateState);
-    callbacks.showChoices([{ text: '继续', action: () => _estateThreesomeRenderMain(bds, player, callbacks) }]);
+    if (segments.length > 1) { callbacks.showChoices([{ text: '继续', action: () => _estateThreesomeForeplaySegment(bds, player, callbacks, segments, 1) }]); }
+    else { callbacks.showChoices([{ text: '继续', action: () => _estateThreesomeRenderMain(bds, player, callbacks) }]); }
+}
+function _estateThreesomeForeplaySegment(bds, player, callbacks, segments, idx) {
+    callbacks.clearChoices();
+    _estateAddMessage(segments[idx], 'narrator');
+    if (idx < segments.length - 1) { callbacks.showChoices([{ text: '继续', action: () => _estateThreesomeForeplaySegment(bds, player, callbacks, segments, idx + 1) }]); }
+    else { callbacks.showChoices([{ text: '继续', action: () => _estateThreesomeRenderMain(bds, player, callbacks) }]); }
 }
 
 function _estateThreesomeUndress(bds, player, callbacks) {
@@ -1133,12 +1141,20 @@ function _estateDoThreesomeService(bds, player, callbacks, type) {
     msg = msg.replace(/\{name1\}/g, names[0]).replace(/\{name2\}/g, names[1])
              .replace(/\{breast1\}/g, breast1).replace(/\{breast2\}/g, breast2)
              .replace(/\{pubic1\}/g, pubic1).replace(/\{pubic2\}/g, pubic2);
-    _estateAddMessage(msg, 'narrator');
+    const segments = (_splitDesc || function(t) { return [t]; })(msg);
+    _estateAddMessage(segments[0], 'narrator');
     bds[0]._estateState.femaleArousal = Math.min(100, bds[0]._estateState.femaleArousal + 5);
     bds[1]._estateState.femaleArousal = Math.min(100, bds[1]._estateState.femaleArousal + 5);
     bds[0]._estateState.maleArousal = Math.min(100, bds[0]._estateState.maleArousal + 8);
     _estateUpdatePanel(bds[0]._estateState);
-    callbacks.showChoices([{ text: '继续', action: () => _estateThreesomeRenderMain(bds, player, callbacks) }]);
+    if (segments.length > 1) { callbacks.showChoices([{ text: '继续', action: () => _estateThreesomeServiceSegment(bds, player, callbacks, segments, 1) }]); }
+    else { callbacks.showChoices([{ text: '继续', action: () => _estateThreesomeRenderMain(bds, player, callbacks) }]); }
+}
+function _estateThreesomeServiceSegment(bds, player, callbacks, segments, idx) {
+    callbacks.clearChoices();
+    _estateAddMessage(segments[idx], 'narrator');
+    if (idx < segments.length - 1) { callbacks.showChoices([{ text: '继续', action: () => _estateThreesomeServiceSegment(bds, player, callbacks, segments, idx + 1) }]); }
+    else { callbacks.showChoices([{ text: '继续', action: () => _estateThreesomeRenderMain(bds, player, callbacks) }]); }
 }
 
 function _estateThreesomeSex(bds, player, callbacks) {
@@ -1156,12 +1172,20 @@ function _estateDoThreesomeSex(bds, player, callbacks, key) {
     let msg = _estatePickFrom(pos.desc);
     const names = [bds[0].name, bds[1].name];
     msg = msg.replace(/\{name1\}/g, names[0]).replace(/\{name2\}/g, names[1]);
-    _estateAddMessage(msg, 'narrator');
+    const segments = (_splitDesc || function(t) { return [t]; })(msg);
+    _estateAddMessage(segments[0], 'narrator');
     bds[0]._estateState.femaleArousal = Math.min(100, bds[0]._estateState.femaleArousal + (pos.fA || 10));
     bds[1]._estateState.femaleArousal = Math.min(100, bds[1]._estateState.femaleArousal + (pos.fA || 10));
     bds[0]._estateState.maleArousal = Math.min(100, bds[0]._estateState.maleArousal + (pos.mA || 12));
     _estateUpdatePanel(bds[0]._estateState);
-    callbacks.showChoices([{ text: '继续', action: () => _estateThreesomeRenderMain(bds, player, callbacks) }]);
+    if (segments.length > 1) { callbacks.showChoices([{ text: '继续', action: () => _estateThreesomeSexSegment(bds, player, callbacks, segments, 1) }]); }
+    else { callbacks.showChoices([{ text: '继续', action: () => _estateThreesomeRenderMain(bds, player, callbacks) }]); }
+}
+function _estateThreesomeSexSegment(bds, player, callbacks, segments, idx) {
+    callbacks.clearChoices();
+    _estateAddMessage(segments[idx], 'narrator');
+    if (idx < segments.length - 1) { callbacks.showChoices([{ text: '继续', action: () => _estateThreesomeSexSegment(bds, player, callbacks, segments, idx + 1) }]); }
+    else { callbacks.showChoices([{ text: '继续', action: () => _estateThreesomeRenderMain(bds, player, callbacks) }]); }
 }
 
 function _estateThreesomeOrgasm(bds, player, callbacks, idx) {
