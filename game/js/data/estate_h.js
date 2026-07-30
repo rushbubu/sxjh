@@ -58,12 +58,18 @@ function _estateGetBreastShort(bust) {
     return '娇小玲珑的乳鸽';
 }
 
-function _estateGetPubicShort(bust, hips) {
-    const hairIdx = ((bust * 7 + hips * 13) % 4 + 4) % 4;
-    const mound = hips > 32 ? '馒头穴' : '蚌肉穴';
-    if (hairIdx === 0) return '无毛的白虎' + mound;
-    const prefix = ['', '稀疏柔软的', '乌黑浓密的', '茂密如林的'][hairIdx];
-    return prefix + mound;
+function _estateGetPubicShort(bd) {
+    let name = (bd.hips || 30) > 32 ? '馒头穴' : '蚌肉穴';
+    let hair = '';
+    if (typeof _getPPLabel === 'function') name = _getPPLabel(bd).name;
+    if (typeof _getPHLabel === 'function') {
+        const ph = _getPHLabel(bd);
+        if (ph === '无毛光洁') hair = '无毛的';
+        else if (ph === '稀疏柔软') hair = '疏毛的';
+        else if (ph === '乌黑浓密') hair = '浓密的';
+        else if (ph === '茂密如林') hair = '茂密的';
+    }
+    return hair + name;
 }
 
 const ESTATE_BRA_REACTION = [
@@ -1107,8 +1113,8 @@ function _estateDoThreesomeService(bds, player, callbacks, type) {
     const names = [bds[0].name, bds[1].name];
     const breast1 = _estateGetBreastShort(bds[0].bust || 32);
     const breast2 = _estateGetBreastShort(bds[1].bust || 32);
-    const pubic1 = _estateGetPubicShort(bds[0].bust || 32, bds[0].hips || 30);
-    const pubic2 = _estateGetPubicShort(bds[1].bust || 32, bds[1].hips || 30);
+    const pubic1 = _estateGetPubicShort(bds[0]);
+    const pubic2 = _estateGetPubicShort(bds[1]);
     msg = msg.replace(/\{name1\}/g, names[0]).replace(/\{name2\}/g, names[1])
              .replace(/\{breast1\}/g, breast1).replace(/\{breast2\}/g, breast2)
              .replace(/\{pubic1\}/g, pubic1).replace(/\{pubic2\}/g, pubic2);
