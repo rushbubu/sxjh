@@ -1138,9 +1138,13 @@ function _estateDoThreesomeService(bds, player, callbacks, type) {
     const breast2 = _estateGetBreastShort(bds[1].bust || 32);
     const pubic1 = _estateGetPubicShort(bds[0]);
     const pubic2 = _estateGetPubicShort(bds[1]);
+    const nipColor1 = typeof _getColor === 'function' ? _getColor(bds[0], COLORS_YOUNG, COLORS_MATURE) : '粉嫩';
+    const nipColor2 = typeof _getColor === 'function' ? _getColor(bds[1], COLORS_YOUNG, COLORS_MATURE) : '粉嫩';
     msg = msg.replace(/\{name1\}/g, names[0]).replace(/\{name2\}/g, names[1])
              .replace(/\{breast1\}/g, breast1).replace(/\{breast2\}/g, breast2)
-             .replace(/\{pubic1\}/g, pubic1).replace(/\{pubic2\}/g, pubic2);
+             .replace(/\{pubic1\}/g, pubic1).replace(/\{pubic2\}/g, pubic2)
+             .replace(/\{nipple_color1\}/g, nipColor1).replace(/\{nipple_color2\}/g, nipColor2)
+             .replace(/\{nipple_color\}/g, nipColor1);
     const segments = (_splitDesc || function(t) { return [t]; })(msg);
     _estateAddMessage(segments[0], 'narrator');
     bds[0]._estateState.femaleArousal = Math.min(100, bds[0]._estateState.femaleArousal + 5);
