@@ -150,6 +150,17 @@ class EstateManager {
             btnRow.appendChild(sleepBtn);
         }
 
+        // 消磨时光（非子时可用）
+        if (period !== '子时') {
+            const passBtn = this._createBtn('⏳ 消磨时光', '#7a6b5a', () => {
+                this.game.clearChoices();
+                document.getElementById('log').innerHTML = '';
+                this.game.advanceTime();
+                this._renderEstate();
+            });
+            btnRow.appendChild(passBtn);
+        }
+
         // 离开庄园
         const leaveBtn = this._createBtn('🚪 离开庄园', '#888', () => {
             document.getElementById('log').innerHTML = '';
@@ -537,7 +548,10 @@ class EstateManager {
             this.game.addMessage(`你坐在池边，看着${descs.join('，')}，心中一片宁静。`, 'narrator');
         }
         this.game.updateStatsBar();
-        this.game.showChoices([{ text: '回去', action: () => this._renderEstate() }]);
+        this.game.showChoices([
+            { text: '消磨时光', action: () => { this.game.advanceTime(); this._viewPond(); } },
+            { text: '回去', action: () => this._renderEstate() },
+        ]);
     }
 
     /* ─── 辅助：查找红颜 ─── */
