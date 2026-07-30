@@ -784,7 +784,6 @@ class Game {
         ];
         if (this.player._questFirstEntry && locationId === this.player.startingVillage) {
             locSegs.push({ text: '你找了一处荒废之所安顿下来。这里虽然破败，但遮风挡雨总算够了。', type: 'narrator' });
-            locSegs.push({ text: '你盘算着下一步——该从哪里打探师弟沈清寒的消息呢……村长的家或许是个合适的去处。', type: 'narrator' });
             this.player._questFirstEntry = false;
         }
         locSegs.push({ text: `「${loc.desc}」`, type: 'info' });
