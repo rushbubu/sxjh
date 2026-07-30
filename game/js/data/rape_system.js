@@ -210,7 +210,7 @@ const PRIVATE_PART_TYPES = [
     { name: '蝴蝶穴', adj: '蝴蝶般展翅的', desc: '两片阴唇薄而舒展，形如蝶翼' },
     { name: '馒头穴', adj: '饱满肥嫩的', desc: '阴阜饱满圆润，两瓣鼓鼓囊囊' },
     { name: '一线天', adj: '紧窄如丝的', desc: '阴唇紧合如线，只在顶端露一点缝隙' },
-    { name: '鲍鱼穴', adj: '肥厚多汁的', desc: '大阴唇肥厚如鲍鱼，颜色略深' },
+    { name: '鲍鱼穴', adj: '肥厚多汁的', desc: '大阴唇肥厚如鲍鱼' },
     { name: '花瓣穴', adj: '层叠如花的', desc: '小阴唇层层叠叠如花瓣般绽开' },
     { name: '葫芦穴', adj: '葫芦形的', desc: '上窄下宽，形如葫芦，入口紧窄' },
     { name: '蜜桃穴', adj: '蜜桃般的', desc: '两瓣阴唇圆润饱满如熟透的蜜桃' },
@@ -318,7 +318,7 @@ function _getCupLabel(bust) {
 function _getHeightLabel(height) {
     if (height < 155) return '娇小玲珑';
     if (height < 160) return '小鸟依人';
-    if (height < 165) return '中等匀称';
+    if (height < 165) return '匀称';
     if (height < 170) return '高挑修长';
     if (height < 178) return '身材高挑';
     return '高挑出众';
