@@ -316,10 +316,16 @@ function _brGetPantiesRemoveDesc(bd) {
     const hips = bd.hips || 32;
     const waist = bd.waist || 22;
     let pubic, labia;
-    if (hips >= 36) pubic = '芳草萋萋，浓密的黑森林覆着那饱满的丘陵，早已挂了露珠';
+    const ph = typeof _getPHLabel === 'function' ? _getPHLabel(bd) : '';
+    if (ph === '乌黑浓密' || ph === '茂密如林') pubic = '芳草萋萋，浓密的黑森林覆着那饱满的丘陵，早已挂了露珠';
+    else if (ph === '稀疏柔软') pubic = '稀疏的芳草掩映着那神秘的花谷，谷中水光潋滟';
+    else if (ph === '无毛光洁') pubic = '那处光洁如脂，仅有浅浅茸毛，蚌珠微露';
+    else if (hips >= 36) pubic = '芳草萋萋，浓密的黑森林覆着那饱满的丘陵，早已挂了露珠';
     else if (hips >= 33) pubic = '稀疏的芳草掩映着那神秘的花谷，谷中水光潋滟';
     else pubic = '那处光洁如脂，仅有浅浅茸毛，蚌珠微露';
-    if (hips - waist >= 14) labia = '肥美丰腴，两片花唇微微张开';
+    const pp = typeof _getPPLabel === 'function' ? _getPPLabel(bd) : null;
+    if (pp) labia = pp.adj;
+    else if (hips - waist >= 14) labia = '肥美丰腴，两片花唇微微张开';
     else if (hips - waist >= 10) labia = '粉嫩饱满，紧紧闭合着';
     else labia = '紧致小巧，一线天般的妙处';
     const tpl = BR_PANTIES_REMOVE_DESC[Math.floor(Math.random() * BR_PANTIES_REMOVE_DESC.length)];
