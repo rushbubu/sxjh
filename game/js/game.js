@@ -796,8 +796,10 @@ class Game {
             const city = getAllLocations().find(l => l.id === loc.nearestCity);
             if (city) locSegs.push({ text: `最近城镇：${getLocationTypeLabel(city.id).label} · ${city.name}（${loc.distanceToCity}）`, type: 'info' });
         }
-        if (this.player.mainQuest >= 2) {
-            locSegs.push({ text: '你盘算着下一步——城市的酒楼、赌坊、茶肆三教九流云集，或许能打探到些有用的消息，你觉得应该去那里打探下消息。', type: 'narrator' });
+        const qId = 'main_' + (this.player.mainQuest + 1);
+        const curQuest = typeof MAIN_QUESTS !== 'undefined' && MAIN_QUESTS[qId];
+        if (curQuest) {
+            locSegs.push({ text: '你盘算着下一步——' + curQuest.desc, type: 'narrator' });
         } else if (locationId === this.player.startingVillage) {
             const hints = [
                 '你打算怎么做？',
