@@ -129,9 +129,14 @@ class HouseManager {
 
     /* ─── 宅院管理主菜单 ─── */
     _showHouseMenu(cityId) {
+        // 庄园级别重定向到独立庄园界面
+        const house = this.game.player.houses?.[cityId];
+        if (house && house.plotIndex >= 2) {
+            this.game.estateManager.enterEstate(cityId);
+            return;
+        }
         this.game.clearChoices();
         const g = this.game;
-        const house = g.player.houses?.[cityId];
         if (!house) return;
         const totalValue = this.getPropertyValue(cityId);
         const repBonus = getHouseRepBonus(totalValue);
@@ -762,10 +767,20 @@ class HouseManager {
             const label = getHouseRepLabel(val);
             g.addMessage(`  ${cityIdToName(cId)}：${h.plotName}（估值${val.toLocaleString()}两 · ${label}）`, 'info');
         });
-        const choices = cityIds.map(cId => ({
-            text: `${cityIdToName(cId)}的${houses[cId].plotName}`,
-            action: () => this._showHouseMenu(cId),
-        }));
+        const choices = cityIds.map(cId => {
+            const h = houses[cId];
+            // 庄园级别直接进入独立庄园界面
+            if (h.plotIndex >= 2) {
+                return {
+                    text: `🏯 ${cityIdToName(cId)}的${h.plotName}`,
+                    action: () => this.game.estateManager.enterEstate(cId),
+                };
+            }
+            return {
+                text: `${cityIdToName(cId)}的${h.plotName}`,
+                action: () => this._showHouseMenu(cId),
+            };
+        });
         choices.push({ text: '回去', action: () => g.showHomeChoices() });
         g.showChoices(choices);
     }

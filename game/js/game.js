@@ -190,6 +190,7 @@ class Game {
         document.getElementById('create-overlay').classList.add('hidden');
         this.updateStatsBar();
         this.houseManager = new HouseManager(this);
+        this.estateManager = new EstateManager(this);
         this.showIntro();
     }
 
@@ -4523,7 +4524,14 @@ class Game {
             { text: '炼制丹药', action: () => this._alchemyMenu() },
         ];
         const houses = this.player.houses || {};
-        if (Object.keys(houses).length > 0) {
+        const houseIds = Object.keys(houses);
+        // 如果有庄园，直接提供快捷入口
+        const estateId = houseIds.find(cId => houses[cId].plotIndex >= 2);
+        if (estateId) {
+            const house = houses[estateId];
+            choices.push({ text: `🏯 回${cityIdToName(estateId)}${house.plotName}`, action: () => this.estateManager.enterEstate(estateId) });
+        }
+        if (houseIds.length > 0) {
             choices.push({ text: '我的宅院', action: () => this.houseManager._showGlobalHouseMenu() });
         }
         choices.push({ text: '睡到明天', action: () => this.sleepToTomorrow() });
