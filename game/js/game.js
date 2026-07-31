@@ -4156,15 +4156,42 @@ class Game {
 
     /* ─── 背包 ─── */
 
+    _categorizeItems(items) {
+        const cats = { '装备': [], '道具': [], '食物': [], '素材': [] };
+        for (const item of items) {
+            if (item.slot) {
+                cats['装备'].push(item);
+            } else if ((item.use || item.category === 'wine' || item.category === 'poison') && item.category !== 'food') {
+                cats['道具'].push(item);
+            } else if (item.category === 'food') {
+                cats['食物'].push(item);
+            } else {
+                cats['素材'].push(item);
+            }
+        }
+        return cats;
+    }
+
     showInventory() {
         this.clearChoices();
         const p = this.player;
         if (p.items.length === 0) {
             this.addMessage('你的背包空空如也。', 'narrator');
+            this.addMessage(`银两：${this.formatGold(p.gold)} | 物品：0件`, 'system');
+            this.showChoices([{ text: '收起背包', action: () => { delete this._invTab; this.showLocationChoices(); } }]);
+            return;
+        }
+        const tabs = ['全部', '装备', '道具', '食物', '素材'];
+        const cur = this._invTab || '全部';
+        const cats = this._categorizeItems(p.items);
+        const items = cur === '全部' ? p.items : (cats[cur] || []);
+        if (items.length === 0) {
+            this.addMessage(`—— 背包 · ${cur} ——`, 'system');
+            this.addMessage('此分类下没有物品。', 'info');
         } else {
-            this.addMessage('—— 背包 ——', 'system');
+            this.addMessage(`—— 背包 · ${cur} ——`, 'system');
             const groups = {};
-            for (const item of p.items) {
+            for (const item of items) {
                 const key = item.id || item.name;
                 if (!groups[key]) groups[key] = { name: item.name, desc: item.desc, value: item.value, count: 0 };
                 groups[key].count++;
@@ -4174,13 +4201,17 @@ class Game {
                 this.addMessage(`${label}：${g.desc}（价值 ${g.value}两）`, 'info');
             }
         }
-        this.addMessage(`银两：${p.gold}两 | 物品：${p.items.length}件`, 'system');
+        this.addMessage(`银两：${this.formatGold(p.gold)} | 物品：${p.items.length}件`, 'system');
         const choices = [];
+        for (const tab of tabs) {
+            if (tab === cur) continue;
+            choices.push({ text: `[${tab}]`, action: () => { this._invTab = tab; this.showInventory(); } });
+        }
         const usable = p.items.findIndex(it => it.use && (it.use.healHp || it.use.healNeili || it.use.cure));
         if (usable !== -1) {
             choices.push({ text: '使用物品', action: () => this.showUseableItems() });
         }
-        choices.push({ text: '收起背包', action: () => this.showLocationChoices() });
+        choices.push({ text: '收起背包', action: () => { delete this._invTab; this.showLocationChoices(); } });
         this.showChoices(choices);
     }
 
