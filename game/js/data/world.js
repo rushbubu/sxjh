@@ -9,9 +9,10 @@ const ECONOMY_LEVELS = [
 ];
 
 const LOCATION_TYPES = {
-    big_city: { label: '大城', color: '#e0a040' },
-    small_city: { label: '小城', color: '#80a0c0' },
-    village: { label: '村庄', color: '#608060' },
+    big_city: { label: '大城', color: '#e0a040', icon: '🏯' },
+    small_city: { label: '小城', color: '#80a0c0', icon: '🏘️' },
+    village: { label: '村庄', color: '#60c060', icon: '🛖' },
+    faction_hq: { label: '门派驻地', color: '#c070e0', icon: '⛩️' },
 };
 
 function v(name, npcName, npcDesc, itemIds, civilian = true, combatPower = 0, martialArt = null) {
@@ -214,11 +215,9 @@ const WORLD = {
             ['白云庄','baiyun','建在山腰上的大庄子，常年云雾缭绕。',260,3,'subsistence','xiangyang','1天脚程','云游郎中','云铁匠','云管事','云庄主','云夫人','云猎户','云樵子'],
             ['黑水村','heishui','沼泽边的渔村，常年瘴气弥漫。',220,1.8,'destitute','yangzhou','2天脚程','瘴郎中','老渔头','孙二娘','钱老大','孙渔霸','水猎头','刘樵'],
             ['清溪镇','qingxi','因村中清澈见底的小溪得名。',480,1.2,'moderate','suzhou_city','半日脚程','水郎中','洪铁匠','溪边客','赵里正','李员外','洪猎户','孙樵'],
-            ['虎头寨','hutou','由匪寨演变的村落，尚武之风犹存。',350,2.5,'subsistence','xiangyang','1天脚程','赛华佗','龙铁锤','虎妞','龙寨主','虎二爷','虎猎手','虎樵'],
             ['流云村','liuyun','草原上的游牧村落，以放牧为生。',400,8,'subsistence','changan','3天脚程','蒙大夫','铁木尔','马奶酒','巴特尔','巴图尔','蒙弓','木樵'],
             ['双月湾','shuangyue','海边渔村，村前海湾形似两轮弯月。',560,1.5,'moderate','yangzhou','1天脚程','海郎中','陈铁锚','月娘','陈伯','海老板','海猎户','陈樵'],
             ['龙门村','longmen','黄河边上的小村，传说曾有鲤鱼跃龙门。',320,1,'subsistence','luoyang','2天脚程','孙郎中','孟铁匠','鲤大娘','孙大爷','孟掌柜','孟弓','孙樵汉'],
-            ['翠微村','cuiwei','大山深处的村落，四周竹林环绕。',180,1.2,'destitute','xiangyang','3天脚程','竹郎中','竹铁匠','竹酒翁','竹翁','竹员外','竹猎户','竹樵'],
             ['金川镇','jinchuan','两河交汇处的繁忙集镇，方圆百里最大集散地。',1200,3.5,'moderate','yangzhou','2天脚程','金郎中','金大锤','酒缸周','周会长','钱百万','金猎手','钱樵'],
             ['山神庙','shanshen','以古老山神庙为中心的村落。',150,0.8,'destitute','jingcheng','2天脚程','山郎中','刘铁匠','庙前酒','刘庙祝','陈施主','山弓','刘樵子'],
             ['西口村','xikou','关外边陲村落，汉胡杂居，民风粗犷豪放。',300,4,'subsistence','changan','4天脚程','蒙大夫','胡铁匠','驼铃酒','马把头','胡老板','胡猎户','马樵'],
@@ -229,6 +228,16 @@ const WORLD = {
             ['墨渊村','moyuan','建在废弃矿坑附近的村落，后山有前朝秘密。',200,1,'destitute','chengdu','2天脚程','墨郎中','墨铁匠','黑酒翁','老矿头','矿东家','墨弓','老樵'],
             ['芦花荡','luhua','湖荡湿地中的水村，家家有船。',450,6,'subsistence','yangzhou','半日脚程','芦郎中','芦铁匠','芦花酒','吴老大','吴掌柜','芦猎户','吴樵'],
             ['松涛庄','songtao','松林中的清幽居所，原是退休官员别院。',190,1.2,'subsistence','suzhou','1天脚程','王郎中','王铁匠','松风酒','王员外','王庄头','王猎户','松樵'],
+            // ── 西北新增 ──
+            ['凉州集','liangzhou','河西走廊上的丝路重镇，商队驼铃往来不绝，客栈酒肆林立。',950,3.5,'moderate','changan','3天脚程','回春郎中','漠北铁匠','驼铃酒馆','冯里正','马富商','鹰猎户','老驼工'],
+            ['沙洲村','shazhou','大漠深处的绿洲村落，月牙泉畔胡杨成林，驼队在此补给休整。',350,2,'subsistence','changan','4天脚程','沙郎中','泉边铁匠','胡杨酒家','沙里正','骆驼客','鹰猎手','沙樵子'],
+            ['祁连村','qilian','祁连雪山脚下的牧村，夏日草场如茵，牦牛与骏马成群。',420,6,'subsistence','changan','3天脚程','雪郎中','马掌铁匠','青稞酒家','扎西老人','旺堆老爷','雪豹猎手','松木樵'],
+            // ── 东北新增 ──
+            ['长白村','changbai','长白山脚下的村落，家家户户以采参狩猎为生，冬日积雪过膝。',300,2,'subsistence','jingcheng','3天脚程','参郎中','山货铁匠','暖炕酒家','老把头','参商王','雪地猎手','白桦樵'],
+            ['松花村','songhua','松花江畔的渔猎村落，冬日江面冰封可通车马。',480,2.5,'subsistence','jingcheng','2天脚程','江郎中','冰上铁匠','江鱼酒家','满把头','皮货商','冰猎手','江边樵'],
+            // ── 西南新增 ──
+            ['洱海村','erhai','大理洱海边的白族渔村，三塔倒影，渔歌晚唱。',520,1.5,'moderate','dali','半日脚程','白族郎中','银匠铺','乳扇酒家','金花阿婆','茶马商','渔猎手','苍山樵'],
+            ['泸沽村','lugu','泸沽湖畔的摩梭村寨，木楞房临水而建，猪槽船往来如织。',360,3,'subsistence','dali','3天脚程','摩梭药婆','湖边铁匠','猪膘肉酒家','阿注族长','盐马商','湖猎手','山樵子'],
         ].map(([name,id,desc,pop,area,economy,nearestCity,distance,...staff], vi) => {
             const [herbalNpc, smithNpc, tavernNpc, chiefNpc, richNpc, hunterNpc, woodcutterNpc] = staff;
             const villageTier = Math.min(5, Math.floor(pop / 150)); // 1-5 tier
@@ -291,6 +300,100 @@ const WORLD = {
                 npcs: venues.flatMap(v => v.npcs.map(n => ({ name: n.npcName, desc: n.npcDesc, civilian: n.civilian, combatPower: n.combatPower, items: [...n.items], isChief: n.isChief || false, isTeacher: n.isTeacher || false, isMartialTeacher: n.isMartialTeacher || false, martialArt: n.martialArt || null }))) };
         }),
     ],
+
+    /* 门派驻地：与大小城同级的独立地点。
+       主场所（掌门所在）由 game.js injectFactionVenues 运行时注入，
+       此处定义驻地的静态辅助场所。 */
+    faction_hqs: [
+        {
+            id: 'songshan', name: '嵩山',
+            desc: '中岳嵩山，七十二峰叠翠，古木参天。千年古刹少林寺深藏少室山间，晨钟暮鼓，武风浩荡，「天下武功出少林」令无数江湖人心驰神往。',
+            population: 1800, area: 120, areaUnit: 'km²', economy: 'wealthy',
+            factions: ['shaolin'], factionId: 'shaolin',
+            travelDays: 2, repThreshold: 45, guardianPower: 120,
+            venues: [
+                v('藏经阁', '玄慈', '少林达摩院首座，专司保管七十二绝技典籍。', ['incense', 'buddha_relic', 'herb_bandage'], false, 70, 'shaolin_quan'),
+                v('练武场', '慧空', '身材魁梧的武僧，正教一群小沙弥扎马步。', [], false, 50, 'shaolin_quan'),
+            ],
+        },
+        {
+            id: 'wudang', name: '武当山',
+            desc: '武当山云海翻涌，宫观错落，松涛阵阵。道家武学正宗在此立派，以柔克刚，以静制动，山间道人往来如鹤。',
+            population: 1500, area: 100, areaUnit: 'km²', economy: 'wealthy',
+            factions: ['wudang'], factionId: 'wudang',
+            travelDays: 2, repThreshold: 40, guardianPower: 110,
+            venues: [
+                v('真武大殿', '宋远桥', '武当七侠之首，气度沉稳，执掌殿中日常事务。', ['tea_cake', 'incense'], false, 65, 'wudang_quan'),
+                v('紫霄宫', '俞莲舟', '武当七侠之一，专研太极剑法，常在宫中参悟剑理。', ['tea_cake', 'dragon_tea', 'incense'], false, 60, 'taiji'),
+            ],
+        },
+        {
+            id: 'huashan', name: '华山',
+            desc: '西岳华山，壁立千仞，山道险绝，云雾缭绕。西岳剑阁建于绝顶之上，剑气纵横，山风过处似有金铁之声。',
+            population: 800, area: 90, areaUnit: 'km²', economy: 'moderate',
+            factions: ['xiyue'], factionId: 'xiyue',
+            travelDays: 2, repThreshold: 40, guardianPower: 100,
+            venues: [
+                v('思过崖', '岳不群', '西岳派长老，常在此崖上面壁沉思剑道。', [], false, 60, 'taiji'),
+                v('剑庐', '封不平', '铸剑名师，为西岳派弟子打造佩剑。', ['blue_sword', 'steel_blade', 'dagger'], false, 55, 'zhuifeng'),
+            ],
+        },
+        {
+            id: 'beggar_hq', name: '丐帮总舵',
+            desc: '城郊的一处大宅，门口挂着破碗与长棍为记。丐帮弟子来来往往，别看他们衣衫褴褛，天下的消息却大半都从这帮叫花子嘴里过。',
+            population: 2200, area: 8, areaUnit: 'km²', economy: 'moderate',
+            factions: ['beggar'], factionId: 'beggar',
+            travelDays: 1, repThreshold: 30, guardianPower: 90,
+            venues: [
+                v('聚义厅', '鲁有脚', '丐帮长老，正与几个弟子商议帮务。', ['wine_rice', 'ration'], false, 60, 'hongquan'),
+                v('伙房', '宋长老', '负责全舵伙食的长老，大锅大灶，饭菜管够。', ['wine_rice', 'wine_bamboo', 'ration'], false, 40, 'hongquan'),
+            ],
+        },
+        {
+            id: 'emei', name: '峨眉山',
+            desc: '峨眉天下秀，金顶佛光普照。峨眉庵依山而建，晨钟清越，庵中剑影轻灵，皆是巾帼英豪。',
+            population: 1100, area: 90, areaUnit: 'km²', economy: 'wealthy',
+            factions: ['emei'], factionId: 'emei',
+            travelDays: 2, repThreshold: 40, guardianPower: 95,
+            venues: [
+                v('金顶', '静玄', '峨眉派护法，常年驻守金顶，观云海日出。', ['incense', 'tea_cake'], false, 50, 'bo_re_zhang'),
+                v('洗象池', '静虚', '峨眉派中年女侠，剑法娴熟，为人热忱。', ['incense', 'herb_bandage'], false, 45, 'bo_re_zhang'),
+            ],
+        },
+        {
+            id: 'tangjia', name: '唐家堡',
+            desc: '唐家堡依山而建，堡墙森然，机关暗伏。堡内毒影幽幽，蜀中江湖人物路过此地无不绕道而行。',
+            population: 1000, area: 15, areaUnit: 'km²', economy: 'very_wealthy',
+            factions: ['tang'], factionId: 'tang',
+            travelDays: 2, repThreshold: 45, guardianPower: 100,
+            venues: [
+                v('议事厅', '唐继尧', '唐门长老，执掌堡内日常事务，目光锐利。', ['poison_powder', 'jiedu_san'], false, 60, 'tiesha'),
+                v('毒经阁', '唐无言', '哑巴长老，看守唐门历代毒方，一身毒术出神入化。', ['poison_powder', 'he_ding_hong'], false, 65, 'tiesha'),
+            ],
+        },
+        {
+            id: 'heimuya', name: '黑木崖',
+            desc: '黑木崖孤峰插天，终年云雾缭绕，崖下深不见底。崖上圣殿森然，日月神教的总坛便在此处，江湖正道谈之色变。',
+            population: 700, area: 30, areaUnit: 'km²', economy: 'subsistence',
+            factions: ['sunmoon'], factionId: 'sunmoon',
+            travelDays: 2, repThreshold: 50, guardianPower: 110,
+            venues: [
+                v('光明殿', '曲洋', '日月神教长老，琴艺与武功俱佳。', ['wine_bamboo', 'incense'], false, 60, 'wang_ba_zhang'),
+                v('地牢', '梅庄', '看守黑木崖地牢的教众，面容阴鸷。', ['poison_powder'], false, 55, 'wang_ba_zhang'),
+            ],
+        },
+        {
+            id: 'wulin_hq', name: '武林盟',
+            desc: '武林盟总坛坐落于中原腹地，殿宇巍峨，气吞山河。盟旗猎猎，天下英雄在此听候号令，江湖恩怨在此裁决。',
+            population: 2500, area: 20, areaUnit: 'km²', economy: 'lavish',
+            factions: ['wulin'], factionId: 'wulin',
+            travelDays: 1, repThreshold: 50, guardianPower: 130,
+            venues: [
+                v('议事厅', '铁面判官', '武林盟执法长老，铁面无私，专司仲裁江湖恩怨。', ['incense', 'tea_cake'], false, 75, 'xingyi'),
+                v('武库', '镇岳', '武林盟武库总管，看守盟中珍藏的兵刃典籍。', ['steel_blade', 'blue_sword', 'dagger'], false, 65, 'taiji'),
+            ],
+        },
+    ],
 };
 
 // Assign village martial arts (reuse 10 types across all villages)
@@ -340,11 +443,12 @@ function getEconomyLabel(key) {
 function getLocationTypeLabel(id) {
     if (WORLD.big_cities.find(c => c.id === id)) return LOCATION_TYPES.big_city;
     if (WORLD.small_cities.find(c => c.id === id)) return LOCATION_TYPES.small_city;
+    if ((WORLD.faction_hqs || []).find(h => h.id === id)) return LOCATION_TYPES.faction_hq;
     return LOCATION_TYPES.village;
 }
 
 function getAllLocations() {
-    return [...WORLD.big_cities, ...WORLD.small_cities, ...WORLD.villages];
+    return [...WORLD.big_cities, ...WORLD.small_cities, ...WORLD.villages, ...(WORLD.faction_hqs || [])];
 }
 
 // Assign city NPC martial arts
@@ -396,16 +500,16 @@ const REGIONS = {
 
 const LOCATION_REGION = {
     // 西北
-    changan: 'xibei', liuyun: 'xibei', xikou: 'xibei',
+    changan: 'xibei', liuyun: 'xibei', xikou: 'xibei', songshan: 'xibei', huashan: 'xibei', liangzhou: 'xibei', shazhou: 'xibei', qilian: 'xibei',
     // 东北
-    jingcheng: 'dongbei', luoyang: 'dongbei', longmen: 'dongbei', dahuang: 'dongbei', shanshen: 'dongbei',
+    jingcheng: 'dongbei', luoyang: 'dongbei', longmen: 'dongbei', dahuang: 'dongbei', shanshen: 'dongbei', beggar_hq: 'dongbei', heimuya: 'dongbei', changbai: 'dongbei', songhua: 'dongbei',
     // 西南
-    chengdu: 'xinan', dali: 'xinan', yanxia: 'xinan', miaojiang: 'xinan', moyuan: 'xinan',
+    chengdu: 'xinan', dali: 'xinan', yanxia: 'xinan', miaojiang: 'xinan', moyuan: 'xinan', emei: 'xinan', tangjia: 'xinan', erhai: 'xinan', lugu: 'xinan',
     // 东南
     suzhou: 'dongnan', yangzhou: 'dongnan', suzhou_city: 'dongnan',
-    fenglin: 'dongnan', qingxi: 'dongnan', shuangyue: 'dongnan', jinchuan: 'dongnan', luhua: 'dongnan', songtao: 'dongnan', dongpo: 'dongnan',
+    fenglin: 'dongnan', qingxi: 'dongnan', shuangyue: 'dongnan', jinchuan: 'dongnan', luhua: 'dongnan', songtao: 'dongnan', dongpo: 'dongnan', wudang: 'dongnan',
     // 中部
-    xiangyang: 'zhongbu', taoyuan: 'zhongbu', baiyun: 'zhongbu', heishui: 'zhongbu', hutou: 'zhongbu', cuiwei: 'zhongbu',
+    xiangyang: 'zhongbu', taoyuan: 'zhongbu', baiyun: 'zhongbu', heishui: 'zhongbu', shendu: 'zhongbu', wulin_hq: 'zhongbu',
 };
 
 const REGION_TRAVEL = {
@@ -455,11 +559,38 @@ function getTravelDays(fromId, toId) {
     const toRegion = getRegion(toId);
     if (!fromRegion || !toRegion) return 1;
     if (fromRegion === toRegion) {
-        return Math.max(1, Math.abs(fromLoc.travelDays - toLoc.travelDays) + 1);
+        return Math.max(1, Math.ceil(Math.abs(fromLoc.travelDays - toLoc.travelDays) + 1));
     }
     // cross-region: base + both distances
     if (canTravel(fromId, toId)) {
-        return fromLoc.travelDays + toLoc.travelDays + 3;
+        return Math.ceil(fromLoc.travelDays + toLoc.travelDays + 3);
     }
     return 99; // unreachable
+}
+
+/* ═══ 区域地图坐标 ═══
+   每个地点在所属区域画布上的固定坐标（百分比 0~100，按真实地理方位排布：
+   北在上、南在下、西在左、东在右）。由 game.js 渲染区域地图使用。 */
+const MAP_COORDS = {
+    // ── 西北 ──
+    changan: [52, 74], huashan: [76, 60], songshan: [92, 70], xikou: [10, 48], liuyun: [45, 10],
+    liangzhou: [24, 60], shazhou: [10, 26], qilian: [32, 38],
+    // ── 东北 ──
+    jingcheng: [55, 22], shanshen: [46, 42], beggar_hq: [70, 36], heimuya: [88, 50],
+    luoyang: [30, 80], longmen: [14, 66], dahuang: [44, 88],
+    changbai: [95, 18], songhua: [38, 14],
+    // ── 西南 ──
+    chengdu: [64, 44], yanxia: [52, 34], tangjia: [74, 58], emei: [44, 66], moyuan: [56, 52],
+    miaojiang: [34, 76], dali: [22, 88], erhai: [16, 78], lugu: [68, 70],
+    // ── 东南 ──
+    wudang: [12, 30], fenglin: [16, 54], songtao: [28, 42], suzhou: [34, 58], qingxi: [28, 76],
+    suzhou_city: [44, 68], dongpo: [54, 84], luhua: [60, 40], yangzhou: [74, 24], jinchuan: [84, 38],
+    shuangyue: [92, 80],
+    // ── 中部 ──
+    shendu: [46, 30], baiyun: [68, 58], xiangyang: [52, 48], heishui: [78, 44],
+    taoyuan: [38, 68], wulin_hq: [40, 36],
+};
+for (const loc of getAllLocations()) {
+    const c = MAP_COORDS[loc.id];
+    if (c) { loc.mapX = c[0]; loc.mapY = c[1]; }
 }

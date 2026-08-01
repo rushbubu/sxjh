@@ -174,6 +174,8 @@ class Game {
         const usedNames = new Set();
         this.beautyMap = {};
         for (const loc of getAllLocations()) {
+            // 门派驻地不放女 NPC
+            if ((WORLD.faction_hqs || []).some(h => h.id === loc.id)) continue;
             const type = loc.nearestCity ? 'village' : WORLD.big_cities.find(c => c.id === loc.id) ? 'big_city' : 'small_city';
             this.beautyMap[loc.id] = generateBeauties(loc.id, type, usedNames);
         }
@@ -184,6 +186,7 @@ class Game {
         this.brothelProstitutes = {};
         for (const loc of getAllLocations()) {
             if (loc.id === 'dali') continue;
+            if ((WORLD.faction_hqs || []).some(h => h.id === loc.id)) continue;
             const type = loc.nearestCity ? null : WORLD.big_cities.find(c => c.id === loc.id) ? 'big_city' : 'small_city';
             if (type) this.brothelProstitutes[loc.id] = generateProstitutes(loc.id, type, usedNames);
         }
@@ -199,26 +202,46 @@ class Game {
     injectFactionVenues() {
         for (const fId of Object.keys(FACTIONS)) {
             const f = FACTIONS[fId];
-            const cities = [...WORLD.big_cities, ...WORLD.small_cities];
-            const host = cities.find(c => c.id === f.locationId);
-            if (!host) continue;
-            const isWealthy = fId === 'money';
-            // 避免重复注入：门派驻地已存在则跳过
-            if (!host.venues.some(v => v.name === f.venueName)) {
-                host.venues.push({
-                    name: f.venueName,
-                    npcs: [{
-                        npcName: f.stewardName,
-                        npcDesc: f.stewardDesc,
-                        civilian: false,
-                        combatPower: f.stewardPower,
-    items: [],
-    statuses: [],
-                        factionId: fId,
-                    }],
-                    _isOutskirts: !isWealthy,
-                    ...(isWealthy ? { _isCommercialHQ: true } : {}),
-                });
+            if (fId !== 'money') {
+                // 非金钱帮：驻扎在独立门派驻地（与大小城同级的独立地点）
+                const hq = (WORLD.faction_hqs || []).find(h => h.factionId === fId);
+                if (!hq) continue;
+                // 避免重复注入：门派驻地已存在则跳过
+                if (!hq.venues.some(v => v.name === f.venueName)) {
+                    hq.venues.push({
+                        name: f.venueName,
+                        npcs: [{
+                            npcName: f.stewardName,
+                            npcDesc: f.stewardDesc,
+                            civilian: false,
+                            combatPower: f.stewardPower,
+                            items: [],
+                            statuses: [],
+                            factionId: fId,
+                        }],
+                        _isFactionHQ: true,
+                    });
+                }
+            } else {
+                // 金钱帮：总部留在城市商业区
+                const cities = [...WORLD.big_cities, ...WORLD.small_cities];
+                const host = cities.find(c => c.id === f.locationId);
+                if (!host) continue;
+                if (!host.venues.some(v => v.name === f.venueName)) {
+                    host.venues.push({
+                        name: f.venueName,
+                        npcs: [{
+                            npcName: f.stewardName,
+                            npcDesc: f.stewardDesc,
+                            civilian: false,
+                            combatPower: f.stewardPower,
+                            items: [],
+                            statuses: [],
+                            factionId: fId,
+                        }],
+                        _isCommercialHQ: true,
+                    });
+                }
             }
             // 爬塔入口已移至门派内部菜单（不再作为独立场景）
         }
@@ -843,6 +866,16 @@ class Game {
             if (this.tryRandomCharityEvent()) return;
         }
         const choices = [];
+        // 门派驻地：直接平铺派内场所
+        if (loc && getLocationTypeLabel(loc.id) === LOCATION_TYPES.faction_hq) {
+            for (const v of this.player.locationVenues) {
+                choices.push({ text: v.name, action: () => this.enterVenue(v) });
+            }
+            choices.push({ text: '回去', action: () => this.showLocationChoices() });
+            this.addMessage(`—— ${loc.name} · 山门内外 ——`, 'system');
+            this.showChoices(choices);
+            return;
+        }
         const isVillage = !!loc.nearestCity;
         if (isVillage) {
             const groups = {
@@ -1970,7 +2003,9 @@ class Game {
         this.addMessage(f.desc, 'info');
         this.addMessage('', 'narrator');
         this.addMessage('【门规地位】' + (f.isEvil ? '邪派' : (f.exclusiveGroup === 'positive' ? '正派' : '中立')), 'info');
-        this.addMessage(`驻地：${f.venueName}`, 'info');
+        const hq = (WORLD.faction_hqs || []).find(h => h.factionId === f.id);
+        const hqText = hq ? (hq.name === f.venueName ? hq.name : hq.name + ' · ' + f.venueName) : f.venueName;
+        this.addMessage(`驻地：${hqText}`, 'info');
         this.addMessage('', 'narrator');
         this.addMessage('【晋升阶梯】', 'system');
 
@@ -2030,9 +2065,9 @@ class Game {
 
         // 检查入门条件
         const entryRank = f.ranks[0];
-        if (!meetsRankRequirements(p, entryRank)) {
-            this.addMessage(`你的条件尚未满足${f.name}的入门要求。`, 'danger');
-            this.addMessage(`需要：${entryRank.reqDesc}`, 'info');
+        const failText = getRankFirstFail(p, entryRank, fId);
+        if (failText) {
+            this.addMessage(`${f.stewardName}：「${failText}」`, 'narrator');
             return this.factionAction(venue, { factionId: fId });
         }
         if (!canPayRankCost(p, entryRank)) {
@@ -3871,10 +3906,11 @@ class Game {
             return;
         }
         this.addMessage(`—— 你的行囊 ——`, 'system');
-        // 按 id 合并同类物品
+        // 按 id 合并同类物品（心经不可出售）
         const groups = {};
         for (let i = 0; i < p.items.length; i++) {
             const item = p.items[i];
+            if (item.name && item.name.includes('心经')) continue;
             const key = item.id || item.name;
             if (!groups[key]) groups[key] = { item, indices: [], count: 0 };
             groups[key].indices.push(i);
@@ -4937,15 +4973,100 @@ class Game {
             this._triggerRescueOx();
             return;
         }
-        const currentRegion = getRegion(current);
-        const allLocs = getAllLocations().filter(l => l.id !== current);
-        // only show locations in the same region
-        const reachable = allLocs.filter(l => getRegion(l.id) === currentRegion);
-        const others = reachable.sort(() => Math.random() - 0.5).slice(0, 4);
-        const choices = others.map(loc => ({ text: `【${getRegionLabel(loc.id)}】${getLocationTypeLabel(loc.id).label} · ${loc.name}`, action: () => this.travelTo(loc.id) }));
-        choices.push({ text: '算了', action: () => this.showOutdoorChoices() });
-        this.addMessage('你盘算着下一站去哪儿……', 'narrator');
+        this._mapViewRegion = getRegion(current);
+        this._renderTravelMap();
+    }
+
+    _mapLocName(id) {
+        const l = getAllLocations().find(x => x.id === id);
+        return l ? l.name : id;
+    }
+
+    /* 区域地图界面：显示当前区域所有地点，图标区分类型，点击标记可查看距离并前往 */
+    _renderTravelMap() {
+        const region = this._mapViewRegion || getRegion(this.player.locationId);
+        const current = this.player.locationId;
+        this.clearChoices();
+        this.addMessage(`—— ${REGIONS[region] ? REGIONS[region].name : region} · 区域地图 ——`, 'system');
+        this.addMessage(this._regionMapHTML(region), 'html');
+        const choices = [];
+        const regionLocs = getAllLocations().filter(l => l.id !== current && getRegion(l.id) === region);
+        const isKeyLoc = l => {
+            const t = getLocationTypeLabel(l.id);
+            return t === LOCATION_TYPES.big_city || t === LOCATION_TYPES.small_city || t === LOCATION_TYPES.faction_hq;
+        };
+        const keyLocs = regionLocs.filter(isKeyLoc);
+        const villages = regionLocs.filter(l => !isKeyLoc(l)).sort(() => Math.random() - 0.5).slice(0, 4);
+        const shown = [...keyLocs, ...villages];
+        for (const loc of shown) {
+            const days = getTravelDays(current, loc.id);
+            const dist = days >= 99 ? '无法直达' : days + '天脚程';
+            choices.push({
+                text: `${getLocationTypeLabel(loc.id).icon} ${loc.name}（${dist}）`,
+                action: () => this._travelPick(loc.id),
+            });
+        }
+        // 相邻区域地图查看
+        for (const r of (REGION_TRAVEL[region] || [])) {
+            choices.push({ text: `🗺️ 查看${REGIONS[r].name}地图`, action: () => { this._mapViewRegion = r; this._renderTravelMap(); } });
+        }
+        choices.push({ text: '算了', action: () => { delete this._mapViewRegion; this.showOutdoorChoices(); } });
         this.showChoices(choices);
+    }
+
+    /* 地图上点击地点：显示目的地介绍与距离，确认后前往 */
+    _travelPick(locId) {
+        const current = this.player.locationId;
+        const loc = getAllLocations().find(l => l.id === locId);
+        if (!loc) return;
+        const days = getTravelDays(current, locId);
+        this.clearChoices();
+        this.addMessage(`—— 目的地 · ${getLocationTypeLabel(locId).label} · ${loc.name} ——`, 'system');
+        this.addMessage(`「${loc.desc}」`, 'info');
+        this.addMessage(`人口 ${loc.population ? loc.population.toLocaleString() : '—'}  |  面积 ${loc.area || '—'}${loc.areaUnit || ''}  |  经济 ${getEconomyLabel(loc.economy)}`, 'info');
+        if (days >= 99) {
+            this.addMessage(`此地相距遥远，与${this._mapLocName(current)}之间暂无道路可通，需先前往相邻区域中转。`, 'danger');
+            this.showChoices([
+                { text: '返回地图', action: () => this._renderTravelMap() },
+            ]);
+            return;
+        }
+        this.addMessage(`从${this._mapLocName(current)}至此：约${days}天脚程，盘缠 ${days * 2} 两。`, 'system');
+        this.showChoices([
+            { text: `前往（${days}天）`, action: () => this.travelTo(locId) },
+            { text: '返回地图', action: () => this._renderTravelMap() },
+        ]);
+    }
+
+    /* 生成区域地图 HTML（CSS 定位 + Emoji 标记） */
+    _regionMapHTML(region) {
+        const current = this.player.locationId;
+        const locs = getAllLocations().filter(l => getRegion(l.id) === region);
+        let markers = '';
+        for (const loc of locs) {
+            if (loc.mapX === undefined || loc.mapY === undefined) continue;
+            const isCur = loc.id === current;
+            const t = getLocationTypeLabel(loc.id);
+            const nameStyle = isCur ? 'color:#ffe27a;border-color:#ffd700' : `color:${t.color};border-color:${t.color}`;
+            markers += `<span class="map-marker${isCur ? ' active' : ''}" style="left:${loc.mapX}%;top:${loc.mapY}%" title="${loc.name}" onclick="game._travelPick('${loc.id}')">${t.icon}<i class="ml" style="${nameStyle}">${isCur ? '★ ' : ''}${loc.name}</i></span>`;
+        }
+        const regionName = REGIONS[region] ? REGIONS[region].name : region;
+        return `<style>
+.map-canvas{position:relative;width:100%;max-width:600px;height:300px;background:
+  radial-gradient(ellipse at 20% 15%, rgba(255,255,255,.06) 0 4%, transparent 4.2%),
+  linear-gradient(180deg,#3a4a3f 0%,#4d5f45 55%,#5c6b4d 100%);border:1px solid #77624d;border-radius:10px;margin:8px 0;overflow:hidden;box-shadow:inset 0 0 30px rgba(0,0,0,.45)}
+.map-canvas::before{content:'';position:absolute;left:0;right:0;top:58%;height:42%;background:linear-gradient(180deg,transparent,#31403a 100%);border-radius:50% 50% 0 0/20% 20% 0 0;opacity:.5}
+.map-marker{position:absolute;transform:translate(-50%,-50%);text-align:center;cursor:pointer;font-size:21px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));transition:transform .15s;z-index:2}
+.map-marker:hover{transform:translate(-50%,-50%) scale(1.25);z-index:5}
+.map-marker .ml{display:block;font-size:11px;color:#f0e6d0;background:rgba(10,14,10,.72);border:1px solid rgba(255,255,255,.12);padding:1px 5px;border-radius:4px;margin-top:2px;white-space:nowrap;font-weight:normal}
+.map-marker.active .ml{color:#ffe27a;border-color:#ffd700;background:rgba(40,30,5,.85)}
+.map-legend{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;font-size:11px;color:#d8d0c0;line-height:1.7;z-index:3}
+.map-legend b{color:#ffe27a}
+</style>
+<div class="map-canvas">
+  <div class="map-legend">${regionName}地图<br>${LOCATION_TYPES.big_city.icon}大城 ${LOCATION_TYPES.small_city.icon}小城 ${LOCATION_TYPES.village.icon}村庄 ${LOCATION_TYPES.faction_hq.icon}门派驻地<br><b>★ 当前位置</b> · 点击地点查看距离</div>
+  ${markers}
+</div>`;
     }
 
     travelTo(locationId) {
@@ -6005,8 +6126,7 @@ class Game {
 
     _inlineQuestTrigger(q) {
         this._questSeq_fallback([
-            questDisplayName('rescue_ox'),
-            '你走出大门，沿着村道前行……',
+            '晨雾未散，你踏出村口，沿着村道走了一阵。',
             '忽然，你听到不远处传来打斗声和叫骂声。',
             '似乎是一个年轻人正在殴打老人。',
         ], () => {

@@ -77,9 +77,8 @@ Game.prototype._questRescueOx = function(q) {
     const s = q.stage;
     if (s === 'TRIGGER') {
         this._questSeq([
-            questDisplayName('rescue_ox'),
-            '你走出大门，沿着村道前行……',
-            '忽然，你听到不远处传来打斗声和叫骂声。',
+            '村道两侧的稻田还挂着露珠，你背上行囊，踏上了远行的路。',
+            '走出村口不远，你忽然听到不远处传来打斗声和叫骂声。',
             '似乎是一个年轻人正在殴打老人。',
         ], () => {
             this.showChoices([

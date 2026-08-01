@@ -75,6 +75,10 @@ const FACTION_SKILLS = {
     // ── 金钱帮 ──
     f_money_palm:      { name: '金元宝掌',     desc: '以金钱为引的掌法，一掌拍出金光四射，晃人眼目。',    luckReq: 14, type: 'palm',  quality: 'blue'  },
     f_money_abacus:    { name: '算盘功',       desc: '以算盘为兵刃的奇门功夫，噼啪作响间取人性命。',      luckReq: 18, type: 'bludgeon', quality: 'purple'},
+
+    // ── 武林盟 ──
+    f_wulin_sword:     { name: '乾坤剑法',     desc: '武林盟主嫡传剑法，剑势开阔堂堂正正，以大势压人。',  luckReq: 18, type: 'sword', quality: 'purple'},
+    f_wulin_palm:      { name: '八方镇岳掌',   desc: '盟主亲传掌法，一掌既出四方震动，如岳临渊。',        luckReq: 26, type: 'palm',  quality: 'gold'  },
 };
 
 /* 内功定义（仅门派特有内功，通用内功在 items.js 中通过 use.learnInternalSkill 获取） */
@@ -88,6 +92,7 @@ const FACTION_INTERNAL_SKILLS = {
     tang_heart:     { name: '百毒不侵功',     quality: 'purple'},
     sunmoon_heart:  { name: '吸星大法',       quality: 'gold'  },
     money_heart:    { name: '聚财心法',       quality: 'blue'  },
+    wulin_heart:    { name: '盟主心法',       quality: 'purple'},
 };
 
 /* ═══ 八大派定义 ═══ */
@@ -631,6 +636,71 @@ const FACTIONS = {
             },
         ],
     },
+
+    wulin: {
+        id: 'wulin',
+        name: '武林盟',
+        icon: '⚔️',
+        desc: '「天下英雄出我辈」——武林盟乃江湖共主，代天行道，仲裁天下恩怨，号令群雄。',
+        locationId: 'shendu',
+        venueName: '武林盟大殿',
+        stewardName: '楚云霄',
+        stewardDesc: '武林盟主上官金虹的师弟，百年前意气风发的少年如今已是头发花白的耄耋老人，对外只称七十八岁。本名早已弃用，只以化名行走江湖，一柄乾坤剑依然镇服天下英雄。',
+        stewardPower: 125,
+        isEvil: false,
+        exclusiveGroup: 'positive',
+
+        ranks: [
+            {
+                name: '外门执事',
+                repRequired: 0,
+                reqDesc: '声望≥400（名震一方），根骨≥20',
+                requirements: { reputation: 400, root: 20 },
+                desc: '初入武林盟的执事，在总坛处理日常事务，观摩天下武学。',
+                title: '武林盟外门',
+                bonusDesc: '根骨+1',
+                statBonuses: { root: 1 },
+                skillIds: ['f_wulin_sword'],
+                internalIds: ['wulin_heart'],
+            },
+            {
+                name: '内门执事',
+                repRequired: 50,
+                reqDesc: '声望≥600，悟性≥25',
+                requirements: { reputation: 600, wit: 25 },
+                desc: '武林盟核心执事，可参与调停江湖纷争，接触盟中机密。',
+                title: '武林盟内门',
+                bonusDesc: '悟性+2，根骨+2',
+                statBonuses: { wit: 2, root: 2 },
+                skillIds: ['f_wulin_palm', 'f_wulin_sword'],
+                internalIds: ['wulin_heart'],
+            },
+            {
+                name: '香主',
+                repRequired: 110,
+                reqDesc: '声望≥800，根骨≥40，悟性≥30',
+                requirements: { reputation: 800, root: 40, wit: 30 },
+                desc: '镇守一方分舵的香主，代盟执法，威震一方。',
+                title: '武林盟香主',
+                bonusDesc: '根骨+4，悟性+3，福缘+1，气血+15',
+                statBonuses: { root: 4, wit: 3, luck: 1, maxHp: 15 },
+                skillIds: ['f_wulin_palm', 'f_wulin_sword'],
+                internalIds: ['wulin_heart'],
+            },
+            {
+                name: '副盟主',
+                repRequired: 190,
+                reqDesc: '声望≥1500，根骨≥55，悟性≥45，福缘≥25',
+                requirements: { reputation: 1500, root: 55, wit: 45, luck: 25 },
+                desc: '盟主之下万人之上，代行盟主之权，天下英雄见之皆执礼。',
+                title: '武林盟副盟主',
+                bonusDesc: '根骨+6，悟性+5，福缘+3，灵巧+2，气血+25',
+                statBonuses: { root: 6, wit: 5, luck: 3, dexterity: 2, maxHp: 25 },
+                skillIds: ['f_wulin_palm'],
+                internalIds: ['wulin_heart'],
+            },
+        ],
+    },
 };
 
 /* ─── 工具函数 ─── */
@@ -669,6 +739,46 @@ function meetsRankRequirements(player, rank) {
     // 自定义检查（用于门派特殊要求，如偷盗次数、济苍生等）
     if (rank.customCheck && !rank.customCheck(player)) return false;
     return true;
+}
+
+/* 返回玩家第一个未满足的入门要求（掌门台词），全部满足返回 null。
+   检查顺序与 meetsRankRequirements 一致：根骨→悟性→福缘→灵巧→容貌→声望→暗面声望→门派特有要求 */
+function getRankFirstFail(player, rank, factionId) {
+    const req = rank.requirements;
+    if (req.root != null && (player.attrs.root || 0) < req.root) {
+        return '你根骨尚浅，本门武学刚猛，恐伤及己身。先打好根基，日后再来叩门吧。';
+    }
+    if (req.wit != null && (player.attrs.wit || 0) < req.wit) {
+        return '你悟性不足，本门武学深奥，恐难以领会。他日勤学多思，再来试试吧。';
+    }
+    if (req.luck != null && (player.attrs.luck || 0) < req.luck) {
+        return '你福缘尚浅，本门收徒极重缘分。多行善事、广积善缘，机缘到时自会相见。';
+    }
+    if (req.dexterity != null && (player.attrs.dexterity || 0) < req.dexterity) {
+        return '你身手尚欠灵巧，本门功夫讲究轻灵机变。练好身手，再来不迟。';
+    }
+    if (req.appearance != null && (player.attrs.appearance || 0) < req.appearance) {
+        return '本门收徒讲究仪表风姿，施主这般模样……咳，他日再来看看吧。';
+    }
+    if (req.reputation != null && (player.reputation || 0) < req.reputation) {
+        return '你在江湖上还未闯出名号，本门收徒极重声望。先去闯荡一番，有了名望再来。';
+    }
+    if (req.shadowRep != null && (player.shadowRep || 0) < req.shadowRep) {
+        return '本教行事诡秘，施主在江湖暗面尚无根基。待你闯出些名堂，再来不迟。';
+    }
+    if (rank.customCheck && !rank.customCheck(player)) {
+        if (factionId === 'wudang') {
+            return '我武当派以天下苍生为重，施主当多行善事，你我自会有缘。';
+        }
+        if (factionId === 'shaolin') {
+            return '我佛门清净之地，施主身上戾气未消，恐难入我门。他日戒除杀伐，自有机缘。';
+        }
+        if (factionId === 'money') {
+            return '我金钱帮只认银子，施主身家尚薄，等攒够了银两再来吧。';
+        }
+        return '施主与本门缘分未到，他日有缘再来吧。';
+    }
+    return null;
 }
 
 /* 能否支付 rank 的加入/晋升花费 */
