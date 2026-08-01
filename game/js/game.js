@@ -41,6 +41,84 @@ class Game {
     init() {
         this.generateCreatePanel();
         this.resetCreateValues();
+        this.refreshContinueButton();
+    }
+
+    /* ─── 存档系统 ─── */
+
+    static SAVE_KEY = 'sxjh_save';
+
+    readSave() {
+        try {
+            const raw = localStorage.getItem(Game.SAVE_KEY);
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            return (data && data.player) ? data : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    refreshContinueButton() {
+        const btn = document.getElementById('btn-continue');
+        if (!btn) return;
+        const save = this.readSave();
+        if (save) {
+            btn.style.display = 'block';
+            btn.textContent = `继续游戏 · 第${save.player.day || 1}天`;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    saveGame() {
+        try {
+            const data = {
+                v: 1,
+                player: this.player,
+                beautyMap: this.beautyMap,
+                brothelProstitutes: this.brothelProstitutes,
+                redRecord: this.redRecord,
+                killedNpcs: Array.from(this.killedNpcs || []),
+                savedAt: Date.now(),
+            };
+            localStorage.setItem(Game.SAVE_KEY, JSON.stringify(data));
+        } catch (e) {
+            if (this.addMessage) this.addMessage('存档失败：' + e.message, 'danger');
+        }
+    }
+
+    clearSave() {
+        localStorage.removeItem(Game.SAVE_KEY);
+        this.refreshContinueButton();
+    }
+
+    loadGame() {
+        const data = this.readSave();
+        if (!data) return;
+        try {
+            this.player = data.player;
+            this.beautyMap = data.beautyMap || {};
+            this.brothelProstitutes = data.brothelProstitutes || {};
+            this.redRecord = data.redRecord || {};
+            this.killedNpcs = new Set(data.killedNpcs || []);
+            this.injectFactionVenues();
+            this.houseManager = new HouseManager(this);
+            this.estateManager = new EstateManager(this);
+            document.getElementById('create-overlay').classList.add('hidden');
+            const loc = getAllLocations().find(l => l.id === this.player.locationId);
+            if (!loc) { this.clearSave(); location.reload(); return; }
+            this.player.locationId = loc.id;
+            this.currentLocation = loc;
+            this.player.locationVenues = this._buildLocationVenues(loc);
+            this.assignBeauties(loc);
+            this.updateStatsBar();
+            this.addMessage(`—— 你从沉睡中醒来，这是你行走江湖的第 ${this.player.day} 天 ——`, 'system');
+            this.showLocationChoices();
+        } catch (e) {
+            this.clearSave();
+            location.reload();
+        }
     }
 
     generateCreatePanel() {
@@ -112,6 +190,8 @@ class Game {
 
     startGame() {
         if (this.remainingPoints < 0) return;
+        // 新游戏：清除旧存档
+        this.clearSave();
         const attrs = {};
         for (const attr of ATTRIBUTES) attrs[attr.key] = this.createValues[attr.id];
 
@@ -762,6 +842,25 @@ class Game {
 
     /* ─── 地点系统 ─── */
 
+    _buildLocationVenues(loc) {
+        return loc.venues.map(v => ({
+            ...v,
+            npcs: (v.npcs || []).map(n => {
+                const ni = n.items || [];
+                return {
+                    ...n,
+                    _defaultItems: ni.map(i => ({ ...i })),
+                    items: ni.map(i => {
+                        const stock = this.getItemStock(i);
+                        const item = { ...i, stock, maxStock: stock };
+                        if (['blue','purple','orange','gold'].includes(item.tier)) item.name += ` ［${ITEM_TIER_LABELS[item.tier]}］`;
+                        return item;
+                    }),
+                };
+            }).filter(n => !this.killedNpcs.has(loc.id + ':' + v.name + ':' + n.npcName)),
+        }));
+    }
+
     enterLocation(locationId, clear = true) {
         const loc = getAllLocations().find(l => l.id === locationId);
         if (!loc) return;
@@ -782,22 +881,7 @@ class Game {
         }
         this.player.locationId = locationId;
         this.currentLocation = loc;
-        this.player.locationVenues = loc.venues.map(v => ({
-            ...v,
-            npcs: (v.npcs || []).map(n => {
-                const ni = n.items || [];
-                return {
-                    ...n,
-                    _defaultItems: ni.map(i => ({ ...i })),
-                    items: ni.map(i => {
-                        const stock = this.getItemStock(i);
-                        const item = { ...i, stock, maxStock: stock };
-                        if (['blue','purple','orange','gold'].includes(item.tier)) item.name += ` ［${ITEM_TIER_LABELS[item.tier]}］`;
-                        return item;
-                    }),
-                };
-            }).filter(n => !this.killedNpcs.has(loc.id + ':' + v.name + ':' + n.npcName)),
-        }));
+        this.player.locationVenues = this._buildLocationVenues(loc);
         this.assignBeauties(loc);
         const tl = getLocationTypeLabel(loc.id);
         if (clear) this.clearLog();
@@ -4755,6 +4839,7 @@ class Game {
         }
         this.checkLevelUp();
         this.updateStatsBar();
+        this.saveGame();
         setTimeout(() => this.showLocationChoices(), 400);
     }
 
@@ -4770,6 +4855,7 @@ class Game {
             this.addMessage('练完后，你精疲力竭，倒头便睡了过去。', 'narrator');
             this.checkLevelUp();
             this.updateStatsBar();
+            this.saveGame();
             setTimeout(() => this.showLocationChoices(), 400);
             return;
         }
@@ -4795,6 +4881,7 @@ class Game {
         this.addMessage('练完后，你精疲力竭，倒头便睡了过去。', 'narrator');
         this.checkLevelUp();
         this.updateStatsBar();
+        this.saveGame();
         setTimeout(() => this.showLocationChoices(), 400);
     }
 
@@ -4824,6 +4911,7 @@ class Game {
                 this.addMessage('运功完毕，你收功归元，沉沉睡去。', 'narrator');
                 this.checkLevelUp();
                 this.updateStatsBar();
+                this.saveGame();
                 setTimeout(() => this.showLocationChoices(), 400);
                 return;
             }
@@ -4858,6 +4946,7 @@ class Game {
         this.addMessage('运功完毕，你收功归元，沉沉睡去。', 'narrator');
         this.checkLevelUp();
         this.updateStatsBar();
+        this.saveGame();
         setTimeout(() => this.showLocationChoices(), 400);
     }
 
@@ -4930,6 +5019,7 @@ class Game {
                 this.addMessage('你心中感到一丝愧疚。', 'narrator');
             }
         }
+        this.saveGame();
         setTimeout(() => this.showLocationChoices(), 400);
     }
 
@@ -6093,6 +6183,8 @@ class Game {
 
     gameOver(reason, npc = null) {
         this.addMessage(`━━━ Game Over ━━━`, 'system');
+        // 死亡：删除存档，旅程终结
+        this.clearSave();
         setTimeout(() => {
             document.getElementById('gameover-reason').textContent = reason;
             document.getElementById('gameover-overlay').classList.remove('hidden');
