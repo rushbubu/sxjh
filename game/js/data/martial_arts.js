@@ -34,7 +34,7 @@ const MARTIAL_ARTS = {
     tiezhang:  { name: '铁掌',     desc: '掌力沉雄，一掌下去铁板留痕，是硬功中的极品。',              luckReq: 15, type: 'palm',  quality: 'blue' },
     caidao:    { name: '柴刀十八路',desc: '樵夫砍柴多年自悟的刀法，看似粗鄙实则招招实用，专攻下盘。',  luckReq: 14, type: 'blade', quality: 'blue' },
     zhuifeng:  { name: '追风剑法', desc: '快如流星，疾似追风，剑出必见血。',                          luckReq: 18, type: 'sword', quality: 'purple', element: '风' },
-    longzhua:  { name: '龙爪手',   desc: '少林七十二绝技之一，爪力可洞金穿石。',                      luckReq: 20, type: 'fist',  quality: 'purple' },
+    longzhua:  { name: '龙爪手',   desc: '少林上乘爪法，爪力可洞金穿石。',                      luckReq: 20, type: 'fist',  quality: 'purple' },
     tiangang:  { name: '天罡拳',   desc: '三十六路天罡拳，拳拳相扣，连绵不绝。',                      luckReq: 22, type: 'fist',  quality: 'blue' },
     jingang:   { name: '金刚伏魔掌', desc: '佛门至高掌法，一掌击出有金刚降魔之威。',                  luckReq: 25, type: 'palm',  quality: 'purple', element: '阳' },
     wuying:    { name: '无影脚',   desc: '出脚无影，收脚无声，中者甚至不知自己如何中招。',            luckReq: 20, type: 'kick',  quality: 'purple', element: '风' },
@@ -48,7 +48,7 @@ const MARTIAL_ARTS = {
     yiyangzhi: { name: '一阳指',   desc: '大理段氏绝学，以指代剑，凌空点穴，天下无双。',              luckReq: 20, type: 'finger',quality: 'gold', element: '阳' },
 
     // 掌法绝学
-    bo_re_zhang:     { name: '般若掌',   desc: '少林七十二绝技之一，掌中蕴藏无上佛法，中者如受当头棒喝。',         luckReq: 22, type: 'palm',  quality: 'purple', element: '阳' },
+    bo_re_zhang:     { name: '般若掌',   desc: '少林上乘掌法，掌中蕴藏无上佛法，中者如受当头棒喝。',         luckReq: 22, type: 'palm',  quality: 'purple', element: '阳' },
     han_bing_shen_zhang:{ name: '寒冰神掌', desc: '至阴至寒的掌法，掌风过处寒冰凝结，中者经脉冻僵。',             luckReq: 24, type: 'palm',  quality: 'purple', element: '冰' },
     qian_shou_ru_lai_zhang:{ name: '千手如来掌', desc: '佛门至高掌法，一掌化千，千掌归一，无懈可击。',            luckReq: 28, type: 'palm',  quality: 'orange', element: '阳' },
 

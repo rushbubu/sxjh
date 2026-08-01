@@ -8,8 +8,8 @@ const FACTION_SKILLS = {
     f_shaolin_fist:    { name: '罗汉拳',       desc: '少林入门拳法，拳路沉稳，步步为营。',              luckReq: 15, type: 'fist',  quality: 'blue'  },
     f_shaolin_staff:   { name: '少林棍法',     desc: '棍扫一大片，少林棍法势大力沉，攻守兼备。',          luckReq: 15, type: 'bludgeon', quality: 'blue' },
     f_shaolin_palm:    { name: '大力金刚掌',   desc: '佛门至高掌法，一掌击出有金刚降魔之威。',            luckReq: 25, type: 'palm',  quality: 'gold'  },
-    f_shaolin_finger:  { name: '金刚指',       desc: '一指弹出可碎金裂石，是少林七十二绝技之一。',        luckReq: 22, type: 'finger', quality: 'purple'},
-    f_shaolin_claw:    { name: '龙爪手',       desc: '少林七十二绝技之一，爪力可洞金穿石。',              luckReq: 28, type: 'fist',  quality: 'purple'},
+    f_shaolin_finger:  { name: '金刚指',       desc: '一指弹出可碎金裂石，是少林上乘指法。',              luckReq: 22, type: 'finger', quality: 'purple'},
+    f_shaolin_claw:    { name: '龙爪手',       desc: '少林上乘爪法，爪力可洞金穿石。',                    luckReq: 28, type: 'fist',  quality: 'purple'},
 
     // 少林七十二绝技（通过门派研习获取）
     f_shaolin_chang_quan:{ name: '少林长拳',   desc: '少林入门拳法，拳路工整扎实，是少林武学之根基。',                   luckReq: 10, type: 'fist',  quality: 'green' },
@@ -60,7 +60,7 @@ const FACTION_SKILLS = {
 
     // ── 峨眉 ──
     f_emei_sword:      { name: '峨眉剑法',     desc: '峨眉派入门剑法，剑式优雅中暗藏杀机。',              luckReq: 14, type: 'sword', quality: 'blue'  },
-    f_emei_yitian:     { name: '倚天剑诀',     desc: '峨眉镇派绝学，剑气凌厉，有倚天之势。',              luckReq: 24, type: 'sword', quality: 'purple'},
+    f_emei_yitian:     { name: '青锋剑诀',     desc: '峨眉镇派绝学，剑气凌厉，有穿云之势。',              luckReq: 24, type: 'sword', quality: 'purple'},
     f_emei_palm:       { name: '四象掌法',     desc: '演天地四象之变的掌法，蕴含周易玄机。',              luckReq: 20, type: 'palm',  quality: 'purple'},
 
     // ── 唐门 ──
@@ -68,11 +68,11 @@ const FACTION_SKILLS = {
     f_tang_poison:     { name: '五毒掌',       desc: '以五种剧毒淬炼掌力，中者毒入骨髓。',                luckReq: 22, type: 'palm',  quality: 'purple'},
     f_tang_rain:       { name: '暴雨梨花针',   desc: '唐门至强暗器，一瞬之间射出千百毒针，避无可避。',    luckReq: 30, type: 'fist',  quality: 'gold'  },
 
-    // ── 日月神教 ──
-    f_sunmoon_palm:    { name: '天魔掌',       desc: '日月神教镇教掌法，掌力阴邪霸道，中者经脉逆乱。',    luckReq: 20, type: 'palm',  quality: 'purple'},
-    f_sunmoon_sword:   { name: '葵花宝典·剑',  desc: '从葵花宝典中悟出的剑法，快如鬼魅，防不胜防。',      luckReq: 30, type: 'sword', quality: 'gold'  },
+    // ── 焚天教 ──
+    f_sunmoon_palm:    { name: '天魔掌',       desc: '焚天教镇教掌法，掌力阴邪霸道，中者经脉逆乱。',    luckReq: 20, type: 'palm',  quality: 'purple'},
+    f_sunmoon_sword:   { name: '焚天剑典',     desc: '从焚天剑典中悟出的剑法，快如鬼魅，防不胜防。',      luckReq: 30, type: 'sword', quality: 'gold'  },
 
-    // ── 金钱帮 ──
+    // ── 金元帮 ──
     f_money_palm:      { name: '金元宝掌',     desc: '以金钱为引的掌法，一掌拍出金光四射，晃人眼目。',    luckReq: 14, type: 'palm',  quality: 'blue'  },
     f_money_abacus:    { name: '算盘功',       desc: '以算盘为兵刃的奇门功夫，噼啪作响间取人性命。',      luckReq: 18, type: 'bludgeon', quality: 'purple'},
 
@@ -90,7 +90,7 @@ const FACTION_INTERNAL_SKILLS = {
     beggar_heart:   { name: '混天气功',       quality: 'blue'  },
     emei_heart:     { name: '峨眉心法',       quality: 'blue'  },
     tang_heart:     { name: '百毒不侵功',     quality: 'purple'},
-    sunmoon_heart:  { name: '吸星大法',       quality: 'gold'  },
+    sunmoon_heart:  { name: '焚天神功',       quality: 'gold'  },
     money_heart:    { name: '聚财心法',       quality: 'blue'  },
     wulin_heart:    { name: '盟主心法',       quality: 'purple'},
 };
@@ -101,7 +101,7 @@ const FACTIONS = {
         id: 'shaolin',
         name: '少林寺',
         icon: '🪷',
-        desc: '「天下武功出少林」——千年古刹，七十二绝技冠绝武林。佛门清修之地，戒律森严。',
+        desc: '「天下武功出少林」——千年古刹，武学冠绝武林。佛门清修之地，戒律森严。',
         locationId: 'changan',
         venueName: '少林寺',
         stewardName: '了尘大师',
@@ -173,7 +173,7 @@ const FACTIONS = {
         desc: '「太极阴阳，道法自然」——武当为道家武学正宗，以柔克刚，以静制动。',
         locationId: 'suzhou',
         venueName: '武当别院',
-        stewardName: '冲虚道长',
+        stewardName: '云鹤道长',
         stewardDesc: '仙风道骨的老道士，一手太极拳出神入化，修为深不可测。',
         stewardPower: 110,
         isEvil: false,
@@ -373,8 +373,8 @@ const FACTIONS = {
         desc: '「峨眉天下秀，剑舞动九州」——以女子为主的门派，剑法轻灵飘逸，内功中正平和。',
         locationId: 'chengdu',
         venueName: '峨眉庵',
-        stewardName: '灭绝师太',
-        stewardDesc: '神情严肃的峨眉掌门，手持倚天剑，一身修为惊世骇俗。',
+        stewardName: '明心师太',
+        stewardDesc: '神情严肃的峨眉掌门，手持青锋剑，一身修为惊世骇俗。',
         stewardPower: 95,
         isEvil: false,
         exclusiveGroup: 'positive',
@@ -409,7 +409,7 @@ const FACTIONS = {
                 repRequired: 100,
                 reqDesc: '灵巧≥35，颜值≥30，声望≥75，悟性≥25',
                 requirements: { dexterity: 35, appearance: 30, reputation: 75, wit: 25 },
-                desc: '峨眉派真传弟子，有资格研习倚天剑诀。',
+                desc: '峨眉派真传弟子，有资格研习青锋剑诀。',
                 title: '峨眉真传',
                 bonusDesc: '灵巧+4，颜值+3，悟性+2，根骨+1，气血+10',
                 statBonuses: { dexterity: 4, appearance: 3, wit: 2, root: 1, maxHp: 10 },
@@ -498,13 +498,13 @@ const FACTIONS = {
 
     sunmoon: {
         id: 'sunmoon',
-        name: '日月神教',
-        icon: '🌙',
-        desc: '「日月当空，唯我独尊」——行事诡秘的魔教，武功邪异霸道，被武林正道视为魔道。',
+        name: '焚天教',
+        icon: '🔥',
+        desc: '「焚天灭地，唯我独尊」——行事诡秘的魔教，武功邪异霸道，被武林正道视为魔道。',
         locationId: 'jingcheng',
-        venueName: '日月圣殿',
-        stewardName: '向问天',
-        stewardDesc: '面容冷峻的日月神教左使，一双眼睛锐利如鹰，武功深不可测。',
+        venueName: '焚天圣殿',
+        stewardName: '赫连烽',
+        stewardDesc: '面容冷峻的焚天教左使，一双眼睛锐利如鹰，武功深不可测。',
         stewardPower: 110,
         isEvil: true,
         exclusiveGroup: 'evil',
@@ -515,8 +515,8 @@ const FACTIONS = {
                 repRequired: 0,
                 reqDesc: '声望≥10，暗影声望≥10',
                 requirements: { reputation: 10, shadowRep: 10 },
-                desc: '初入神教的普通教众，在殿中听候差遣。',
-                title: '神教教众',
+                desc: '初入焚天教的普通教众，在殿中听候差遣。',
+                title: '焚天教众',
                 bonusDesc: '根骨+1，悟性+1',
                 statBonuses: { root: 1, wit: 1 },
                 skillIds: ['f_sunmoon_palm'],
@@ -529,7 +529,7 @@ const FACTIONS = {
                 reqDesc: '根骨≥30，悟性≥25，声望≥40，暗影声望≥20',
                 requirements: { root: 30, wit: 25, reputation: 40, shadowRep: 20 },
                 desc: '统管一方教务的香主，在上司面前说得上话。',
-                title: '神教香主',
+                title: '焚天香主',
                 bonusDesc: '根骨+2，悟性+2，灵巧+1',
                 statBonuses: { root: 2, wit: 2, dexterity: 1 },
                 skillIds: ['f_sunmoon_palm'],
@@ -541,7 +541,7 @@ const FACTIONS = {
                 reqDesc: '根骨≥40，悟性≥35，声望≥80，暗影声望≥40',
                 requirements: { root: 40, wit: 35, reputation: 80, shadowRep: 40 },
                 desc: '统率一堂之众的堂主，手握生杀大权。',
-                title: '神教堂主',
+                title: '焚天堂主',
                 bonusDesc: '根骨+3，悟性+3，灵巧+2，福缘+1，气血+15',
                 statBonuses: { root: 3, wit: 3, dexterity: 2, luck: 1, maxHp: 15 },
                 skillIds: ['f_sunmoon_sword', 'f_sunmoon_palm'],
@@ -552,8 +552,8 @@ const FACTIONS = {
                 repRequired: 190,
                 reqDesc: '根骨≥50，悟性≥45，声望≥130，暗影声望≥60',
                 requirements: { root: 50, wit: 45, reputation: 130, shadowRep: 60 },
-                desc: '神教护法，仅次于教主的顶尖高手，位高权重。',
-                title: '神教护法',
+                desc: '焚天护法，仅次于教主，位高权重。',
+                title: '焚天护法',
                 bonusDesc: '根骨+5，悟性+4，灵巧+3，福缘+2，暗影声望+10，气血+25',
                 statBonuses: { root: 5, wit: 4, dexterity: 3, luck: 2, maxHp: 25 },
                 extraShadowRep: 10,
@@ -565,16 +565,16 @@ const FACTIONS = {
 
     money: {
         id: 'money',
-        name: '金钱帮',
+        name: '金元帮',
         icon: '💰',
         desc: '「天下熙熙，皆为利来；天下攘攘，皆为利往」——以商立帮，富可敌国，唯利是图。',
         locationId: 'suzhou',
-        venueName: '金钱帮总舵',
+        venueName: '金元帮总舵',
         stewardName: '钱不二',
-        stewardDesc: '一身锦袍的金钱帮帮主，手里盘着两个金元宝，笑容可掬之下暗藏锋芒。',
+        stewardDesc: '一身锦袍的金元帮帮主，手里盘着两个金元宝，笑容可掬之下暗藏锋芒。',
         stewardPower: 70,
         isEvil: false,
-        exclusiveGroup: null, // 金钱帮不排斥任何门派身份
+        exclusiveGroup: null, // 金元帮不排斥任何门派身份
 
         ranks: [
             {
@@ -585,7 +585,7 @@ const FACTIONS = {
                 customCheck: (p) => getPlayerTotalWealth(p) >= 2000,
                 joinCost: { gold: 1000 },
                 desc: '交钱就能入帮的普通帮众，负责帮中杂务和买卖。',
-                title: '金钱帮众',
+                title: '金元帮众',
                 bonusDesc: '经商折扣+5%',
                 statBonuses: {},
                 skillIds: ['f_money_palm'],
@@ -599,7 +599,7 @@ const FACTIONS = {
                 requirements: { reputation: 30 },
                 joinCost: { gold: 200 },
                 desc: '帮中执事，掌管一处分号的日常运营。',
-                title: '金钱执事',
+                title: '金元执事',
                 bonusDesc: '经商折扣+10%，根骨+1',
                 statBonuses: { root: 1 },
                 skillIds: ['f_money_abacus', 'f_money_palm'],
@@ -612,8 +612,8 @@ const FACTIONS = {
                 reqDesc: '声望≥70，悟性≥25（需上缴500两）',
                 requirements: { reputation: 70, wit: 25 },
                 joinCost: { gold: 500 },
-                desc: '金钱帮掌柜，可独立经营一处分号，日进斗金。',
-                title: '金钱掌柜',
+                desc: '金元帮掌柜，可独立经营一处分号，日进斗金。',
+                title: '金元掌柜',
                 bonusDesc: '经商折扣+15%，根骨+2，悟性+2',
                 statBonuses: { root: 2, wit: 2 },
                 skillIds: ['f_money_abacus', 'f_money_palm'],
@@ -626,8 +626,8 @@ const FACTIONS = {
                 reqDesc: '声望≥120，悟性≥35，福缘≥25（需上缴1000两）',
                 requirements: { reputation: 120, wit: 35, luck: 25 },
                 joinCost: { gold: 1000 },
-                desc: '金钱帮大掌柜，帮中决策层，掌控天下商路。',
-                title: '金钱大掌柜',
+                desc: '金元帮大掌柜，帮中决策层，掌控天下商路。',
+                title: '金元大掌柜',
                 bonusDesc: '经商折扣+20%，根骨+3，悟性+3，灵巧+2，气血+15',
                 statBonuses: { root: 3, wit: 3, dexterity: 2, maxHp: 15 },
                 skillIds: ['f_money_abacus', 'f_money_palm'],
@@ -645,7 +645,7 @@ const FACTIONS = {
         locationId: 'shendu',
         venueName: '武林盟大殿',
         stewardName: '楚云霄',
-        stewardDesc: '武林盟主上官金虹的师弟，百年前意气风发的少年如今已是头发花白的耄耋老人，对外只称七十八岁。本名早已弃用，只以化名行走江湖，一柄乾坤剑依然镇服天下英雄。',
+        stewardDesc: '武林盟主凌九霄的师弟，百年前意气风发的少年如今已是头发花白的耄耋老人，对外只称七十八岁。本名早已弃用，只以化名行走江湖，一柄乾坤剑依然镇服天下英雄。',
         stewardPower: 125,
         isEvil: false,
         exclusiveGroup: 'positive',
@@ -774,7 +774,7 @@ function getRankFirstFail(player, rank, factionId) {
             return '我佛门清净之地，施主身上戾气未消，恐难入我门。他日戒除杀伐，自有机缘。';
         }
         if (factionId === 'money') {
-            return '我金钱帮只认银子，施主身家尚薄，等攒够了银两再来吧。';
+            return '我金元帮只认银子，施主身家尚薄，等攒够了银两再来吧。';
         }
         return '施主与本门缘分未到，他日有缘再来吧。';
     }
@@ -893,7 +893,7 @@ function handleFactionJoinConflict(player, newFactionId) {
     const newF = FACTIONS[newFactionId];
     if (!newF) return;
     // 如果已有门派且属于互斥阵营，退出现有门派
-    // 金钱帮（exclusiveGroup===null）不触发任何阵营冲突
+    // 金元帮（exclusiveGroup===null）不触发任何阵营冲突
     if (newF.exclusiveGroup == null) return true;
     if (player.faction) {
         const oldF = FACTIONS[player.faction];

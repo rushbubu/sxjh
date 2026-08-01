@@ -35,12 +35,12 @@ const WORLD = {
             population: 3500000, area: 120, areaUnit: 'km²', economy: 'lavish',
             factions: ['wulin'],
             venues: [
-                v('武林盟总舵', '上官金虹', '武林盟主，气度沉凝，一双眼睛仿佛能看透人心。他是天下武林的仲裁者。', [], false, 150),
+                v('武林盟总舵', '凌九霄', '武林盟主，气度沉凝，一双眼睛仿佛能看透人心。他是天下武林的仲裁者。', [], false, 150),
                 v('天机阁', '无名老人', '神秘的情报商人，没有他打听不到的消息。', ['qin_bamboo', 'moon_poem', 'incense'], false, 60),
                 v('聚宝楼', '沈万三', '天下首富，据说他的财产比国库还多。', ['jade_ring', 'necklace_gold', 'silver_ingot', 'bangle_jade', 'nine_dragon_cup']),
                 v('百草堂', '药王', '白发如雪的神医，据说能活死人肉白骨。', ['jinchuang', 'huisheng', 'neili_dan', 'jiedu_san', 'qingxin_wan', 'ginseng_100', 'powder_clear', 'herb_bandage', 'zhixue_gao'], false, 40),
                 v('沉香阁', '花弄影', '神都第一美人，琴棋书画无一不精。', ['dragon_tea', 'wine_bamboo', 'pastry', 'incense']),
-                v('万象楼', '百晓生', '武林百晓生，天下武学无所不知。', ['stationary', 'writing_brush', 'ink_stick', 'moon_poem'], false, 45),
+                v('万象楼', '万事通', '武林万事通，天下武学无所不知。', ['stationary', 'writing_brush', 'ink_stick', 'moon_poem'], false, 45),
                 v('神兵阁', '欧冶无名', '铸造神兵的大师，阁中陈列着无数名剑宝刀。', ['blue_sword', 'gold_silk_armor', 'steel_blade', 'chest_mirror', 'dagger', 'fei_shi', 'fei_biao', 'du_biao'], false, 80),
                 v('黑市', '暗影', '一个戴着斗笠的神秘人，斗笠下隐约可见一道刀疤。', ['poison_powder', 'he_ding_hong', 'essence_iron', 'silk_gold'], false, 45),
                 { name: '花鸟鱼市场', npcs: [{ npcName: '鱼市老板', npcDesc: '一个精瘦的汉子，满身鱼腥味，正摆弄着几只水盆。', isFishMarket: true }] },
@@ -312,7 +312,7 @@ const WORLD = {
             factions: ['shaolin'], factionId: 'shaolin',
             travelDays: 2, repThreshold: 45, guardianPower: 120,
             venues: [
-                v('藏经阁', '玄慈', '少林达摩院首座，专司保管七十二绝技典籍。', ['incense', 'buddha_relic', 'herb_bandage'], false, 70, 'shaolin_quan'),
+                v('藏经阁', '慧觉', '少林达摩院首座，专司保管寺中武学典籍。', ['incense', 'buddha_relic', 'herb_bandage'], false, 70, 'shaolin_quan'),
                 v('练武场', '慧空', '身材魁梧的武僧，正教一群小沙弥扎马步。', [], false, 50, 'shaolin_quan'),
             ],
         },
@@ -323,8 +323,8 @@ const WORLD = {
             factions: ['wudang'], factionId: 'wudang',
             travelDays: 2, repThreshold: 40, guardianPower: 110,
             venues: [
-                v('真武大殿', '宋远桥', '武当七侠之首，气度沉稳，执掌殿中日常事务。', ['tea_cake', 'incense'], false, 65, 'wudang_quan'),
-                v('紫霄宫', '俞莲舟', '武当七侠之一，专研太极剑法，常在宫中参悟剑理。', ['tea_cake', 'dragon_tea', 'incense'], false, 60, 'taiji'),
+                v('真武大殿', '松风道长', '武当德高望重的长老，气度沉稳，执掌殿中日常事务。', ['tea_cake', 'incense'], false, 65, 'wudang_quan'),
+                v('紫霄宫', '玉衡道人', '武当长老，专研太极剑法，常在宫中参悟剑理。', ['tea_cake', 'dragon_tea', 'incense'], false, 60, 'taiji'),
             ],
         },
         {
@@ -334,8 +334,8 @@ const WORLD = {
             factions: ['xiyue'], factionId: 'xiyue',
             travelDays: 2, repThreshold: 40, guardianPower: 100,
             venues: [
-                v('思过崖', '岳不群', '西岳派长老，常在此崖上面壁沉思剑道。', [], false, 60, 'taiji'),
-                v('剑庐', '封不平', '铸剑名师，为西岳派弟子打造佩剑。', ['blue_sword', 'steel_blade', 'dagger'], false, 55, 'zhuifeng'),
+                v('思过崖', '言云白', '西岳派长老，常在此崖上面壁沉思剑道。', [], false, 60, 'taiji'),
+                v('剑庐', '秦铸', '铸剑名师，为西岳派弟子打造佩剑。', ['blue_sword', 'steel_blade', 'dagger'], false, 55, 'zhuifeng'),
             ],
         },
         {
@@ -345,7 +345,7 @@ const WORLD = {
             factions: ['beggar'], factionId: 'beggar',
             travelDays: 1, repThreshold: 30, guardianPower: 90,
             venues: [
-                v('聚义厅', '鲁有脚', '丐帮长老，正与几个弟子商议帮务。', ['wine_rice', 'ration'], false, 60, 'hongquan'),
+                v('聚义厅', '燕百结', '丐帮长老，正与几个弟子商议帮务。', ['wine_rice', 'ration'], false, 60, 'hongquan'),
                 v('伙房', '宋长老', '负责全舵伙食的长老，大锅大灶，饭菜管够。', ['wine_rice', 'wine_bamboo', 'ration'], false, 40, 'hongquan'),
             ],
         },
@@ -356,8 +356,8 @@ const WORLD = {
             factions: ['emei'], factionId: 'emei',
             travelDays: 2, repThreshold: 40, guardianPower: 95,
             venues: [
-                v('金顶', '静玄', '峨眉派护法，常年驻守金顶，观云海日出。', ['incense', 'tea_cake'], false, 50, 'bo_re_zhang'),
-                v('洗象池', '静虚', '峨眉派中年女侠，剑法娴熟，为人热忱。', ['incense', 'herb_bandage'], false, 45, 'bo_re_zhang'),
+                v('金顶', '妙音师太', '峨眉派护法，常年驻守金顶，观云海日出。', ['incense', 'tea_cake'], false, 50, 'bo_re_zhang'),
+                v('洗象池', '妙真师太', '峨眉派中年女侠，剑法娴熟，为人热忱。', ['incense', 'herb_bandage'], false, 45, 'bo_re_zhang'),
             ],
         },
         {
@@ -367,18 +367,18 @@ const WORLD = {
             factions: ['tang'], factionId: 'tang',
             travelDays: 2, repThreshold: 45, guardianPower: 100,
             venues: [
-                v('议事厅', '唐继尧', '唐门长老，执掌堡内日常事务，目光锐利。', ['poison_powder', 'jiedu_san'], false, 60, 'tiesha'),
-                v('毒经阁', '唐无言', '哑巴长老，看守唐门历代毒方，一身毒术出神入化。', ['poison_powder', 'he_ding_hong'], false, 65, 'tiesha'),
+                v('议事厅', '唐千山', '唐门长老，执掌堡内日常事务，目光锐利。', ['poison_powder', 'jiedu_san'], false, 60, 'tiesha'),
+                v('毒经阁', '唐百川', '哑巴长老，看守唐门历代毒方，一身毒术出神入化。', ['poison_powder', 'he_ding_hong'], false, 65, 'tiesha'),
             ],
         },
         {
             id: 'heimuya', name: '黑木崖',
-            desc: '黑木崖孤峰插天，终年云雾缭绕，崖下深不见底。崖上圣殿森然，日月神教的总坛便在此处，江湖正道谈之色变。',
+            desc: '黑木崖孤峰插天，终年云雾缭绕，崖下深不见底。崖上圣殿森然，焚天教的总坛便在此处，江湖正道谈之色变。',
             population: 700, area: 30, areaUnit: 'km²', economy: 'subsistence',
             factions: ['sunmoon'], factionId: 'sunmoon',
             travelDays: 2, repThreshold: 50, guardianPower: 110,
             venues: [
-                v('光明殿', '曲洋', '日月神教长老，琴艺与武功俱佳。', ['wine_bamboo', 'incense'], false, 60, 'wang_ba_zhang'),
+                v('光明殿', '离焰', '焚天教长老，琴艺与武功俱佳。', ['wine_bamboo', 'incense'], false, 60, 'wang_ba_zhang'),
                 v('地牢', '梅庄', '看守黑木崖地牢的教众，面容阴鸷。', ['poison_powder'], false, 55, 'wang_ba_zhang'),
             ],
         },

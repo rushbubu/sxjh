@@ -203,7 +203,7 @@ class Game {
         for (const fId of Object.keys(FACTIONS)) {
             const f = FACTIONS[fId];
             if (fId !== 'money') {
-                // 非金钱帮：驻扎在独立门派驻地（与大小城同级的独立地点）
+                // 非金元帮：驻扎在独立门派驻地（与大小城同级的独立地点）
                 const hq = (WORLD.faction_hqs || []).find(h => h.factionId === fId);
                 if (!hq) continue;
                 // 避免重复注入：门派驻地已存在则跳过
@@ -223,7 +223,7 @@ class Game {
                     });
                 }
             } else {
-                // 金钱帮：总部留在城市商业区
+                // 金元帮：总部留在城市商业区
                 const cities = [...WORLD.big_cities, ...WORLD.small_cities];
                 const host = cities.find(c => c.id === f.locationId);
                 if (!host) continue;
@@ -1985,8 +1985,8 @@ class Game {
             this.addMessage(`你与${f.name}尚无渊源。`, 'narrator');
             choices.push({ text: '了解详情', action: () => this.showFactionInfo(f, venue) });
             const canJoin = !p.faction
-                || f.exclusiveGroup == null  // 金钱帮可随时加入
-                || FACTIONS[p.faction].exclusiveGroup == null  // 在金钱帮时可随时加入其他派
+                || f.exclusiveGroup == null  // 金元帮可随时加入
+                || FACTIONS[p.faction].exclusiveGroup == null  // 在金元帮时可随时加入其他派
                 || FACTIONS[p.faction].exclusiveGroup !== f.exclusiveGroup;
             if (canJoin) {
                 choices.push({ text: '请求加入', action: () => this.joinFaction(fId, venue) });
@@ -4176,7 +4176,7 @@ class Game {
         for (const fId of loc.factions) {
             let info;
             if (fId === 'wulin') {
-                info = '武林盟总舵就在此地，盟主上官金虹坐镇，天下英雄莫不低头。';
+                info = '武林盟总舵就在此地，盟主凌九霄坐镇，天下英雄莫不低头。';
             } else {
                 const f = getFaction(fId);
                 if (!f) continue;
