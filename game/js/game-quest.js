@@ -69,8 +69,84 @@ Game.prototype.questAdvance = function(questId) {
     if (!q) return;
 
     switch (questId) {
+        case 'blacksmith_iron': this._questBlacksmithIron(q); break;
         case 'rescue_ox': this._questRescueOx(q); break;
     }
+};
+
+Game.prototype._questBlacksmithIron = function(q) {
+    const s = q.stage;
+    if (s === 'TRIGGER') {
+        this._questSeq([
+            '铁匠铺里叮叮当当的敲打声停了，铁匠' + this._getBlacksmithName() + '正坐在门槛上发愁，连火都没生。',
+            '见你进来，他叹了口气：「唉，你是不知道，最近山里闹强盗，商队都不敢走山路了。」',
+            '「连个铁矿都运不进来，我这铁匠铺，都快成摆摊卖杂货的了！」',
+            '你和他聊了几句，说起村外的境况，他忽然一拍大腿。',
+            '「对了！村后山那个废弃矿坑，你听说了没？那里面还压着好矿脉呢！」',
+            '「你要是肯去给我挖几块铁矿石来，我就把这张压箱底的《精铁刀图纸》送给你！」',
+        ], () => {
+            this.showChoices([
+                { text: '接下任务', action: () => {
+                    this._questSeq([
+                        '铁匠' + this._getBlacksmithName() + '眼睛一亮，转身从柜子底下翻出一把崭新的铁锹，塞进你手里。',
+                        '「这把铁锹是我前天刚打的，结实趁手，你拿去使！」',
+                        '「记住，那矿坑年久失修，挖的时候当心点——一听见"咔嚓"声就赶紧跑，别贪那几块矿！」',
+                        '「我在这等你回来。」',
+                    ], () => {
+                        this.player.items.push({ ...getItem('shovel') });
+                        this.addMessage('获得铁锹×1', 'system');
+                        const cnt = this.player.items.filter(it => it.id === 'iron_ore').length;
+                        this.addMessage(`任务更新：去废弃矿坑挖 5 块铁矿石（当前 ${cnt}/5）`, 'system');
+                        q.stage = 'ACCEPTED';
+                        this._showChoicesAfterQuest();
+                    });
+                } },
+                { text: '再说吧', action: () => {
+                    this._questSeq([
+                        '铁匠' + this._getBlacksmithName() + '失望地摆摆手：「罢了罢了，客人自便。」',
+                    ], () => {
+                        this.questFail('blacksmith_iron');
+                        this.showChoices([{ text: '离开', action: () => this.enterVenue(this.currentLocation.venues.find(v => v.name === '铁匠铺')) }]);
+                    });
+                } },
+            ]);
+        });
+    }
+};
+
+Game.prototype._getBlacksmithName = function() {
+    const v = this.currentLocation && this.currentLocation.venues.find(x => x.name === '铁匠铺');
+    return (v && v.npcs[0] && v.npcs[0].npcName) || '铁匠';
+};
+
+Game.prototype._questDeliverIron = function(venue, npc) {
+    const count = this.player.items.filter(it => it.id === 'iron_ore').length;
+    if (count < 5) {
+        this.clearChoices();
+        this.addMessage(`${npc.npcName}接过你递来的矿石，数了数：「才 ${count} 块，还差 ${5 - count} 块铁矿石。」，说道：「你再去矿坑里挖挖？」`, 'narrator');
+        this.showChoices([
+            { text: '继续挖矿', action: () => this._mineMenu(this.currentLocation.venues.find(x => x.name === '废弃矿坑')) },
+            { text: '先离开', action: () => this.enterVenue(venue) },
+        ]);
+        return;
+    }
+    let remaining = 5;
+    this.player.items = this.player.items.filter(it => {
+        if (remaining > 0 && it.id === 'iron_ore') { remaining--; return false; }
+        return true;
+    });
+    this.player.items.push({ ...getItem('blueprint_steel_blade') });
+    this.updateStatsBar();
+    this._questSeq([
+        '你从怀里掏出五块铁矿石，「哐当」一声拍在案板上。',
+        `${npc.npcName}眼睛都直了，抓起一块矿石翻来覆去地看：「好矿！好矿啊！这品相，能打一对好刀！」`,
+        '他说话算话，从柜子里翻出那张泛黄的图纸，郑重地递给你。',
+        '「《精铁刀图纸》，拿好了！照着上面的法子打，保你打出一把削铁如泥的好刀！」',
+    ], () => {
+        this.addMessage('获得精铁刀图纸×1', 'system');
+        this.questComplete('blacksmith_iron');
+        this._showChoicesAfterQuest();
+    });
 };
 
 Game.prototype._questRescueOx = function(q) {

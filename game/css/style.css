@@ -670,6 +670,40 @@ body {
     color: #1a1a1a;
 }
 
+.battle-name-companion {
+    color: #a0d0a0;
+}
+
+.battle-actions-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.battle-actions-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    max-width: 320px;
+}
+
+.battle-actor-label {
+    font-size: 14px;
+    color: #6a5a4a;
+    min-width: 48px;
+    text-align: center;
+    user-select: none;
+}
+
+.battle-actor-label.active {
+    color: #ffd700;
+    font-weight: bold;
+    text-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
+}
+
 /* ─── 云雨独立页面 ─── */
 
 #sex-layout {

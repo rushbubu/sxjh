@@ -77,6 +77,7 @@ class Game {
                 v: 1,
                 player: this.player,
                 beautyMap: this.beautyMap,
+                palaceConsorts: this.palaceConsorts,
                 brothelProstitutes: this.brothelProstitutes,
                 redRecord: this.redRecord,
                 killedNpcs: Array.from(this.killedNpcs || []),
@@ -99,10 +100,16 @@ class Game {
         try {
             this.player = data.player;
             this.beautyMap = data.beautyMap || {};
+            this.palaceConsorts = data.palaceConsorts || null;
             this.brothelProstitutes = data.brothelProstitutes || {};
             this.redRecord = data.redRecord || {};
             this.killedNpcs = new Set(data.killedNpcs || []);
+            if (!Array.isArray(this.player._intelVisited)) this.player._intelVisited = [];
+            if (!this.player._heiAmbushDone) this.player._heiAmbushDone = false;
+            if (!this._gamblersSetup) { setupStreetGamblers(WORLD); this._gamblersSetup = true; }
+            if (!this._intelAgentsSetup) { setupIntelAgents(WORLD); this._intelAgentsSetup = true; }
             this.injectFactionVenues();
+            this.injectPalaceVenues();
             this.houseManager = new HouseManager(this);
             this.estateManager = new EstateManager(this);
             document.getElementById('create-overlay').classList.add('hidden');
@@ -215,6 +222,7 @@ class Game {
             equipment: { rightHand:null, leftHand:null, head:null, upperBody:null, lowerBody:null, boots:null, bracers:null, accessory1:null, accessory2:null },
             externalSkills: [],
             internalSkills: ['天之书'],
+            companion: null,
             locationId: null,
             villageBlacklist: {},
             faction: null,
@@ -224,6 +232,8 @@ class Game {
             _worldHelp: 0,
             _theftCount: 0,
             _assassinationCount: 0,
+            _intelVisited: [],      // 主线3：已打探情报的听风阁分号（城市id）
+            _heiAmbushDone: false,  // 黑鸦山埋伏战是否已结束
             _villageRoot: {},       // 砍柴根骨（每村庄上限5）
             _villageMineRoot: {},   // 挖矿根骨（每村庄上限10）
             _villageMineDex: {},    // 矿难灵巧（每村庄上限10）
@@ -238,6 +248,9 @@ class Game {
         };
 
         setupStreetGamblers(WORLD);
+        this._gamblersSetup = true;
+        setupIntelAgents(WORLD);
+        this._intelAgentsSetup = true;
         this._initCrippleLi();
         this.injectFactionVenues();
         const startVillages = WORLD.villages.filter(v => getRegion(v.id) !== 'zhongbu');
@@ -254,8 +267,9 @@ class Game {
         const usedNames = new Set();
         this.beautyMap = {};
         for (const loc of getAllLocations()) {
-            // 门派驻地不放女 NPC
+            // 门派驻地/险地不放女 NPC
             if ((WORLD.faction_hqs || []).some(h => h.id === loc.id)) continue;
+            if ((WORLD.danger_zones || []).some(z => z.id === loc.id)) continue;
             const type = loc.nearestCity ? 'village' : WORLD.big_cities.find(c => c.id === loc.id) ? 'big_city' : 'small_city';
             this.beautyMap[loc.id] = generateBeauties(loc.id, type, usedNames);
         }
@@ -267,9 +281,11 @@ class Game {
         for (const loc of getAllLocations()) {
             if (loc.id === 'dali') continue;
             if ((WORLD.faction_hqs || []).some(h => h.id === loc.id)) continue;
+            if ((WORLD.danger_zones || []).some(z => z.id === loc.id)) continue;
             const type = loc.nearestCity ? null : WORLD.big_cities.find(c => c.id === loc.id) ? 'big_city' : 'small_city';
             if (type) this.brothelProstitutes[loc.id] = generateProstitutes(loc.id, type, usedNames);
         }
+        this.injectPalaceVenues();
         document.getElementById('create-overlay').classList.add('hidden');
         this.updateStatsBar();
         this.houseManager = new HouseManager(this);
@@ -325,6 +341,45 @@ class Game {
             }
             // 爬塔入口已移至门派内部菜单（不再作为独立场景）
         }
+    }
+
+    /* ─── 皇宫妃嫔注入 ─── */
+
+    injectPalaceVenues() {
+        if (this._palaceInjected) return;
+        this._palaceInjected = true;
+        const shendu = WORLD.big_cities.find(c => c.id === 'shendu');
+        if (!shendu) return;
+        if (!this.palaceConsorts) {
+            const usedNames = new Set(Object.values(this.beautyMap || {}).flat().map(b => b.name));
+            this.palaceConsorts = {
+                donggong: generateConsorts('donggong', usedNames),
+                lenggong: generateConsorts('lenggong', usedNames),
+            };
+        }
+        const mkVenue = (c) => {
+            const group = c._lenggong ? '冷宫' : '东宫';
+            return {
+                name: `${group}·${c.name}寝宫`,
+                _isPalaceConsortVenue: true,
+                npcs: [{
+                    npcName: c.name,
+                    npcDesc: `${c._lenggong ? '居于冷宫的失宠妃嫔' : '东宫的妃嫔'}，${c.faceDesc}`,
+                    isBeauty: true,
+                    _beautyData: c,
+                    civilian: true,
+                    combatPower: 0,
+                    items: [],
+                }],
+            };
+        };
+        const consortVenues = [
+            ...this.palaceConsorts.donggong.map(mkVenue),
+            ...this.palaceConsorts.lenggong.map(mkVenue),
+        ];
+        let idx = shendu.venues.findIndex(v => v.name === '皇宫·御林军营地');
+        if (idx === -1) idx = shendu.venues.findIndex(v => v.name === '皇宫');
+        shendu.venues.splice(idx + 1, 0, ...consortVenues);
     }
 
     /* ─── 罪恶值辅助 ─── */
@@ -883,6 +938,7 @@ class Game {
         this.currentLocation = loc;
         this.player.locationVenues = this._buildLocationVenues(loc);
         this.assignBeauties(loc);
+        if (this._isDangerMountain(locationId) && this._dangerMountainEnter()) return;
         const tl = getLocationTypeLabel(loc.id);
         if (clear) this.clearLog();
         this.clearChoices();
@@ -905,7 +961,11 @@ class Game {
         const qId = 'main_' + (this.player.mainQuest + 1);
         const curQuest = typeof MAIN_QUESTS !== 'undefined' && MAIN_QUESTS[qId];
         if (curQuest) {
-            locSegs.push({ text: '你盘算着下一步——' + curQuest.desc, type: 'narrator' });
+            let hint = '你盘算着下一步——' + curQuest.desc;
+            if (qId === 'main_3') {
+                hint += `（情报 ${(this.player._intelVisited || []).length}/4）`;
+            }
+            locSegs.push({ text: hint, type: 'narrator' });
         } else if (locationId === this.player.startingVillage) {
             const hints = [
                 '你打算怎么做？',
@@ -1018,6 +1078,10 @@ class Game {
 
     isVenueClosed(venue) {
         const t = this.player.timePeriod;
+        // 皇宫及妃嫔寝宫通宵值守，昼夜不闭
+        if (venue.name.startsWith('皇宫') || venue.name.includes('寝宫')) return false;
+        // 险地（暗杀组织巢穴山）露天场所昼夜开放
+        if (this.currentLocation && this._isDangerMountain(this.currentLocation.id)) return false;
         // 子时所有室内场所关闭
         if (t === '子时') {
             if (['村角', '断桥', '小溪', '田埂', '小树林', '废弃矿坑'].includes(venue.name)) return false;
@@ -1321,7 +1385,7 @@ class Game {
     /* ─── 废弃矿坑 ─── */
 
     _mineMenu(venue) {
-        this.addMessage('你发现一处废弃的矿坑，洞口散落着几把生锈的铁锹，看来是前人留下的。', 'narrator');
+        this.addMessage('你发现一处废弃的矿坑，洞口杂草丛生，黑洞洞的洞口望不到底。', 'narrator');
         const vid = this.player.locationId;
         const rootBonus = this.player._villageMineRoot[vid] || 0;
         const dexBonus = this.player._villageMineDex[vid] || 0;
@@ -1334,7 +1398,7 @@ class Game {
                         this.player.attrs.dexterity += 1;
                         this.player._villageMineDex[vid] = dexBonus + 1;
                     }
-                    this.addMessage('你正挥锹挖掘，忽然头顶传来"咔嚓"声——矿坑塌了！你扔下铁锹连滚带爬逃了出来，灰头土脸，所幸没受伤。', 'narrator');
+                    this.addMessage('你正低头挖掘，忽然头顶传来"咔嚓"声——矿坑塌了！你扔下工具连滚带爬逃了出来，灰头土脸，所幸没受伤。', 'narrator');
                     this.addMessage(`灵巧 +1（当前 ${this.player.attrs.dexterity}）`, 'system');
                 } else {
                     const ores = [
@@ -1354,7 +1418,7 @@ class Game {
                     const num = 1 + Math.floor(Math.random() * 3);
                     for (let i = 0; i < num; i++) this.player.items.push({ ...getItem(picked) });
                     const itemName = (getItem(picked) || { name: picked }).name;
-                    this.addMessage('你抡起铁锹在矿壁上奋力挖掘，碎岩纷纷落下。', 'narrator');
+                    this.addMessage('你奋力挖掘矿壁，碎岩纷纷落下。', 'narrator');
                     this.addMessage(`获得${itemName}×${num}`, 'system');
                     if (rootBonus < 5) {
                         this.player.attrs.root += 1;
@@ -1755,11 +1819,20 @@ class Game {
     }
 
     interactNpc(venue, npc) {
+        if (venue.name === '铁匠铺' && this.player.startingVillage === this.player.locationId &&
+            typeof this.questStart === 'function' &&
+            !(this.player.completedQuests && this.player.completedQuests.blacksmith_iron) &&
+            !(this.player.activeQuests && this.player.activeQuests.blacksmith_iron) &&
+            !(this.player.failedQuests && this.player.failedQuests.blacksmith_iron)) {
+            this.questStart('blacksmith_iron');
+            return;
+        }
         if (npc.isBeauty) { this.interactBeauty(venue, npc); return; }
         if (npc.isChief) { this.chiefAction(venue, npc); return; }
         if (this.isBrothelVenue(venue)) { this.interactBrothel(venue, npc); return; }
         if (npc.isTeacher) { this._schoolAction(venue, npc); return; }
         if (npc.isMartialTeacher) { this._martialHallAction(venue, npc); return; }
+        if (npc._isIntelAgent) { this.intelAgentAction(venue, npc); return; }
         if (venue.name === '村角') {
             if (npc._isCrippleLi) { this.crippleLiAction(venue, npc); return; }
             if (npc.gamblerLevel) { this.gamblerAction(venue, npc); return; }
@@ -1785,8 +1858,15 @@ class Game {
             choices.splice(0, 0, { text: '有给你的信', action: () => this._boardDeliverLetter(deliverQuest, venue) });
         }
         if (venue.name === '铁匠铺') {
+            if (this.player.activeQuests && this.player.activeQuests.blacksmith_iron && this.player.activeQuests.blacksmith_iron.stage === 'ACCEPTED') {
+                choices.splice(0, 0, { text: '交付铁矿', action: () => this._questDeliverIron(venue, npc) });
+            }
             choices.splice(choices.findIndex(c => c.text === '出售') + 1, 0, { text: '装备制造', action: () => this.showForgeMenu(venue, npc) });
         }
+        if (venue.name === '皇宫·御膳房') {
+            choices.splice(0, 0, { text: '偷御膳', action: () => this._royalKitchenSteal(venue, npc) });
+        }
+        this._maybeAddIntelChoice(venue, npc, choices);
         const huntQuest = this._getActiveBoardHuntQuest();
         if (huntQuest && venue.name === '小树林' && !npc._killed) {
             choices.splice(choices.length, 0, { text: `猎杀${huntQuest.beastName}（告示栏任务）`, action: () => this._startBoardHuntBattle(huntQuest) });
@@ -2558,6 +2638,12 @@ class Game {
                     }
                 }
             }
+        } else if (this.player.mainQuest === 2 && this.currentLocation && !this.currentLocation.nearestCity) {
+            const agentHints = [
+                '他压低声音：「你要打听人？听风阁呀！长安、京城、成都、姑苏都有他们的分号，道上消息都从那儿过。」',
+                '他凑过来神秘兮兮地说：「城里打听事，认准听风阁的招牌——四大城都有分号，包你满意。」',
+            ];
+            this.addMessage(agentHints[Math.floor(Math.random() * agentHints.length)], 'info');
         }
         this.updateStatsBar();
         setTimeout(() => this.interactNpc(venue, npc), 400);
@@ -2829,7 +2915,7 @@ class Game {
     gamblerAction(venue, npc) {
         this.clearChoices();
         this.addMessage(npc.npcName + '抬眼看了看你，咧嘴一笑：「来两把？」他拍了拍面前的破碗，三颗骰子叮当作响。', 'narrator');
-        this.showChoices([
+        const choices = [
             { text: '赌两把', action: () => {
                 this.clearChoices();
                 startGambling(npc, this.player, {
@@ -2843,7 +2929,164 @@ class Game {
                 });
             } },
             { text: '离开', action: () => this.enterVenue(venue) },
+        ];
+        this._maybeAddIntelChoice(venue, npc, choices, true);
+        this.showChoices(choices);
+    }
+
+    /* ─── 打探情报（主线情报系统） ─── */
+
+    _maybeAddIntelChoice(venue, npc, choices, insertTop = false) {
+        const loc = this.currentLocation;
+        if (!loc || loc.nearestCity) return;                 // 仅城市
+        if (venue._isIntelVenue) return;                     // 听风阁走专属菜单
+        const intelVenues = ['酒楼', '酒馆', '茶馆', '茶庄', '茶肆', '黑市', '赌坊'];
+        if (!intelVenues.includes(venue.name)) return;
+        const item = { text: '打探情报', action: () => this.intelMenu(venue, npc) };
+        const idx = choices.findIndex(c => c.text === '闲谈');
+        if (idx !== -1) { choices.splice(idx + 1, 0, item); return; }
+        // 无闲谈的菜单（如赌坊庄家）：插到「离开」之前
+        const exitIdx = choices.findIndex(c => c.text === '离开');
+        if (exitIdx !== -1) { choices.splice(exitIdx, 0, item); return; }
+        choices.push(item);
+    }
+
+    intelMenu(venue, npc) {
+        this.clearChoices();
+        this.addMessage(`${npc.npcName}：「想打听点什么？」`, 'narrator');
+        const choices = INTEL_QUESTIONS.map(q => {
+            switch (q.key) {
+                case 'disciple': return { text: q.text, action: () => this.askDiscipleIntel(venue, npc) };
+                case 'factions': return { text: q.text, action: () => this.beggarIntelFactions(venue, npc) };
+                default: return null;
+            }
+        }).filter(Boolean);
+        choices.push({ text: '算了', action: () => (npc._isIntelAgent ? this.intelAgentAction(venue, npc) : this.interactNpc(venue, npc)) });
+        this.showChoices(choices);
+    }
+
+    intelAgentAction(venue, npc) {
+        this.clearChoices();
+        if (!npc._introduced) {
+            this.addMessage(`你走进听风阁，${npc.npcDesc}`, 'info');
+            npc._introduced = true;
+        }
+        this.showChoices([
+            { text: '打探情报', action: () => this.intelMenu(venue, npc) },
+            { text: '闲谈', action: () => this.chatWithNpc(venue, npc) },
+            { text: '离开', action: () => this.enterVenue(venue) },
         ]);
+    }
+
+    askDiscipleIntel(venue, npc) {
+        this.clearChoices();
+        const mq = this.player.mainQuest;
+        if (npc._isIntelAgent) {
+            const locId = this.currentLocation ? this.currentLocation.id : venue._intelCityId;
+            const visited = this.player._intelVisited || (this.player._intelVisited = []);
+            if (mq >= 4) {
+                this.showMessageSequence([
+                    { text: `${npc.npcName}：「沈清寒的事……你还敢打听？」他摇了摇头：「暗杀组织折了面子，这江湖上怕是要不太平了。」`, type: 'narrator' },
+                ], () => this.showChoices([{ text: '多谢', action: () => this.intelAgentAction(venue, npc) }]));
+                return;
+            }
+            if (mq === 3) {
+                const curMtn = getRegionMountain(getRegion(this.currentLocation ? this.currentLocation.id : venue._intelCityId));
+                const mtnName = curMtn ? curMtn.name : '那座山';
+                this.showMessageSequence([
+                    { text: `${npc.npcName}：「该说的我都说了——${mtnName}，快去快回。那地方，连乌鸦都嫌晦气。」`, type: 'narrator' },
+                ], () => this.showChoices([{ text: '多谢', action: () => this.intelAgentAction(venue, npc) }]));
+                return;
+            }
+            if (visited.includes(locId)) {
+                this.showMessageSequence([
+                    { text: `${npc.npcName}：「你不是已经来问过了？老夫的话可不说第二遍。」`, type: 'narrator' },
+                ], () => this.showChoices([{ text: '罢了', action: () => this.intelAgentAction(venue, npc) }]));
+                return;
+            }
+            visited.push(locId);
+            const clues = INTEL_AGENT_CLUES[locId] || ['「这事……恕老夫不便多言。」'];
+            const clue = clues[Math.floor(Math.random() * clues.length)];
+            if (visited.length < 4) {
+                this.showMessageSequence([
+                    { text: `你向${npc.npcName}打听沈清寒的下落，他沉吟片刻，压低了声音。`, type: 'narrator' },
+                    { text: `${npc.npcName}：「${clue}」`, type: 'narrator' },
+                    { text: `${npc.npcName}：「不过这事零零碎碎的，怕是还差几处对得上。你再到别处的分号问问，兴许能拼出个全貌。」`, type: 'narrator' },
+                    { text: `（已打探情报 ${visited.length}/4 处）`, type: 'system' },
+                ], () => this.showChoices([{ text: '多谢', action: () => this.intelAgentAction(venue, npc) }]));
+            } else {
+                const curLoc = this.currentLocation;
+                const regionId = getRegion(curLoc ? curLoc.id : venue._intelCityId);
+                const mtn = getRegionMountain(regionId);
+                const mtnName = mtn ? mtn.name : '一座黑云压顶的山';
+                const regionLabel = (REGIONS[regionId] && REGIONS[regionId].name) || '四方';
+                this.player.mainQuest = 3;
+                if (!this.player.completedQuests) this.player.completedQuests = {};
+                this.player.completedQuests.main_3 = true;
+                this.showMessageSequence([
+                    { text: `你向${npc.npcName}打听沈清寒的下落，他忽然沉默下来，目光闪动。`, type: 'narrator' },
+                    { text: `${npc.npcName}：「${clue}」`, type: 'narrator' },
+                    { text: `${npc.npcName}：「罢了罢了，我再告诉你一桩大事——」他四下张望，压着嗓子道：「你要找的沈清寒，跟江湖上新起的那个暗杀组织脱不了干系。他们的巢穴在四处山野都有，而离你最近的——就是${regionLabel}那座「${mtnName}」！」`, type: 'narrator' },
+                    { text: `情报拼凑齐了：沈清寒最后的下落指向——${regionLabel}的「${mtnName}」！`, type: 'event' },
+                    { text: '【主线·城中打探】完成！前往「' + mtnName + '」查探暗杀组织的巢穴。', type: 'system' },
+                ], () => this.showChoices([{ text: '多谢指点', action: () => this.intelAgentAction(venue, npc) }]));
+                this.updateStatsBar();
+            }
+            return;
+        }
+        let reply;
+        if (mq <= 1) {
+            reply = '「沈清寒？没听说过。你许是记错名儿了。」';
+        } else if (mq === 2) {
+            const variants = [
+                '「沈清寒……这名儿有点耳熟。」他挠了挠头：「真要打听这个，你得找听风阁的人——长安、京城、成都、姑苏都有他们的分号，道上消息他们都门儿清。」',
+                '「打听人？那可是个技术活儿。」他神神秘秘地凑过来：「听风阁的四处分号专做这买卖，你只管去长安、京城、成都、姑苏找他们，一提我名儿，准好使。」',
+            ];
+            reply = variants[Math.floor(Math.random() * variants.length)];
+        } else if (mq === 3) {
+            const curMtn = getRegionMountain(getRegion(this.currentLocation ? this.currentLocation.id : venue._intelCityId));
+            const mtnName = curMtn ? curMtn.name : '那座山';
+            reply = `「你不是正要去${mtnName}吗？那地方连乌鸦都不拉屎，听说凶险得很，多带点防身的家伙。」`;
+        } else {
+            reply = '「沈清寒……你还敢打听他？」他四下看看，压低声音：「他惹上的是暗杀组织，前些日子黑鸦山被人挑了，那帮人可记仇得很。劝你离这事远点儿。」';
+        }
+        this.showMessageSequence([
+            { text: `你向${npc.npcName}打听沈清寒的下落。`, type: 'narrator' },
+            { text: `${npc.npcName}：「${reply}」`, type: 'narrator' },
+        ], () => this.showChoices([{ text: '多谢', action: () => this.interactNpc(venue, npc) }]));
+    }
+
+    /* ─── 暗杀组织巢穴山（四方险地） ─── */
+
+    _isDangerMountain(locId) {
+        return (WORLD.danger_zones || []).some(z => z.id === locId);
+    }
+
+    _dangerMountainEnter() {
+        const p = this.player;
+        const loc = this.currentLocation;
+        if (p.mainQuest === 3 && !p._heiAmbushDone) {
+            this.showMessageSequence(INTEL_AMBUSH.intro, () => {
+                this.startBattle(createGenericEnemy(INTEL_AMBUSH.enemyName, INTEL_AMBUSH.enemyCp), () => {
+                    this.clearChoices();
+                    this.showMessageSequence(INTEL_AMBUSH.win, () => {
+                        p.mainQuest = 4;
+                        if (!p.completedQuests) p.completedQuests = {};
+                        p.completedQuests.main_4 = true;
+                        p._heiAmbushDone = true;
+                        this.addMessage(`【主线·黑鸦山】完成！${loc ? loc.name : '山中'}的暗杀组织巢穴被捣毁，幕后主使仍是个谜……`, 'system');
+                        this.updateStatsBar();
+                        this.showLocationChoices();
+                    });
+                }, () => this.gameOver(`你在${loc ? loc.name : '山'}中被暗杀组织围攻，重伤不治。江湖之路，到此为止……`));
+            });
+            return true;
+        }
+        if (!p._heiAmbushDone && p.mainQuest >= 4) {
+            p._heiAmbushDone = true;
+            this.addMessage(`${loc ? loc.name : '山'}上风声鹤唳。暗杀组织被你重创，这里暂时安静了下来。`, 'narrator');
+        }
+        return false;
     }
 
     /* ─── 猎人系统 ─── */
@@ -3502,6 +3745,32 @@ class Game {
     startBattle(enemy, onWin, onLose, onFlee) {
         const ps = this.player.attrs.dexterity || 10;
         const es = Math.max(1, enemy.dexterity || Math.floor((enemy.combatPower || 15) / 3));
+        const actors = [
+            { role: 'player', name: '你', speed: ps, maxActions: 1, actionsUsed: 0, alive: true },
+            { role: 'enemy', name: enemy.name, speed: es, maxActions: 1, actionsUsed: 0, alive: true },
+        ];
+        // 队友（女主角）：完整角色数据挂 player.companion，作为第二主角参战
+        const cp = this.player.companion;
+        let companionActor = null;
+        if (cp) {
+            companionActor = {
+                role: 'companion',
+                name: cp.name,
+                char: cp,
+                speed: Math.max(1, cp.attrs.dexterity || 5),
+                maxActions: 1,
+                actionsUsed: 0,
+                alive: true,
+            };
+            actors.push(companionActor);
+        }
+        // 每回合行动次数：以全队最慢者为基准（=1次），其余按身法倍率向上取
+        const lowest = Math.min(...actors.map(a => a.speed));
+        for (const a of actors) a.maxActions = Math.max(1, Math.min(4, Math.floor(a.speed / lowest)));
+        // 回合内按身法快慢排序（同速时先手顺序：玩家 > 敌人 > 队友）
+        actors.sort((a, b) => b.speed - a.speed);
+        if (!cp && ps === es && Math.random() < 0.5) actors.reverse();
+
         this.battleState = {
             enemy,
             log: [],
@@ -3514,48 +3783,106 @@ class Game {
             }),
             playerSpeed: ps,
             enemySpeed: es,
-            playerMaxActions: Math.max(1, Math.min(4, Math.floor(ps / es))),
-            enemyMaxActions: Math.max(1, Math.min(4, Math.floor(es / ps))),
-            actionsUsed: 0,
-            isPlayerTurn: false,
+            actors,
+            actorIdx: 0,
+            companionActor,
         };
         this.clearChoices();
         document.getElementById('log').innerHTML = '';
         this.renderBattleHUD();
 
         const bs = this.battleState;
-        let playerFirst;
-        if (bs.playerSpeed > bs.enemySpeed) playerFirst = true;
-        else if (bs.playerSpeed < bs.enemySpeed) playerFirst = false;
-        else playerFirst = Math.random() < 0.5;
-
-        bs.isPlayerTurn = playerFirst;
-        const msg = playerFirst ? `你身法更快，率先抢攻！` : `${bs.enemy.name}身法更快，抢先出手！`;
-        bs.log.push({ text: msg, cls: 'battle-log-info' });
+        if (cp) {
+            const orderTxt = bs.actors.map(a => `${a.name}×${a.maxActions}`).join('、');
+            bs.log.push({ text: `你与${cp.name}并肩而立，迎战${bs.enemy.name}！`, cls: 'battle-log-info' });
+            bs.log.push({ text: `行动顺序（按身法）：${orderTxt}`, cls: 'battle-log-info' });
+        } else {
+            const playerFirst = bs.actors[0].role === 'player';
+            bs.log.push({ text: playerFirst ? '你身法更快，率先抢攻！' : `${bs.enemy.name}身法更快，抢先出手！`, cls: 'battle-log-info' });
+        }
         this.renderBattleHUD();
         this.showChoices([
             { text: '继续', action: () => this._startTurn() },
         ]);
     }
 
+    _curActor() {
+        const bs = this.battleState;
+        return bs ? bs.actors[bs.actorIdx] : null;
+    }
+
+    _charDefense(char) {
+        const armorSlots = ['head', 'upperBody', 'lowerBody', 'boots', 'bracers'];
+        let armorBonus = 0;
+        for (const s of armorSlots) {
+            if (char.equipment && char.equipment[s]) armorBonus += char.equipment[s].value;
+        }
+        return Math.floor((char.attrs.root || 5) * 0.8 + armorBonus);
+    }
+
+    _restoreCompanion() {
+        const c = this.battleState && this.battleState.companionActor;
+        if (!c) return;
+        c.char.hp = c.char.maxHp;
+        c.char.neili = c.char.maxNeili;
+        c.alive = true;
+    }
+
+    _companionCheckLevelUp(cp) {
+        let needed = this.getExpToNextLevel(cp.level || 1);
+        let leveled = false;
+        while (cp.exp >= needed) {
+            cp.exp -= needed;
+            cp.level++;
+            cp.maxHp += 5;
+            cp.maxNeili += 3;
+            cp.hp = cp.maxHp;
+            cp.neili = cp.maxNeili;
+            leveled = true;
+            needed = this.getExpToNextLevel(cp.level);
+        }
+        return leveled;
+    }
+
+    _grantCompanion(name) {
+        const attrs = { root: 30, wit: 28, luck: 20, dexterity: 24, appearance: 40 };
+        const maxHp = Math.max(10, attrs.root);
+        this.player.companion = {
+            name,
+            level: 1,
+            exp: 0,
+            attrs,
+            hp: maxHp,
+            maxHp,
+            neili: 0,
+            maxNeili: 0,
+            equipment: { rightHand: null, leftHand: null, head: null, upperBody: null, lowerBody: null, boots: null, bracers: null, accessory1: null, accessory2: null },
+            externalSkills: [],
+            internalSkills: [],
+            items: [],
+        };
+    }
+
     _startTurn() {
         const bs = this.battleState;
-        bs.actionsUsed = 0;
+        const actor = bs.actors[bs.actorIdx];
+        actor.actionsUsed = 0;
         this.renderBattleHUD();
-        if (bs.isPlayerTurn) {
-            this.showBattleActions();
-        } else {
+        if (actor.role === 'enemy') {
             this.enemyTurn();
+        } else {
+            this.showBattleActions();
         }
     }
 
     _advanceTurn() {
         const bs = this.battleState;
-        const maxAct = bs.isPlayerTurn ? bs.playerMaxActions : bs.enemyMaxActions;
-        bs.actionsUsed++;
+        const actor = bs.actors[bs.actorIdx];
+        actor.actionsUsed++;
         this.renderBattleHUD();
 
-        if (bs.isPlayerTurn) {
+        // 我方（玩家/队友）行动后：敌人若已倒下，进入胜利结算
+        if (actor.role !== 'enemy') {
             const e = bs.enemy;
             if (e.hp <= 0) {
                 this.showChoices([
@@ -3565,24 +3892,21 @@ class Game {
                 ]);
                 return;
             }
-            if (bs.actionsUsed >= maxAct) {
-                this.showChoices([
-                    { text: '继续', action: () => {
-                        bs.isPlayerTurn = false;
-                        this._startTurn();
-                    } },
-                ]);
-                return;
-            }
-            this.showBattleActions();
-        } else {
-            if (bs.actionsUsed >= maxAct) {
-                bs.isPlayerTurn = true;
-                this._startTurn();
-            } else {
-                this.enemyTurn();
-            }
         }
+        // 本回合行动次数未用完，继续行动
+        if (actor.actionsUsed < actor.maxActions) {
+            if (actor.role === 'enemy') {
+                this.enemyTurn();
+            } else {
+                this.showBattleActions();
+            }
+            return;
+        }
+        // 轮到下一位（跳过已倒下的队友）
+        do {
+            bs.actorIdx = (bs.actorIdx + 1) % bs.actors.length;
+        } while (bs.actors[bs.actorIdx].role === 'companion' && !bs.actors[bs.actorIdx].alive);
+        this._startTurn();
     }
 
     renderBattleHUD() {
@@ -3615,8 +3939,9 @@ class Game {
         html += '<div class="battle-bar-row battle-action-row">';
         html += '<span class="battle-bar-label">行动</span>';
         const bs2 = this.battleState;
-        const totalAct = bs2 ? (bs2.isPlayerTurn ? bs2.playerMaxActions : bs2.enemyMaxActions) : 4;
-        const used = bs2 ? bs2.actionsUsed : 0;
+        const actor = bs2 ? bs2.actors[bs2.actorIdx] : null;
+        const totalAct = actor ? actor.maxActions : 4;
+        const used = actor ? actor.actionsUsed : 0;
         for (let i = 0; i < 4; i++) {
             if (i >= totalAct) {
                 html += '<span class="action-dot action-dot-locked">●</span>';
@@ -3626,7 +3951,29 @@ class Game {
                 html += '<span class="action-dot action-dot-ready">●</span>';
             }
         }
-        html += '</div></div></div>';
+        html += '</div></div>';
+
+        // 队友（女主角）状态栏
+        const cActor = bs2 ? bs2.companionActor : null;
+        if (cActor) {
+            const c = cActor.char;
+            const cpct = Math.max(0, Math.min(100, (c.hp / c.maxHp) * 100));
+            const cnpct = c.maxNeili > 0 ? Math.max(0, Math.min(100, (c.neili / c.maxNeili) * 100)) : 0;
+            const cHpClass = cpct < 30 ? 'battle-hp-fill-low' : 'battle-hp-fill';
+            html += '<div class="battle-section">';
+            html += '<div class="battle-names"><span class="battle-name battle-name-companion">' + cActor.name + '</span></div>';
+            html += '<div class="battle-bar-row">';
+            html += '<span class="battle-bar-label">HP</span>';
+            html += `<div class="battle-bar-track"><div class="battle-bar-fill ${cHpClass}" style="width:${cpct}%"></div></div>`;
+            html += `<span class="battle-bar-text">${c.hp}/${c.maxHp}</span>`;
+            html += '</div>';
+            html += '<div class="battle-bar-row">';
+            html += '<span class="battle-bar-label">内力</span>';
+            html += `<div class="battle-bar-track"><div class="battle-bar-fill battle-mp-fill" style="width:${cnpct}%"></div></div>`;
+            html += `<span class="battle-bar-text">${c.neili}/${c.maxNeili}</span>`;
+            html += '</div></div>';
+        }
+        html += '</div>';
 
         const logLines = this.battleState.log.slice(-3);
         html += '<div id="battle-log">';
@@ -3643,54 +3990,84 @@ class Game {
         const area = document.getElementById('choice-area');
         area.innerHTML = '';
         area.classList.add('battle-choices');
+        const bs = this.battleState;
+        const actor = bs.actors[bs.actorIdx];
         const items = [
             { text: '普通攻击', action: () => this.battleNormalAttack() },
             { text: '外功招式', action: () => this.showBattleSkillMenu() },
             { text: '使用物品', action: () => this.showBattleItemMenu() },
             { text: '逃跑', action: () => this.attemptFlee() },
         ];
-        for (const c of items) {
+        const makeBtn = (c) => {
             const btn = document.createElement('button');
             btn.className = 'choice-btn';
             btn.textContent = c.text;
             btn.onclick = () => { area.classList.remove('battle-choices'); if (c.action) c.action(); };
-            area.appendChild(btn);
+            return btn;
+        };
+        if (bs.companionActor) {
+            // 我方两人共用四个按钮：左右各显示名字，当前行动者高亮
+            const mkLabel = (name, active) => {
+                const s = document.createElement('span');
+                s.className = 'battle-actor-label' + (active ? ' active' : '');
+                s.textContent = name;
+                return s;
+            };
+            const wrap = document.createElement('div');
+            wrap.className = 'battle-actions-wrap';
+            wrap.appendChild(mkLabel('你', actor.role === 'player'));
+            const inner = document.createElement('div');
+            inner.className = 'battle-actions-btns';
+            for (const c of items) inner.appendChild(makeBtn(c));
+            wrap.appendChild(inner);
+            wrap.appendChild(mkLabel(bs.companionActor.name, actor.role === 'companion'));
+            area.appendChild(wrap);
+        } else {
+            for (const c of items) area.appendChild(makeBtn(c));
         }
         document.getElementById('main-area').scrollTop = document.getElementById('main-area').scrollHeight;
     }
 
     battleNormalAttack() {
-        const basePower = Math.floor(this.player.attrs.root * 0.5 + this.player.attrs.dexterity * 0.5);
+        const bs = this.battleState;
+        const actor = bs.actors[bs.actorIdx];
+        const isPlayer = actor.role === 'player';
+        const char = isPlayer ? this.player : actor.char;
+        const basePower = Math.floor((char.attrs.root || 5) * 0.5 + (char.attrs.dexterity || 5) * 0.5);
         let weaponPower = 0;
         let descs = ['直拳', '横扫', '飞踢', '肘击', '膝撞', '劈掌', '勾拳', '侧踹'];
         for (const s of ['rightHand', 'leftHand']) {
-            const w = this.player.equipment[s];
+            const w = char.equipment && char.equipment[s];
             if (w && w.attackDescs) {
                 weaponPower += w.value;
                 if (s === 'rightHand') descs = w.attackDescs;
             }
         }
         const dmg = Math.max(1, Math.floor((basePower + weaponPower) * (0.3 + Math.random() * 0.6)));
-        const e = this.battleState.enemy;
+        const e = bs.enemy;
         e.hp -= dmg;
-        this.battleState.log.push({ text: `你一记${descs[Math.floor(Math.random() * descs.length)]}，造成 <b>${dmg}</b> 点伤害！`, cls: 'battle-log-hit' });
+        const who = isPlayer ? '你' : actor.name;
+        bs.log.push({ text: `${who}一记${descs[Math.floor(Math.random() * descs.length)]}，造成 <b>${dmg}</b> 点伤害！`, cls: 'battle-log-hit' });
         this._advanceTurn();
     }
 
     showBattleSkillMenu() {
-        const skills = this.player.externalSkills;
+        const bs = this.battleState;
+        const actor = bs.actors[bs.actorIdx];
+        const isPlayer = actor.role === 'player';
+        const char = isPlayer ? this.player : actor.char;
+        const skills = char.externalSkills;
         if (skills.length === 0) {
-            this.battleState.log.push({ text: '你尚未习得任何外功招式。', cls: 'battle-log-info' });
+            bs.log.push({ text: `${isPlayer ? '你' : actor.name}尚未习得任何外功招式。`, cls: 'battle-log-info' });
             this.showBattleActions();
             return;
         }
-        const bs = this.battleState;
-        const remaining = (bs.isPlayerTurn ? bs.playerMaxActions : bs.enemyMaxActions) - bs.actionsUsed;
+        const remaining = actor.maxActions - actor.actionsUsed;
         const choices = skills.map((sk, i) => {
             const fixedPower = getSkillFixedPower(sk.quality, sk.level);
             const neiliCost = Math.max(1, Math.floor(fixedPower * 0.4));
             const actionCost = getSkillActionCost(sk);
-            const enoughNeili = this.player.neili >= neiliCost;
+            const enoughNeili = char.neili >= neiliCost;
             const enoughAction = remaining >= actionCost;
             const canUse = enoughNeili && enoughAction;
             let label = `${sk.name} Lv.${sk.level}（内力${neiliCost} 行动${actionCost}）`;
@@ -3714,20 +4091,22 @@ class Game {
     }
 
     battleUseSkill(skillIndex) {
-        const sk = this.player.externalSkills[skillIndex];
-        const actionCost = getSkillActionCost(sk);
         const bs = this.battleState;
-        const maxAct = bs.isPlayerTurn ? bs.playerMaxActions : bs.enemyMaxActions;
-        if (bs.actionsUsed + actionCost > maxAct) {
-            this.battleState.log.push({ text: `行动值不足，不足以释放${sk.name}。`, cls: 'battle-log-info' });
+        const actor = bs.actors[bs.actorIdx];
+        const isPlayer = actor.role === 'player';
+        const char = isPlayer ? this.player : actor.char;
+        const sk = char.externalSkills[skillIndex];
+        const actionCost = getSkillActionCost(sk);
+        if (actor.actionsUsed + actionCost > actor.maxActions) {
+            bs.log.push({ text: `行动值不足，不足以释放${sk.name}。`, cls: 'battle-log-info' });
             this.showBattleActions();
             return;
         }
-        bs.actionsUsed += actionCost - 1;
-        const basePower = Math.floor(this.player.attrs.root * 0.5 + this.player.attrs.dexterity * 0.5);
+        actor.actionsUsed += actionCost - 1;
+        const basePower = Math.floor((char.attrs.root || 5) * 0.5 + (char.attrs.dexterity || 5) * 0.5);
         let weaponPower = 0;
         for (const s of ['rightHand', 'leftHand']) {
-            if (this.player.equipment[s]) weaponPower += this.player.equipment[s].value;
+            if (char.equipment && char.equipment[s]) weaponPower += char.equipment[s].value;
         }
         if (sk.type === 'fist' || sk.type === 'kick') weaponPower = 0;
         const fixedPower = getSkillFixedPower(sk.quality, sk.level);
@@ -3738,39 +4117,44 @@ class Game {
 
         // 根骨/灵巧/悟性不足时威力减半
         let penaltyNote = '';
-        if (sk.rootReq && (this.player.attrs.root || 0) < sk.rootReq) {
-            penaltyNote = `根骨不足（${this.player.attrs.root}/${sk.rootReq}）`;
+        if (sk.rootReq && (char.attrs.root || 0) < sk.rootReq) {
+            penaltyNote = `根骨不足（${char.attrs.root}/${sk.rootReq}）`;
         }
-        if (sk.agileReq && (this.player.attrs.dexterity || 0) < sk.agileReq) {
-            penaltyNote = (penaltyNote ? penaltyNote + '，' : '') + `灵巧不足（${this.player.attrs.dexterity}/${sk.agileReq}）`;
+        if (sk.agileReq && (char.attrs.dexterity || 0) < sk.agileReq) {
+            penaltyNote = (penaltyNote ? penaltyNote + '，' : '') + `灵巧不足（${char.attrs.dexterity}/${sk.agileReq}）`;
         }
-        if (sk.intelReq && (this.player.attrs.wit || 0) < sk.intelReq) {
-            penaltyNote = (penaltyNote ? penaltyNote + '，' : '') + `悟性不足（${this.player.attrs.wit}/${sk.intelReq}）`;
+        if (sk.intelReq && (char.attrs.wit || 0) < sk.intelReq) {
+            penaltyNote = (penaltyNote ? penaltyNote + '，' : '') + `悟性不足（${char.attrs.wit}/${sk.intelReq}）`;
         }
         if (penaltyNote) {
             dmg = Math.max(1, Math.floor(dmg * 0.5));
             bs.log.push({ text: `你的${penaltyNote}，尚不能发挥此招的全部威力！伤害减半！`, cls: 'battle-log-warning' });
         }
 
-        this.player.neili -= neiliCost;
+        char.neili -= neiliCost;
 
         const e = bs.enemy;
         e.hp -= dmg;
-        bs.log.push({ text: `你使出<span style="color:#ffd700">${sk.name}</span>！造成 <b>${dmg}</b> 点伤害！（内力 -${neiliCost}）`, cls: 'battle-log-hit' });
+        const who = isPlayer ? '你' : actor.name;
+        bs.log.push({ text: `${who}使出<span style="color:#ffd700">${sk.name}</span>！造成 <b>${dmg}</b> 点伤害！（内力 -${neiliCost}）`, cls: 'battle-log-hit' });
 
         this._advanceTurn();
     }
 
     showBattleItemMenu() {
+        const bs = this.battleState;
+        const actor = bs.actors[bs.actorIdx];
+        const isPlayer = actor.role === 'player';
+        const char = isPlayer ? this.player : actor.char;
         const healingItems = [];
-        for (let i = 0; i < this.player.items.length; i++) {
-            const it = this.player.items[i];
+        for (let i = 0; i < (char.items || []).length; i++) {
+            const it = char.items[i];
             if (it.use && (it.use.healHp || it.use.healNeili || it.use.cure)) {
                 healingItems.push({ item: it, index: i });
             }
         }
         if (healingItems.length === 0) {
-            this.battleState.log.push({ text: '你没有可用的药品。', cls: 'battle-log-info' });
+            bs.log.push({ text: `${isPlayer ? '你' : actor.name}没有可用的药品。`, cls: 'battle-log-info' });
             this.showBattleActions();
             return;
         }
@@ -3783,41 +4167,49 @@ class Game {
     }
 
     battleUseItem(item, idx) {
-        this.player.items.splice(idx, 1);
-        let msg = `你使用了「${item.name}」。`;
+        const bs = this.battleState;
+        const actor = bs.actors[bs.actorIdx];
+        const isPlayer = actor.role === 'player';
+        const char = isPlayer ? this.player : actor.char;
+        char.items.splice(idx, 1);
+        let msg = `${isPlayer ? '你' : actor.name}使用了「${item.name}」。`;
         const use = item.use || {};
         const statusNames = { bleed: '撕裂', poison: '中毒' };
         if (use.cure) {
-            const p = this.player;
-            const found = (p.statuses || []).findIndex(s => s.type === use.cure);
+            const found = ((char.statuses) || []).findIndex(s => s.type === use.cure);
             if (found !== -1) {
                 if (item.id === 'herb_bandage' && Math.random() >= 0.5) {
                     msg += ` 但止血草药力不足，没能止住伤口。`;
                 } else {
-                    p.statuses.splice(found, 1);
+                    char.statuses.splice(found, 1);
                     msg += ` 身上的「${statusNames[use.cure] || use.cure}」状态解除了。`;
                 }
             } else {
-                msg += ` 但你没有${statusNames[use.cure] || use.cure}状态。`;
+                msg += ` 但${isPlayer ? '你' : actor.name}没有${statusNames[use.cure] || use.cure}状态。`;
             }
-            this.battleState.log.push({ text: msg, cls: 'battle-log-info' });
+            bs.log.push({ text: msg, cls: 'battle-log-info' });
         } else if (use.healNeili) {
-            this.player.neili = Math.min(this.player.maxNeili, this.player.neili + use.healNeili);
-            this.player._drunk = (this.player._drunk || 0) + use.healNeili;
-            msg += ` 内力恢复 ${use.healNeili} 点。醉意 +${use.healNeili}。`;
-            this.battleState.log.push({ text: msg, cls: 'battle-log-info' });
-            if (this.player._drunk >= 100) {
-                this.battleState.log.push({ text: `你喝得烂醉如泥，一头栽倒在地，不省人事……`, cls: 'battle-log-danger' });
-                this.player._drunk = 0;
-                this.gameOver('你醉得不省人事，战斗失败……');
-                return;
+            char.neili = Math.min(char.maxNeili, char.neili + use.healNeili);
+            if (isPlayer) {
+                char._drunk = (char._drunk || 0) + use.healNeili;
+                msg += ` 内力恢复 ${use.healNeili} 点。醉意 +${use.healNeili}。`;
+                bs.log.push({ text: msg, cls: 'battle-log-info' });
+                if (char._drunk >= 100) {
+                    bs.log.push({ text: `你喝得烂醉如泥，一头栽倒在地，不省人事……`, cls: 'battle-log-danger' });
+                    char._drunk = 0;
+                    this.gameOver('你醉得不省人事，战斗失败……');
+                    return;
+                }
+            } else {
+                msg += ` 内力恢复 ${use.healNeili} 点。`;
+                bs.log.push({ text: msg, cls: 'battle-log-info' });
             }
         } else if (use.healHp) {
-            this.player.hp = Math.min(this.player.maxHp, this.player.hp + use.healHp);
+            char.hp = Math.min(char.maxHp, char.hp + use.healHp);
             msg += ` 气血恢复 ${use.healHp} 点。`;
-            this.battleState.log.push({ text: msg, cls: 'battle-log-info' });
+            bs.log.push({ text: msg, cls: 'battle-log-info' });
         } else {
-            this.battleState.log.push({ text: msg + ' 但是什么也没发生。', cls: 'battle-log-info' });
+            bs.log.push({ text: msg + ' 但是什么也没发生。', cls: 'battle-log-info' });
         }
         this.updateStatsBar();
         this._advanceTurn();
@@ -3834,6 +4226,7 @@ class Game {
             this.updateStatsBar();
             setTimeout(() => {
                 const cb = this.battleState.onFlee;
+                this._restoreCompanion();
                 this.battleState = null;
                 cb();
             }, 600);
@@ -3844,7 +4237,8 @@ class Game {
     }
 
     enemyTurn() {
-        const e = this.battleState.enemy;
+        const bs = this.battleState;
+        const e = bs.enemy;
         if (e.hp <= 0) { this.resolveBattleVictory(); return; }
 
         const moves = e.moves;
@@ -3856,27 +4250,43 @@ class Game {
         }
         if (move.neiliCost) e.neili -= move.neiliCost;
 
-        const defense = this.getPlayerDefense();
+        // 攻击目标：随机打我或队友
+        const targets = [{ name: '你', isPlayer: true }];
+        const cActor = bs.companionActor;
+        if (cActor && cActor.alive) targets.push({ name: cActor.name, isPlayer: false });
+        const target = targets[Math.floor(Math.random() * targets.length)];
+
+        const defense = target.isPlayer ? this.getPlayerDefense() : this._charDefense(cActor.char);
         const rawDmg = Math.max(1, Math.floor(move.power + Math.floor(Math.random() * 4) - 1));
         const dmg = Math.max(1, rawDmg - Math.floor(defense * 0.15));
-        this.player.hp -= dmg;
-        if (move.status && Math.random() < move.status.chance) {
-            this._applyStatus(move.status.type, e.name);
+        if (target.isPlayer) {
+            this.player.hp -= dmg;
+            if (move.status && Math.random() < move.status.chance) {
+                this._applyStatus(move.status.type, e.name);
+            }
+        } else {
+            cActor.char.hp -= dmg;
+            if (cActor.char.hp <= 0) {
+                cActor.alive = false;
+                cActor.char.hp = 0;
+                bs.log.push({ text: `${cActor.name}身受重伤，倒了下去……`, cls: 'battle-log-self' });
+            }
         }
         const moveName = move.neiliCost ? `<span style="color:#f0a0a0">${move.name}</span>` : move.name;
-        this.battleState.log.push({ text: `${e.name}使出了${moveName}！你受到 <b>${dmg}</b> 点伤害。`, cls: 'battle-log-self' });
+        bs.log.push({ text: `${e.name}使出了${moveName}！${target.name}受到 <b>${dmg}</b> 点伤害。`, cls: 'battle-log-self' });
         this.renderBattleHUD();
 
         this.updateStatsBar();
         this.showChoices([
             { text: '继续', action: () => {
                 if (this.player.hp <= 0) {
-                    this.battleState.log.push({ text: '你眼前一黑，倒了下去……', cls: 'battle-log-self' });
+                    bs.log.push({ text: '你眼前一黑，倒了下去……', cls: 'battle-log-self' });
                     this.renderBattleHUD();
                     this.showChoices([
                         { text: '继续', action: () => {
                             document.getElementById('log').innerHTML = '';
-                            const cb = this.battleState.onLose;
+                            const cb = bs.onLose;
+                            this._restoreCompanion();
                             this.battleState = null;
                             this.player.hp = 0;
                             this.updateStatsBar();
@@ -3891,11 +4301,25 @@ class Game {
     }
 
     resolveBattleVictory() {
+        const bs = this.battleState;
+        // 队友结算：获得经验、可能升级，战后回满状态
+        let companionLeveled = false;
+        if (bs.companionActor) {
+            const cp = bs.companionActor.char;
+            const reward = (bs.enemy.expReward || Math.floor(bs.enemy.combatPower || 15));
+            cp.exp = (cp.exp || 0) + Math.max(1, reward);
+            companionLeveled = this._companionCheckLevelUp(cp);
+            this._restoreCompanion();
+        }
         this.renderBattleHUD();
         this.updateStatsBar();
-        const cb = this.battleState.onWin;
+        const cb = bs.onWin;
         this.battleState = null;
         document.getElementById('log').innerHTML = '';
+        if (companionLeveled) {
+            const cp = this.player.companion;
+            this.addMessage(`━━━ 队友 ${cp.name} 升至 Lv.${cp.level}！气血 +5，内力 +3 ━━━`, 'system');
+        }
         cb();
     }
 
@@ -4243,6 +4667,49 @@ class Game {
             this.addMessage(`声望 -1（当前 ${this.player.reputation}）`, 'system');
             this.player.neili -= 10;
             if (this.player.reputation <= -40) { this.gameOver('你偷盗失手被当场拿获，被扭送官府。江湖之路，到此为止……'); return; }
+            this.updateStatsBar();
+            setTimeout(() => this.enterVenue(venue), 500);
+        }
+    }
+
+    /* ─── 御膳房偷膳 ─── */
+
+    _royalKitchenSteal(venue, npc) {
+        this.clearChoices();
+        const night = this.player.timePeriod === '黄昏' || this.player.timePeriod === '子时';
+        const intro = night
+            ? '此刻宫门深锁，御膳房早已熄了灶火，案上还摆着御厨们用过的残羹剩菜。'
+            : '御厨们正忙得脚不沾地，灶台上摆着一道道刚出锅的御膳珍馐。';
+        this.addMessage(`你溜进御膳房，${intro}`, 'narrator');
+        this.showChoices([
+            { text: night ? '偷剩菜（难度略低）' : '偷御膳正餐（难度极高）', action: () => this._stealKitchenFood(venue, night) },
+            { text: '算了', action: () => this.interactNpc(venue, npc) },
+        ]);
+    }
+
+    _stealKitchenFood(venue, night) {
+        this.clearChoices();
+        const item = night ? getItem('palace_leftover') : getItem('royal_feast');
+        const dex = this.player.attrs.dexterity;
+        const chance = Math.max(0.05, Math.min(0.95, dex / (dex + item.stealDiff * 1.5) + (this.player.attrs.luck - 50) / 500));
+        const roll = Math.random();
+        if (roll < chance) {
+            this.addMessage(`你眼疾手快，趁无人注意将「${item.name}」揣进怀里！`, 'event');
+            this.addMessage('得手了！你迅速退出御膳房。', 'event');
+            this.player.shadowRep += 1;
+            this.player._theftCount = (this.player._theftCount || 0) + 1;
+            this._adjEvil(2, '偷盗');
+            const stolen = { ...item };
+            if (!this.autoEquip(stolen)) this.player.items.push(stolen);
+            this.updateStatsBar();
+            setTimeout(() => this.enterVenue(venue), 400);
+        } else {
+            this.addMessage('「什么人！」御膳房外传来一声暴喝——巡夜的御林军脚步声由远及近！', 'danger');
+            this.addMessage('你仓皇翻窗逃出皇宫，险些被当场拿获！', 'danger');
+            this.player.reputation -= 2;
+            this.addMessage(`声望 -2（当前 ${this.player.reputation}）`, 'system');
+            this.player.neili -= 10;
+            if (this.player.reputation <= -40) { this.gameOver('你在皇宫偷膳失手，被御林军擒获押入天牢。江湖之路，到此为止……'); return; }
             this.updateStatsBar();
             setTimeout(() => this.enterVenue(venue), 500);
         }
@@ -5083,7 +5550,7 @@ class Game {
         const regionLocs = getAllLocations().filter(l => l.id !== current && getRegion(l.id) === region);
         const isKeyLoc = l => {
             const t = getLocationTypeLabel(l.id);
-            return t === LOCATION_TYPES.big_city || t === LOCATION_TYPES.small_city || t === LOCATION_TYPES.faction_hq;
+            return t === LOCATION_TYPES.big_city || t === LOCATION_TYPES.small_city || t === LOCATION_TYPES.faction_hq || t === LOCATION_TYPES.danger;
         };
         const keyLocs = regionLocs.filter(isKeyLoc);
         const villages = regionLocs.filter(l => !isKeyLoc(l)).sort(() => Math.random() - 0.5).slice(0, 4);
@@ -5154,7 +5621,7 @@ class Game {
 .map-legend b{color:#ffe27a}
 </style>
 <div class="map-canvas">
-  <div class="map-legend">${regionName}地图<br>${LOCATION_TYPES.big_city.icon}大城 ${LOCATION_TYPES.small_city.icon}小城 ${LOCATION_TYPES.village.icon}村庄 ${LOCATION_TYPES.faction_hq.icon}门派驻地<br><b>★ 当前位置</b> · 点击地点查看距离</div>
+  <div class="map-legend">${regionName}地图<br>${LOCATION_TYPES.big_city.icon}大城 ${LOCATION_TYPES.small_city.icon}小城 ${LOCATION_TYPES.village.icon}村庄 ${LOCATION_TYPES.faction_hq.icon}门派驻地 ${LOCATION_TYPES.danger.icon}险地<br><b>★ 当前位置</b> · 点击地点查看距离</div>
   ${markers}
 </div>`;
     }
@@ -5309,7 +5776,7 @@ class Game {
         if (!beauties || beauties.length === 0) return;
         const venues = this.player.locationVenues;
         if (venues.length === 0) return;
-        const publicVenues = venues.filter(v => !v.name.includes('家') && !v.name.includes('府') && v.name !== '小树林' && v.name !== '废弃矿坑' && v.name !== '村角' && !this.isBrothelVenue(v));
+        const publicVenues = venues.filter(v => !v.name.includes('家') && !v.name.includes('府') && v.name !== '小树林' && v.name !== '废弃矿坑' && v.name !== '村角' && !this.isBrothelVenue(v) && !v._isPalaceConsortVenue);
         if (publicVenues.length === 0) return;
         for (const b of beauties) {
             if (this.killedNpcs.has('beauty_' + b.id)) continue;

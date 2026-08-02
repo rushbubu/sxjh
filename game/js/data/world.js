@@ -13,6 +13,7 @@ const LOCATION_TYPES = {
     small_city: { label: '小城', color: '#80a0c0', icon: '🏘️' },
     village: { label: '村庄', color: '#60c060', icon: '🛖' },
     faction_hq: { label: '门派驻地', color: '#c070e0', icon: '⛩️' },
+    danger: { label: '险地', color: '#e06060', icon: '⛰️' },
 };
 
 function v(name, npcName, npcDesc, itemIds, civilian = true, combatPower = 0, martialArt = null) {
@@ -38,6 +39,11 @@ const WORLD = {
                 v('武林盟总舵', '凌九霄', '武林盟主，气度沉凝，一双眼睛仿佛能看透人心。他是天下武林的仲裁者。', [], false, 150),
                 v('天机阁', '无名老人', '神秘的情报商人，没有他打听不到的消息。', ['qin_bamboo', 'moon_poem', 'incense'], false, 60),
                 v('聚宝楼', '沈万三', '天下首富，据说他的财产比国库还多。', ['jade_ring', 'necklace_gold', 'silver_ingot', 'bangle_jade', 'nine_dragon_cup']),
+                v('皇宫', '李公公', '皇宫内务总管，掌管宫廷采买，皇帝面前的红人。', ['nine_dragon_cup', 'dragon_tea', 'incense', 'gold_silk_armor', 'silk_gold', 'peony_painting', 'brocade_robe', 'silver_ingot'], false, 150),
+                v('皇宫·朝堂', '皇帝', '大燕王朝当今圣上，端坐龙椅之上，不怒自威。', ['nine_dragon_cup', 'dragon_tea', 'gold_silk_armor', 'silk_gold', 'silver_ingot'], false, 200),
+                v('皇宫·御花园', '御花园总管', '打理御花园的老太监，最心疼那些奇花异草。', ['peony_painting', 'dragon_tea', 'incense'], false, 60),
+                v('皇宫·御膳房', '御厨', '御膳房的掌勺御厨，煎炒烹炸无一不精。', [], false, 0),
+                v('皇宫·御林军营地', '御林军统领', '御林军统领，一身铁甲寒光凛凛，是御前禁军中最精锐的存在。', [], false, 160),
                 v('百草堂', '药王', '白发如雪的神医，据说能活死人肉白骨。', ['jinchuang', 'huisheng', 'neili_dan', 'jiedu_san', 'qingxin_wan', 'ginseng_100', 'powder_clear', 'herb_bandage', 'zhixue_gao'], false, 40),
                 v('沉香阁', '花弄影', '神都第一美人，琴棋书画无一不精。', ['dragon_tea', 'wine_bamboo', 'pastry', 'incense']),
                 v('万象楼', '万事通', '武林万事通，天下武学无所不知。', ['stationary', 'writing_brush', 'ink_stick', 'moon_poem'], false, 45),
@@ -49,7 +55,7 @@ const WORLD = {
         },
         {
             id: 'jingcheng', name: '京城',
-            desc: '大燕王朝的都城，天子脚下。街道宽阔，商铺林立，往来的无不是达官显贵、豪商巨贾。',
+            desc: '大燕王朝的旧都。朝廷早已迁都神都，这里天子脚下的繁华只剩残影，但仍是达官显贵聚居之地，街道宽阔，商铺林立。',
             population: 2100000, area: 85, areaUnit: 'km²', economy: 'lavish',
             factions: ['sunmoon', 'beggar'],
             venues: [
@@ -244,7 +250,7 @@ const WORLD = {
             const baseCp = 12 + villageTier * 3; // 15-27
             const venues = [
                 v('草药铺', herbalNpc, `村里的草药郎中。`, ['herb_bandage', 'powder_clear', 'herb_ginseng_small', 'zhixue_gao']),
-                v('铁匠铺', smithNpc, `村里的铁匠，手艺还不错。`, ['iron_ore', 'knife_wood', 'hoe_iron', 'pot_iron', 'dagger', 'band_head', 'pants_coarse', 'bracers_cloth', 'shoes_straw', 'blueprint_steel_blade'], false, baseCp),
+                v('铁匠铺', smithNpc, `村里的铁匠，手艺还不错。`, ['iron_ore', 'knife_wood', 'hoe_iron', 'pot_iron', 'dagger', 'band_head', 'pants_coarse', 'bracers_cloth', 'shoes_straw'], false, baseCp),
                 v('酒馆', tavernNpc, `小酒馆里飘出阵阵酒香。`, ['wine_rice', 'wine_daughter']),
                 v('村角', '乞丐', '衣衫褴褛的乞丐，缩在墙角打盹。', []),
                 v('村长家', chiefNpc, `村长的家，${chiefNpc}正在院子里忙活。`, ['tea_cake', 'incense']),
@@ -394,6 +400,70 @@ const WORLD = {
             ],
         },
     ],
+
+    /* ─── 险地（独立冒险地点）：四大区域各一座，暗杀组织埋伏地 ─── */
+    danger_zones: [
+        {
+            id: 'hei_yashan', name: '黑鸦山',
+            desc: '黑鸦山孤悬长安城外，终年乌鸦盘旋，叫声凄厉。山道两旁林木幽深，据说常有商旅在此无故失踪——西北道上没人愿意提起这个地方。',
+            population: 0, area: 30, areaUnit: 'km²', economy: 'destitute',
+            travelDays: 1, repThreshold: 0, guardianPower: 60,
+            venues: [
+                { name: '黑鸦山·山道', npcs: [
+                    { npcName: '蒙面杀手', npcDesc: '黑衣蒙面的杀手，腰悬短刃，一双眼睛毫无感情。', civilian: false, combatPower: 45, items: [] },
+                    { npcName: '蒙面杀手', npcDesc: '黑衣蒙面的杀手，指尖把玩着一枚淬毒的飞针。', civilian: false, combatPower: 45, items: [] },
+                ] },
+                { name: '黑鸦山·哨寨', npcs: [
+                    { npcName: '暗杀统领', npcDesc: '暗杀组织驻守黑鸦山的小头目，面容阴鸷，腰间挂着一串人骨念珠。', civilian: false, combatPower: 70, items: [] },
+                ] },
+            ],
+        },
+        {
+            id: 'wuying_shan', name: '雾影山',
+            desc: '雾影山终年云雾缭绕，白日不见天光。山中毒瘴弥漫，连猎户都不敢深入，据说常有黑衣人抬着麻袋进山，去而不返。',
+            population: 0, area: 26, areaUnit: 'km²', economy: 'destitute',
+            travelDays: 1, repThreshold: 0, guardianPower: 60,
+            venues: [
+                { name: '雾影山·山道', npcs: [
+                    { npcName: '蒙面杀手', npcDesc: '黑衣蒙面的杀手，半边脸隐在兜帽阴影里，指间寒光若隐若现。', civilian: false, combatPower: 45, items: [] },
+                    { npcName: '蒙面杀手', npcDesc: '黑衣蒙面的杀手，腰间别着一排淬毒的银针。', civilian: false, combatPower: 45, items: [] },
+                ] },
+                { name: '雾影山·哨寨', npcs: [
+                    { npcName: '暗杀统领', npcDesc: '暗杀组织驻守雾影山的小头目，一双三角眼阴冷如蛇。', civilian: false, combatPower: 70, items: [] },
+                ] },
+            ],
+        },
+        {
+            id: 'xuelang_shan', name: '雪狼山',
+            desc: '雪狼山在旧都以北的莽莽雪原上拔地而起，入冬后风雪如刀。传闻山中雪狼成群，更有黑衣人马在山腰建了营寨，夜里常闻铁器相击之声。',
+            population: 0, area: 35, areaUnit: 'km²', economy: 'destitute',
+            travelDays: 1, repThreshold: 0, guardianPower: 60,
+            venues: [
+                { name: '雪狼山·山道', npcs: [
+                    { npcName: '蒙面杀手', npcDesc: '黑衣蒙面的杀手，斗篷上落满细雪，手中短刃泛着冷光。', civilian: false, combatPower: 45, items: [] },
+                    { npcName: '蒙面杀手', npcDesc: '黑衣蒙面的杀手，脚下的雪被踩实了一圈，显然在此久候。', civilian: false, combatPower: 45, items: [] },
+                ] },
+                { name: '雪狼山·哨寨', npcs: [
+                    { npcName: '暗杀统领', npcDesc: '暗杀组织驻守雪狼山的小头目，胡茬结着冰碴，凶悍之气扑面而来。', civilian: false, combatPower: 70, items: [] },
+                ] },
+            ],
+        },
+        {
+            id: 'yanbo_shan', name: '烟波山',
+            desc: '烟波山立于太湖之滨，山下芦苇连天，雾起时渔舟都辨不清方向。山间密林里常年有黑衣人出没，神出鬼没，江上渔人谈之色变。',
+            population: 0, area: 22, areaUnit: 'km²', economy: 'destitute',
+            travelDays: 1, repThreshold: 0, guardianPower: 60,
+            venues: [
+                { name: '烟波山·山道', npcs: [
+                    { npcName: '蒙面杀手', npcDesc: '黑衣蒙面的杀手，衣角沾着芦苇碎屑，一双眼睛盯得人发毛。', civilian: false, combatPower: 45, items: [] },
+                    { npcName: '蒙面杀手', npcDesc: '黑衣蒙面的杀手，袖中藏着一把鱼肠短匕。', civilian: false, combatPower: 45, items: [] },
+                ] },
+                { name: '烟波山·哨寨', npcs: [
+                    { npcName: '暗杀统领', npcDesc: '暗杀组织驻守烟波山的小头目，腰间挂着一串人骨念珠，面白无须。', civilian: false, combatPower: 70, items: [] },
+                ] },
+            ],
+        },
+    ],
 };
 
 // Assign village martial arts (reuse 10 types across all villages)
@@ -444,11 +514,12 @@ function getLocationTypeLabel(id) {
     if (WORLD.big_cities.find(c => c.id === id)) return LOCATION_TYPES.big_city;
     if (WORLD.small_cities.find(c => c.id === id)) return LOCATION_TYPES.small_city;
     if ((WORLD.faction_hqs || []).find(h => h.id === id)) return LOCATION_TYPES.faction_hq;
+    if ((WORLD.danger_zones || []).find(z => z.id === id)) return LOCATION_TYPES.danger;
     return LOCATION_TYPES.village;
 }
 
 function getAllLocations() {
-    return [...WORLD.big_cities, ...WORLD.small_cities, ...WORLD.villages, ...(WORLD.faction_hqs || [])];
+    return [...WORLD.big_cities, ...WORLD.small_cities, ...WORLD.villages, ...(WORLD.faction_hqs || []), ...(WORLD.danger_zones || [])];
 }
 
 // Assign city NPC martial arts
@@ -510,6 +581,7 @@ const LOCATION_REGION = {
     fenglin: 'dongnan', qingxi: 'dongnan', shuangyue: 'dongnan', jinchuan: 'dongnan', luhua: 'dongnan', songtao: 'dongnan', dongpo: 'dongnan', wudang: 'dongnan',
     // 中部
     xiangyang: 'zhongbu', taoyuan: 'zhongbu', baiyun: 'zhongbu', heishui: 'zhongbu', shendu: 'zhongbu', wulin_hq: 'zhongbu',
+    hei_yashan: 'xibei', wuying_shan: 'xinan', xuelang_shan: 'dongbei', yanbo_shan: 'dongnan',
 };
 
 const REGION_TRAVEL = {
@@ -574,18 +646,18 @@ function getTravelDays(fromId, toId) {
 const MAP_COORDS = {
     // ── 西北 ──
     changan: [52, 74], huashan: [76, 60], songshan: [92, 70], xikou: [10, 48], liuyun: [45, 10],
-    liangzhou: [24, 60], shazhou: [10, 26], qilian: [32, 38],
+    liangzhou: [24, 60], shazhou: [10, 26], qilian: [32, 38], hei_yashan: [60, 24],
     // ── 东北 ──
     jingcheng: [55, 22], shanshen: [46, 42], beggar_hq: [70, 36], heimuya: [88, 50],
     luoyang: [30, 80], longmen: [14, 66], dahuang: [44, 88],
-    changbai: [95, 18], songhua: [38, 14],
+    changbai: [95, 18], songhua: [38, 14], xuelang_shan: [16, 30],
     // ── 西南 ──
     chengdu: [64, 44], yanxia: [52, 34], tangjia: [74, 58], emei: [44, 66], moyuan: [56, 52],
-    miaojiang: [34, 76], dali: [22, 88], erhai: [16, 78], lugu: [68, 70],
+    miaojiang: [34, 76], dali: [22, 88], erhai: [16, 78], lugu: [68, 70], wuying_shan: [82, 30],
     // ── 东南 ──
     wudang: [12, 30], fenglin: [16, 54], songtao: [28, 42], suzhou: [34, 58], qingxi: [28, 76],
     suzhou_city: [44, 68], dongpo: [54, 84], luhua: [60, 40], yangzhou: [74, 24], jinchuan: [84, 38],
-    shuangyue: [92, 80],
+    shuangyue: [92, 80], yanbo_shan: [56, 46],
     // ── 中部 ──
     shendu: [46, 30], baiyun: [68, 58], xiangyang: [52, 48], heishui: [78, 44],
     taoyuan: [38, 68], wulin_hq: [40, 36],

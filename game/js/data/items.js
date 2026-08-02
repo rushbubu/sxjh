@@ -84,6 +84,7 @@ const ITEMS = {
     writing_brush:   { id: 'writing_brush',   name: '毛笔',      desc: '狼毫毛笔，笔锋锐利，写字流畅。',                          value: 3,   stealDiff: 10, category: 'culture' },
     ink_stick:       { id: 'ink_stick',       name: '墨锭',      desc: '上等松烟墨，墨色乌黑发亮。',                              value: 3,   stealDiff: 10, category: 'culture' },
     tea_cake:        { id: 'tea_cake',        name: '茶饼',      desc: '压制成饼的普洱茶，越陈越香。',                             value: 6,   stealDiff: 15, category: 'food' },
+    shovel:          { id: 'shovel',          name: '铁锹',      desc: '铁匠新打的铁锹，结实趁手，正好用来挖矿。',                 value: 2,   stealDiff: 10, category: 'tool' },
 
     // ═══ 锻造材料 ═══
     iron_ore:        { id: 'iron_ore',        name: '铁矿石',    desc: '山中开采的铁矿石，可熔炼成铁。',                         value: 3,   stealDiff: 10, category: 'material' },
@@ -115,6 +116,10 @@ const ITEMS = {
     gall_snake:       { id: 'gall_snake',     name: '蛇胆',      desc: '巨蟒之胆，服用可增内力。',                                value: 10,  stealDiff: 15, category: 'medicine' },
     gall_bear:        { id: 'gall_bear',      name: '熊胆',      desc: '黑熊之胆，大补内力。',                                    value: 20,  stealDiff: 25, category: 'medicine' },
     gall_tiger:       { id: 'gall_tiger',     name: '虎胆',      desc: '猛虎之胆，稀世珍品，可大幅提升内力。',                    value: 40,  stealDiff: 40, category: 'medicine' },
+
+    // ═══ 御膳房 ═══
+    royal_feast:      { id: 'royal_feast',    name: '御膳正餐',  desc: '御厨精心烹制的御膳珍馐，八珍玉食，色香味俱全，可恢复60点气血。', value: 40, stealDiff: 100, category: 'food', use: { healHp: 60 } },
+    palace_leftover:  { id: 'palace_leftover',name: '御膳剩菜',  desc: '御膳房剩下的残羹剩菜，虽是剩的，却也是御厨的手艺，可恢复20点气血。', value: 8, stealDiff: 55, category: 'food', use: { healHp: 20 } },
 
     // ═══ 渔获与杂物 ═══
     bait_bug:        { id: 'bait_bug',        name: '虫饵',      desc: '从树干上捉到的肥虫，穿在鱼钩上活蹦乱跳。',              value: 1,   stealDiff: 2,  category: 'material' },

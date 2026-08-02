@@ -94,6 +94,19 @@ const CLOTHING_WIDOW = [
     '灰蓝色旧衣浆洗得发白，袖口微微破损，更显楚楚可怜。',
 ];
 
+const CLOTHING_CONSORT = [
+    '一袭云锦宫装，绣着金线凤凰，步摇珠翠，贵不可言。',
+    '绯红宫装衬得肤白如雪，头戴凤钗，仪态万方。',
+    '明黄色纱裙曳地，腰悬羊脂玉佩，举手投足皆是皇家气度。',
+    '紫绡宫衣，云鬓花颜，簪着御赐的琉璃花钿。',
+];
+
+const CLOTHING_LENGGONG = [
+    '一身洗得发白的素衣，鬓角散乱，再无当年盛宠时的华服。',
+    '粗布旧裙，不施脂粉，眉眼间满是落寞。',
+    '破旧宫衫裹着单薄的身子，袖口磨出了毛边。',
+];
+
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
 function pick(arr) { return arr[rand(0, arr.length - 1)]; }
@@ -340,6 +353,56 @@ function computeFavorability(player, beauty) {
         bonus += Math.min(maxBonusPerReq, Math.floor(diff * 2));
     }
     return allMet ? Math.min(100, 80 + bonus) : beauty.favorability;
+}
+
+function generateConsorts(kind, usedNames) {
+    const isLenggong = kind === 'lenggong';
+    const count = isLenggong ? 2 : 8;
+    return Array.from({ length: count }, (_, i) => {
+        const name = generateBeautyName('big_city', usedNames);
+        const scores = generateBeautyScores('big_city');
+        const faceScore = isLenggong ? Math.max(55, scores.face - rand(10, 18)) : scores.face;
+        const height = rand(158, 170);
+        const heightMod = getHeightModifier(height);
+        const bodyScore = Math.min(99, Math.max(60, scores.body + heightMod - (isLenggong ? rand(6, 12) : 0)));
+        const age = isLenggong ? rand(26, 36) : rand(16, 26);
+        const b = {
+            id: `consort_${kind}_${i}`,
+            name, age, faceScore, bodyScore,
+            surface: 'married', inner: 'married',
+            height,
+            heightLabel: getHeightLabel(height),
+            bust: rand(32, 38), waist: rand(22, 27), hips: rand(32, 38),
+            faceDesc: getFaceDesc(faceScore),
+            bodyDesc: getBodyDesc(bodyScore, 'married'),
+            clothing: isLenggong ? pick(CLOTHING_LENGGONG) : pick(CLOTHING_CONSORT),
+            favorability: 0,
+            requirements: isLenggong
+                ? [
+                    { type: 'appearance', min: rand(40, 60) },
+                    { type: 'height', min: rand(158, 168) },
+                ]
+                : [
+                    { type: 'reputation', min: rand(10, 20) },
+                    { type: 'appearance', min: rand(75, 95) },
+                    { type: 'height', min: rand(165, 175) },
+                ],
+            chatLevel: 0,
+            _revealed: { face: true },
+            flirtCount: 0, flirtDay: 0,
+            _hadSex: false,
+            _wantedGift: null,
+            _isConsort: true,
+            _lenggong: isLenggong,
+        };
+        b.beautyScore = computeBeautyScore(b);
+        const tier = getBeautyTier(b.beautyScore);
+        b.beautyTier = tier.key;
+        b.beautyTierLabel = tier.label;
+        b.beautyTierColor = tier.color;
+        b.chastity = computeChastity(b);
+        return b;
+    });
 }
 
 function generateProstitutes(locationId, type, usedNames) {
