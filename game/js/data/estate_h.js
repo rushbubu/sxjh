@@ -148,6 +148,11 @@ const ESTATE_SERVICE_DESC = {
             ['她一手握住你的肉棒根部，低头将龟头含进嘴里，舌尖在马眼上轻轻刮过。你闷哼一声，手指插进她的发间。', '她吐出来，换了口气，又一口含到最深——喉咙被顶得"咕"地一声，她却没有退缩，反而吞得更深了。'],
         ],
     },
+    titjob: {
+        common: [
+            ['她跪在你身前，双手捧起那对饱满的乳房，将你的肉棒夹进温润的乳沟。她上下移动着上身，乳肉贴着柱身套弄，乳尖在你小腹上留下一路湿痕。', '她低下头，看着那龟头在乳肉间起伏，每当顶端探出就伸过舌尖去舔一下，眼中带着勾人的媚意。'],
+        ],
+    },
     breast: {
         common: [
             ['你一手握住她一只乳房，拇指和食指夹住那粒乳头轻轻搓弄。她"啊"地叫了一声，身子往你手里送。', '她仰着头，闭着眼，胸口剧烈起伏着，乳肉在你掌中被揉搓成各种形状。'],
@@ -178,6 +183,12 @@ const ESTATE_SERVICE_DESC_T2 = {
     blowjob: {
         common: [
             ['她蹲在你面前，握着你的肉棒先亲了一口，然后张大小口整根含了进去。她一边吞吐，一边抬眼望着你，目光里满是媚意。', '她吐出肉棒，用舌尖沿着龟头边缘细细地舔了一圈，又含了进去。这次她直接吞到了喉咙深处——那里又紧又热，你忍不住闷哼出声。'],
+        ],
+    },
+    titjob: {
+        common: [
+            ['她仰面平躺下来，自己双手托起双乳，从两侧往中间挤压，将你的肉棒嵌进那道柔软紧致的乳沟。你跨跪在她身上，扶住她圆润的肩头，挺腰在乳沟间缓缓抽送。', '随着你每一次挺送，紫红的龟头便从那被挤得紧紧的双乳间探出头来，悬在她唇边——她歪着头，伸出舌尖迎上去，在龟头探出的瞬间轻轻舔过马眼，喉间发出低低的轻笑。'],
+            ['你压在她平躺的柔软娇躯上，她摊开双手捧住自己的乳房往中间夹紧，那对丰腴乳球将你的肉棒绞得严丝合缝。你低头看着她，腰身一下一下向前挺送，龟头每一次滑出乳沟顶端，都被她候在唇边的舌尖卷住、再吮一下。', '乳沟被抽送得微微泛红，她的呼吸随着你的动作越来越急，一只手抚着你抽插的柱身，另一手继续挤压着乳肉：「别停……就这样压在奴家身上弄……」'],
         ],
     },
     breast: {
@@ -851,6 +862,7 @@ function _estateServiceMenu(bd, player, callbacks) {
     const choices = [
         { text: '接吻', action: () => _estateDoService(bd, player, callbacks, 'kiss') },
         { text: '口交', action: () => _estateDoService(bd, player, callbacks, 'blowjob') },
+        { text: '乳交', action: () => _estateDoService(bd, player, callbacks, 'titjob') },
         { text: '把玩玉乳', action: () => _estateDoService(bd, player, callbacks, 'breast') },
         { text: '抚弄玉臀', action: () => _estateDoService(bd, player, callbacks, 'butt') },
         { text: '小戏花园', action: () => _estateDoService(bd, player, callbacks, 'garden') },

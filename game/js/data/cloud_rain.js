@@ -155,12 +155,26 @@ function _doForeplay(bd, player, callbacks, part) {
     const tier = Math.min(3, (s.ejacCount || 0) + 1);
     let msg = pickForeplay(part, bd, tier);
     if (typeof _renderPosDesc === 'function') msg = _renderPosDesc(msg, bd);
-    _sexAddMessage(msg, 'narrator');
+    const segments = (_splitDesc || function(t){return[t]})(msg);
+    _sexAddMessage(segments[0], 'narrator');
     s.femaleArousal = Math.min(100, s.femaleArousal + 5);
     const mAValues = { chest: 4, hips: 4, waist: 2, legs: 2, face: 1, arms: 1, feet: 1 };
     s.maleArousal = Math.min(100, s.maleArousal + (mAValues[part] || 1));
     _sexUpdatePanel(s);
-    callbacks.showChoices([{ text: '继续', action: () => _renderSexMain(bd, player, callbacks) }]);
+    if (segments.length > 1) {
+        callbacks.showChoices([{ text: '继续', action: () => _showForeplaySegment(bd, player, callbacks, segments, 1) }]);
+    } else {
+        callbacks.showChoices([{ text: '继续', action: () => _renderSexMain(bd, player, callbacks) }]);
+    }
+}
+function _showForeplaySegment(bd, player, callbacks, segments, idx) {
+    callbacks.clearChoices();
+    _sexAddMessage(segments[idx], 'narrator');
+    if (idx < segments.length - 1) {
+        callbacks.showChoices([{ text: '继续', action: () => _showForeplaySegment(bd, player, callbacks, segments, idx + 1) }]);
+    } else {
+        callbacks.showChoices([{ text: '继续', action: () => _renderSexMain(bd, player, callbacks) }]);
+    }
 }
 
 // ─── 脱衣 ───

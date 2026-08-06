@@ -288,15 +288,14 @@ function _getBreastDesc(bd) {
 function _getBreastShort(bd) {
     const sizes = _getSizeDesc(bd.bust);
     const shape = BREAST_SHAPES[_hashRange(bd, [3,5,7,11,13], BREAST_SHAPES.length)];
-    const color = _getColor(bd, COLORS_YOUNG, COLORS_MATURE);
-    const descs = {
-        '圆盘形': `${sizes[1]}乳峰如倒扣的玉盘，一粒${color}的乳头在顶端微微凸起`,
-        '半球形': `${sizes[2]}浑圆饱满，${color}的乳尖如熟透的樱桃缀在峰顶`,
-        '水滴型': `${sizes[1]}乳儿状如垂露，${color}的乳粒在峰尖微微颤动`,
-        '吊钟乳': `${sizes[2]}沉沉垂着，${color}的乳晕大而饱满，峰尖缀着一粒${color}的乳珠`,
-        '纺锤形': `${sizes[1]}乳峰修长优美，${color}的乳头俏立在顶端`,
+    const nouns = {
+        '圆盘形': '圆盘乳',
+        '半球形': '半球乳',
+        '水滴型': '水滴乳',
+        '吊钟乳': '吊钟乳',
+        '纺锤形': '纺锤乳',
     };
-    return descs[shape.key] || `一双玉乳，${color}的乳尖若隐若现`;
+    return sizes[1] + (nouns[shape.key] || '乳房');
 }
 function _getButtDesc(bd) {
     const shape = BUTT_SHAPES[_hashRange(bd, [7,11,13,17,19], BUTT_SHAPES.length)];
@@ -1119,7 +1118,7 @@ const RAPE_FOREPLAY_SCENES_T2 = {
     chest: [
         '你的手伸进她的衣领，抓握住她柔软的乳房。她已经不再反抗了，只是咬着嘴唇，身子在你的触碰下轻轻颤抖。',
         '你隔着衣料咬住她的乳头，她痛得吸了口凉气，身子往后缩了缩，却不敢推开你。',
-        '你粗鲁地揉捏着她的胸脯，{breast_short}的乳房在你掌中变换着形状。她低着头，眼泪无声地滴落。',
+        '你粗鲁地揉捏着{breast_short}，乳肉在你掌中变换着形状。她低着头，眼泪无声地滴落。',
     ],
     waist: [
         '你的手在她腰间用力掐了一把，她的身子猛地一僵，却没有像之前那样挣扎。你感受到她腰侧的肌肤在你的掌下微微颤抖。',
