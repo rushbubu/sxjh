@@ -111,6 +111,11 @@ function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + m
 
 function pick(arr) { return arr[rand(0, arr.length - 1)]; }
 
+// 潮吹体质概率：大部分女性在 10-20，极少部分易潮吹的在 25-30
+function rollSquirtChance() {
+    return Math.random() < 0.85 ? rand(10, 20) : rand(25, 30);
+}
+
 function generateRequirements(type, locationId) {
     const reqs = [];
     let pool;
@@ -315,6 +320,7 @@ function generateBeauties(locationId, type, usedNames) {
             id: `beauty_${locationId}_${i}`,
             name, age, faceScore, bodyScore,
             surface: ms, inner: ms,
+            squirtChance: rollSquirtChance(),
             height, bust, waist, hips,
             heightLabel: getHeightLabel(height),
             faceDesc, bodyDesc,
@@ -370,6 +376,7 @@ function generateConsorts(kind, usedNames) {
             id: `consort_${kind}_${i}`,
             name, age, faceScore, bodyScore,
             surface: 'married', inner: 'married',
+            squirtChance: rollSquirtChance(),
             height,
             heightLabel: getHeightLabel(height),
             bust: rand(32, 38), waist: rand(22, 27), hips: rand(32, 38),
@@ -420,6 +427,7 @@ function generateProstitutes(locationId, type, usedNames) {
             id: `prostitute_${locationId}_${i}`,
             name, age: rand(18, 28), faceScore, bodyScore,
             surface: 'unmarried', inner: 'unmarried',
+            squirtChance: rollSquirtChance(),
             height,
             heightLabel: getHeightLabel(height),
             bust: rand(31, 37), waist: rand(21, 25), hips: rand(31, 36),

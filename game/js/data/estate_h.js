@@ -783,6 +783,9 @@ function _estateRenderMain(bd, player, callbacks) {
     if (s.femaleArousal < 30) {
         choices.push({ text: '温存', action: () => _estateForeplayMenu(bd, player, callbacks) });
     } else {
+        if (s.femaleArousal >= 60) {
+            choices.push({ text: '骚话对白', action: () => _estateDoDirtyTalk(bd, player, callbacks) });
+        }
         choices.push({ text: '抚摸', action: () => _estateForeplayMenu(bd, player, callbacks) });
         if (_estateGetAvailClothes(s).length > 0) choices.push({ text: '解衣', action: () => _estateUndressMenu(bd, player, callbacks) });
         if (s.femaleArousal >= 30) choices.push({ text: '侍奉', action: () => _estateServiceMenu(bd, player, callbacks) });
@@ -857,6 +860,31 @@ function _estateDoUndress(bd, player, callbacks, key) {
     callbacks.showChoices([{ text: '继续', action: () => _estateRenderMain(bd, player, callbacks) }]);
 }
 
+// ─── 骚话对白 ───
+
+function _estateDoDirtyTalk(bd, player, callbacks) {
+    callbacks.clearChoices();
+    const s = bd._estateState;
+    s.lastAction = 'dirty_talk';
+    const tier = Math.min(3, (s.ejacCount || 0) + 1);
+    const scene = _dirtyTalkPick('estate', bd.inner, tier);
+    if (!scene) return callbacks.showChoices([{ text: '继续', action: () => _estateRenderMain(bd, player, callbacks) }]);
+    const lines = scene.map(l => ({
+        who: l.who,
+        act: l.act ? (typeof _renderPosDesc === 'function' ? _renderPosDesc(l.act, bd) : l.act) : null,
+        text: typeof _renderPosDesc === 'function' ? _renderPosDesc(l.text, bd) : l.text,
+    }));
+    s.femaleArousal = Math.min(100, s.femaleArousal + 4);
+    s.maleArousal = Math.min(100, s.maleArousal + 2);
+    _estateUpdatePanel(s);
+    _dirtyTalkShow({
+        addMessage: (t, ty) => _estateAddMessage(t, ty),
+        showChoices: c => callbacks.showChoices(c),
+        clearChoices: () => callbacks.clearChoices(),
+        onDone: () => _estateRenderMain(bd, player, callbacks),
+    }, lines, 0);
+}
+
 function _estateServiceMenu(bd, player, callbacks) {
     callbacks.clearChoices();
     const choices = [
@@ -923,14 +951,31 @@ function _estateDoSex(bd, player, callbacks, key) {
     s.femaleArousal = Math.min(100, s.femaleArousal + (pos.fA || 10));
     s.maleArousal = Math.min(100, s.maleArousal + (pos.mA || 8));
     _estateUpdatePanel(s);
-    if (segments.length > 1) { callbacks.showChoices([{ text: '继续', action: () => _estateSexSegment(bd, player, callbacks, segments, 1) }]); }
-    else { callbacks.showChoices([{ text: '继续', action: () => _estateRenderMain(bd, player, callbacks) }]); }
+    if (segments.length > 1) { callbacks.showChoices([{ text: '继续', action: () => _estateSexSegment(bd, player, callbacks, segments, 1, key) }]); }
+    else { callbacks.showChoices([{ text: '继续', action: () => _estateMaybeShowT3Event(bd, player, callbacks, s, key, () => _estateRenderMain(bd, player, callbacks)) }]); }
 }
-function _estateSexSegment(bd, player, callbacks, segments, idx) {
+function _estateSexSegment(bd, player, callbacks, segments, idx, key) {
     callbacks.clearChoices();
     _estateAddMessage(segments[idx], 'narrator');
-    if (idx < segments.length - 1) { callbacks.showChoices([{ text: '继续', action: () => _estateSexSegment(bd, player, callbacks, segments, idx + 1) }]); }
-    else { callbacks.showChoices([{ text: '继续', action: () => _estateRenderMain(bd, player, callbacks) }]); }
+    if (idx < segments.length - 1) { callbacks.showChoices([{ text: '继续', action: () => _estateSexSegment(bd, player, callbacks, segments, idx + 1, key) }]); }
+    else {
+        const s = bd._estateState;
+        _estateMaybeShowT3Event(bd, player, callbacks, s, key, () => _estateRenderMain(bd, player, callbacks));
+    }
+}
+
+function _estateMaybeShowT3Event(bd, player, callbacks, s, key, next) {
+    const tier = Math.min(3, (s.ejacCount || 0) + 1);
+    const chance = (bd && bd.squirtChance != null ? bd.squirtChance : 15) / 100;
+    if (tier >= 3 && s.femaleArousal < 100 && s.maleArousal < 100 && Math.random() < chance && typeof _maybeT3SquirtQueef === 'function') {
+        const evt = _maybeT3SquirtQueef(bd, key);
+        if (evt) {
+            _estateAddMessage(evt, 'narrator');
+            callbacks.showChoices([{ text: '继续', action: next }]);
+            return;
+        }
+    }
+    next();
 }
 
 function _estateHandleOrgasm(bd, player, callbacks) {
@@ -1044,6 +1089,9 @@ function _estateThreesomeRenderMain(bds, player, callbacks) {
     callbacks.clearChoices();
     const bothReady = s1.femaleArousal >= 60 && s2.femaleArousal >= 60;
     const choices = [];
+    if (bothReady) {
+        choices.push({ text: '骚话对白', action: () => _estateThreesomeDirtyTalk(bds, player, callbacks) });
+    }
     choices.push({ text: '抚摸', action: () => _estateThreesomeForeplay(bds, player, callbacks) });
     const c1avail = _estateGetAvailClothes(s1);
     const c2avail = _estateGetAvailClothes(s2);
@@ -1052,6 +1100,30 @@ function _estateThreesomeRenderMain(bds, player, callbacks) {
     if (bothReady) choices.push({ text: '双飞正戏', action: () => _estateThreesomeSex(bds, player, callbacks) });
     choices.push({ text: '停下', action: () => _estateThreesomeEnd(bds, player, callbacks) });
     callbacks.showChoices(choices);
+}
+
+function _estateThreesomeDirtyTalk(bds, player, callbacks) {
+    callbacks.clearChoices();
+    const s = bds[0]._estateState;
+    s.lastAction = 'dirty_talk';
+    const tier = Math.min(3, (s.ejacCount || 0) + 1);
+    const scene = _dirtyTalkPick('threesome', null, tier);
+    if (!scene) return callbacks.showChoices([{ text: '继续', action: () => _estateThreesomeRenderMain(bds, player, callbacks) }]);
+    const names = [bds[0].name, bds[1].name];
+    const lines = scene.map(l => {
+        let text = l.text.replace(/\{name1\}/g, names[0]).replace(/\{name2\}/g, names[1]);
+        return { who: l.who, text };
+    });
+    bds[0]._estateState.femaleArousal = Math.min(100, bds[0]._estateState.femaleArousal + 4);
+    bds[1]._estateState.femaleArousal = Math.min(100, bds[1]._estateState.femaleArousal + 4);
+    bds[0]._estateState.maleArousal = Math.min(100, bds[0]._estateState.maleArousal + 2);
+    _estateUpdatePanel(bds[0]._estateState);
+    _dirtyTalkShow({
+        addMessage: (t, ty) => _estateAddMessage(t, ty),
+        showChoices: c => callbacks.showChoices(c),
+        clearChoices: () => callbacks.clearChoices(),
+        onDone: () => _estateThreesomeRenderMain(bds, player, callbacks),
+    }, lines, 0);
 }
 
 function _estateThreesomeForeplay(bds, player, callbacks) {

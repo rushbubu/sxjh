@@ -115,6 +115,9 @@ function _renderSexMain(bd, player, callbacks) {
     if (s.femaleArousal < 30) {
         choices.push({ text: '揩油', action: () => _showForeplayMenu(bd, player, callbacks) });
     } else {
+        if (s.femaleArousal >= 60) {
+            choices.push({ text: '骚话对白', action: () => _doDirtyTalk(bd, player, callbacks) });
+        }
         choices.push({ text: '抚摸', action: () => _showForeplayMenu(bd, player, callbacks) });
         if (_getAvailableClothes(s).length > 0) {
             choices.push({ text: '脱衣', action: () => _showUndressMenu(bd, player, callbacks) });
@@ -175,6 +178,31 @@ function _showForeplaySegment(bd, player, callbacks, segments, idx) {
     } else {
         callbacks.showChoices([{ text: '继续', action: () => _renderSexMain(bd, player, callbacks) }]);
     }
+}
+
+// ─── 骚话对白 ───
+
+function _doDirtyTalk(bd, player, callbacks) {
+    callbacks.clearChoices();
+    const s = bd._sexState;
+    s.lastAction = 'dirty_talk';
+    const tier = Math.min(3, (s.ejacCount || 0) + 1);
+    const scene = _dirtyTalkPick('cloud', bd.inner, tier);
+    if (!scene) return callbacks.showChoices([{ text: '继续', action: () => _renderSexMain(bd, player, callbacks) }]);
+    const lines = scene.map(l => ({
+        who: l.who,
+        act: l.act ? (typeof _renderPosDesc === 'function' ? _renderPosDesc(l.act, bd) : l.act) : null,
+        text: typeof _renderPosDesc === 'function' ? _renderPosDesc(l.text, bd) : l.text,
+    }));
+    s.femaleArousal = Math.min(100, s.femaleArousal + 4);
+    s.maleArousal = Math.min(100, s.maleArousal + 2);
+    _sexUpdatePanel(s);
+    _dirtyTalkShow({
+        addMessage: (t, ty) => _sexAddMessage(t, ty),
+        showChoices: c => callbacks.showChoices(c),
+        clearChoices: () => callbacks.clearChoices(),
+        onDone: () => _renderSexMain(bd, player, callbacks),
+    }, lines, 0);
 }
 
 // ─── 脱衣 ───
@@ -318,19 +346,34 @@ function _doSex(bd, player, callbacks, key) {
     s.femaleArousal = Math.min(100, s.femaleArousal + fA);
     _sexUpdatePanel(s);
     if (segments.length > 1) {
-        callbacks.showChoices([{ text: '继续', action: () => _showSexSegment(bd, player, callbacks, segments, 1) }]);
+        callbacks.showChoices([{ text: '继续', action: () => _showSexSegment(bd, player, callbacks, segments, 1, key) }]);
     } else {
-        callbacks.showChoices([{ text: '继续', action: () => _afterSexAction(bd, player, callbacks) }]);
+        callbacks.showChoices([{ text: '继续', action: () => _maybeShowT3Event(bd, player, callbacks, s, key, () => _afterSexAction(bd, player, callbacks)) }]);
     }
 }
-function _showSexSegment(bd, player, callbacks, segments, idx) {
+function _showSexSegment(bd, player, callbacks, segments, idx, key) {
     callbacks.clearChoices();
     _sexAddMessage(segments[idx], 'narrator');
     if (idx < segments.length - 1) {
-        callbacks.showChoices([{ text: '继续', action: () => _showSexSegment(bd, player, callbacks, segments, idx + 1) }]);
+        callbacks.showChoices([{ text: '继续', action: () => _showSexSegment(bd, player, callbacks, segments, idx + 1, key) }]);
     } else {
-        _afterSexAction(bd, player, callbacks);
+        const s = bd._sexState;
+        _maybeShowT3Event(bd, player, callbacks, s, key, () => _afterSexAction(bd, player, callbacks));
     }
+}
+
+function _maybeShowT3Event(bd, player, callbacks, s, key, next) {
+    const tier = Math.min(3, (s.ejacCount || 0) + 1);
+    const chance = (bd && bd.squirtChance != null ? bd.squirtChance : 15) / 100;
+    if (tier >= 3 && s.femaleArousal < 100 && s.maleArousal < 100 && Math.random() < chance && typeof _maybeT3SquirtQueef === 'function') {
+        const evt = _maybeT3SquirtQueef(bd, key);
+        if (evt) {
+            _sexAddMessage(evt, 'narrator');
+            callbacks.showChoices([{ text: '继续', action: next }]);
+            return;
+        }
+    }
+    next();
 }
 
 function _afterSexAction(bd, player, callbacks) {

@@ -26,6 +26,7 @@ function registerSpecialBeauty(cfg) {
         age: cfg.age,
         surface: cfg.surface,
         inner: cfg.inner || cfg.surface,
+        squirtChance: cfg.squirtChance != null ? cfg.squirtChance : (typeof rollSquirtChance === 'function' ? rollSquirtChance() : 15),
         height: cfg.height,
         heightLabel: getHeightLabel(cfg.height),
         faceScore: cfg.faceScore,

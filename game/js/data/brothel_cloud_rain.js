@@ -215,6 +215,9 @@ function _brRenderMain(prostitute, player, callbacks) {
     if (s.femaleArousal < 30) {
         choices.push({ text: '揩油', action: () => _brShowForeplayMenu(prostitute, player, callbacks) });
     } else {
+        if (s.femaleArousal >= 60) {
+            choices.push({ text: '骚话对白', action: () => _brDoDirtyTalk(prostitute, player, callbacks) });
+        }
         choices.push({ text: '抚摸', action: () => _brShowForeplayMenu(prostitute, player, callbacks) });
         if (_brGetAvailableClothes(s).length > 0) {
             choices.push({ text: '脱衣', action: () => _brShowUndressMenu(prostitute, player, callbacks) });
@@ -367,8 +370,32 @@ function _brDoUndress(prostitute, player, callbacks, key) {
     callbacks.showChoices([{ text: '继续', action: () => _brRenderMain(prostitute, player, callbacks) }]);
 }
 
-// ─── 侍奉 ───
+// ─── 骚话对白 ───
 
+function _brDoDirtyTalk(prostitute, player, callbacks) {
+    callbacks.clearChoices();
+    const s = prostitute._brState;
+    s.lastAction = 'dirty_talk';
+    const tier = Math.min(3, (s.ejacCount || 0) + 1);
+    const scene = _dirtyTalkPick('brothel', null, tier);
+    if (!scene) return callbacks.showChoices([{ text: '继续', action: () => _brRenderMain(prostitute, player, callbacks) }]);
+    const lines = scene.map(l => ({
+        who: l.who,
+        act: l.act ? (typeof _renderPosDesc === 'function' ? _renderPosDesc(l.act, prostitute) : l.act) : null,
+        text: typeof _renderPosDesc === 'function' ? _renderPosDesc(l.text, prostitute) : l.text,
+    }));
+    s.femaleArousal = Math.min(100, s.femaleArousal + 4);
+    s.maleArousal = Math.min(100, s.maleArousal + 2);
+    _brUpdatePanel(s);
+    _dirtyTalkShow({
+        addMessage: (t, ty) => _brAddMessage(t, ty),
+        showChoices: c => callbacks.showChoices(c),
+        clearChoices: () => callbacks.clearChoices(),
+        onDone: () => _brRenderMain(prostitute, player, callbacks),
+    }, lines, 0);
+}
+
+// ─── 侍奉 ───
 function _brShowServiceMenu(prostitute, player, callbacks) {
     callbacks.clearChoices();
     const choices = [
@@ -652,20 +679,35 @@ function _brDoSex(prostitute, player, callbacks, key) {
     const moan = posMoans[key];
     if (moan) _brAddMessage(moan, 'event');
     if (segments.length > 1) {
-        callbacks.showChoices([{ text: '继续', action: () => _brShowSexSegment(prostitute, player, callbacks, segments, 1) }]);
+        callbacks.showChoices([{ text: '继续', action: () => _brShowSexSegment(prostitute, player, callbacks, segments, 1, key) }]);
     } else {
-        callbacks.showChoices([{ text: '继续', action: () => _brAfterSexAction(prostitute, player, callbacks) }]);
+        callbacks.showChoices([{ text: '继续', action: () => _brMaybeShowT3Event(prostitute, player, callbacks, s, key, () => _brAfterSexAction(prostitute, player, callbacks)) }]);
     }
 }
 
-function _brShowSexSegment(prostitute, player, callbacks, segments, idx) {
+function _brShowSexSegment(prostitute, player, callbacks, segments, idx, key) {
     callbacks.clearChoices();
     _brAddMessage(segments[idx], 'narrator');
     if (idx < segments.length - 1) {
-        callbacks.showChoices([{ text: '继续', action: () => _brShowSexSegment(prostitute, player, callbacks, segments, idx + 1) }]);
+        callbacks.showChoices([{ text: '继续', action: () => _brShowSexSegment(prostitute, player, callbacks, segments, idx + 1, key) }]);
     } else {
-        _brAfterSexAction(prostitute, player, callbacks);
+        const s = prostitute._brState;
+        _brMaybeShowT3Event(prostitute, player, callbacks, s, key, () => _brAfterSexAction(prostitute, player, callbacks));
     }
+}
+
+function _brMaybeShowT3Event(prostitute, player, callbacks, s, key, next) {
+    const tier = Math.min(3, (s.ejacCount || 0) + 1);
+    const chance = (prostitute && prostitute.squirtChance != null ? prostitute.squirtChance : 15) / 100;
+    if (tier >= 3 && s.femaleArousal < 100 && s.maleArousal < 100 && Math.random() < chance && typeof _maybeT3SquirtQueef === 'function') {
+        const evt = _maybeT3SquirtQueef(prostitute, key);
+        if (evt) {
+            _brAddMessage(evt, 'narrator');
+            callbacks.showChoices([{ text: '继续', action: next }]);
+            return;
+        }
+    }
+    next();
 }
 
 function _brAfterSexAction(prostitute, player, callbacks) {
