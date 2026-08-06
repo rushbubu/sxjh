@@ -467,11 +467,44 @@ const DIRTY_TALK = {
                 { who: '女二', act: '她也跟着跪下来，眼神发亮', text: '妾身也是……今晚任老爷处置。' },
                 { who: '男', act: '他伸出手，一左一右挑起她们的下巴', text: '好，谁先撑不住，谁求饶。' },
             ],
-            [
-                { who: '男', act: '他低笑着，一手揉着一团软肉', text: '浪成这样，怕不怕传出去？' },
-                { who: '女一', act: '她仰起头，声音破碎却大胆', text: '有老爷在，妾身什么都不怕。' },
-                { who: '女二', act: '她咬着嘴唇，眼底满是痴缠', text: '妾身只求老爷多疼疼……传出去就传出去……' },
-            ],
-        ],
-    },
+[
+                     { who: '男', act: '他低笑着，一手揉着一团软肉', text: '浪成这样，怕不怕传出去？' },
+                     { who: '女一', act: '她仰起头，声音破碎却大胆', text: '有老爷在，妾身什么都不怕。' },
+                     { who: '女二', act: '她咬着嘴唇，眼底满是痴缠', text: '妾身只求老爷多疼疼……传出去就传出去……' },
+                  ],
+              ],
+          },
 };
+
+/* ─── 抽取当前系统/身份/阶段的对白组 ───
+ * system: cloud | brothel | estate | threesome
+ * inner:  女性身份（unmarried/married/widow），brothel/threesome 传 null
+ * tier:   1/2/3
+ */
+function _dirtyTalkPick(system, inner, tier) {
+    const sys = DIRTY_TALK[system];
+    if (!sys) return null;
+    const innerKey = inner === 'married_child' ? 'married' : inner;
+    const bucket = inner ? sys[innerKey] : sys;
+    if (!bucket) return null;
+    const group = bucket[String(tier)] || bucket[tier];
+    if (!group || !group.length) return null;
+    return group[Math.floor(Math.random() * group.length)];
+}
+
+/* ─── 逐条播放对白 ───
+   callbacks: { addMessage(t, ty), showChoices(c), clearChoices(), onDone() }
+   每行：有 act 先播动作描写，再播台词；最后一句点「结束」回到云雨主菜单。 */
+function _dirtyTalkShow(callbacks, lines, idx) {
+    const line = lines[idx];
+    if (!line) { callbacks.onDone(); return; }
+    if (line.act) callbacks.addMessage('（' + line.act + '）', 'narrator');
+    callbacks.addMessage(line.text, 'narrator');
+    const last = idx >= lines.length - 1;
+    callbacks.showChoices([
+        { text: last ? '结束' : '继续', action: () => {
+            if (last) callbacks.onDone();
+            else _dirtyTalkShow(callbacks, lines, idx + 1);
+        } },
+    ]);
+}

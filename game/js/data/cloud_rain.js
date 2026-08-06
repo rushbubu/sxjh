@@ -270,7 +270,7 @@ function _doService(bd, player, callbacks, type) {
     const s = bd._sexState;
     s.lastAction = 'service';
     const tier = Math.min(3, (s.ejacCount || 0) + 1);
-    let desc = pickServiceDesc(type, tier);
+    let desc = pickServiceDesc(type, tier, bd);
     if (typeof _renderPosDesc === 'function') desc = _renderPosDesc(desc, bd);
     const segments = (_splitDesc || function(t){return[t]})(desc);
     _sexAddMessage(segments[0], 'narrator');
