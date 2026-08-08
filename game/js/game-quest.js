@@ -158,7 +158,7 @@ Game.prototype._questRescueOx = function(q) {
             '似乎是一个年轻人正在殴打老人。',
         ], () => {
             this.showChoices([
-                { text: '不管闲事', action: () => { this._questSeq(['你摇了摇头，转身离开。多一事不如少一事。'], () => { this.questFail('rescue_ox'); this._showChoicesAfterQuest(); }); } },
+                { text: '不管闲事', action: () => { this._questSeq(['你摇了摇头，转身离开。多一事不如少一事。'], () => { this.questFail('rescue_ox'); this.showTravelOptions(); }); } },
                 { text: '过去看看', action: () => { q.stage = 'FIGHT_SCENE'; this._questRescueOx(q); } },
         ]);
         });
@@ -422,6 +422,8 @@ Game.prototype._showChoicesAfterQuest = function() {
     this.showChoices([
         { text: '继续', action: () => {
             this.clearChoices();
+            if (this._groupContext && this._groupContext._isPalaceMenu) { if (this.palaceManager) this.palaceManager.showPalaceMenu(); return; }
+            if (this._groupContext && this._groupContext._palaceGroup) { if (this.palaceManager) this.palaceManager.showPalaceGroup(this._groupContext._palaceGroup); return; }
             this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices();
         } },
     ]);

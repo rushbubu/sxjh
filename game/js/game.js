@@ -77,7 +77,7 @@ class Game {
                 v: 1,
                 player: this.player,
                 beautyMap: this.beautyMap,
-                palaceConsorts: this.palaceConsorts,
+                palaceConsorts: this.palaceManager ? this.palaceManager.palaceConsorts : null,
                 brothelProstitutes: this.brothelProstitutes,
                 redRecord: this.redRecord,
                 killedNpcs: Array.from(this.killedNpcs || []),
@@ -100,7 +100,8 @@ class Game {
         try {
             this.player = data.player;
             this.beautyMap = data.beautyMap || {};
-            this.palaceConsorts = data.palaceConsorts || null;
+            this.palaceManager = new PalaceManager(this);
+            this.palaceManager.palaceConsorts = data.palaceConsorts || null;
             this.brothelProstitutes = data.brothelProstitutes || {};
             this.redRecord = data.redRecord || {};
             this.killedNpcs = new Set(data.killedNpcs || []);
@@ -109,7 +110,7 @@ class Game {
             if (!this._gamblersSetup) { setupStreetGamblers(WORLD); this._gamblersSetup = true; }
             if (!this._intelAgentsSetup) { setupIntelAgents(WORLD); this._intelAgentsSetup = true; }
             this.injectFactionVenues();
-            this.injectPalaceVenues();
+            this.palaceManager.injectPalaceVenues();
             this.houseManager = new HouseManager(this);
             this.estateManager = new EstateManager(this);
             document.getElementById('create-overlay').classList.add('hidden');
@@ -285,7 +286,8 @@ class Game {
             const type = loc.nearestCity ? null : WORLD.big_cities.find(c => c.id === loc.id) ? 'big_city' : 'small_city';
             if (type) this.brothelProstitutes[loc.id] = generateProstitutes(loc.id, type, usedNames);
         }
-        this.injectPalaceVenues();
+        this.palaceManager = new PalaceManager(this);
+        this.palaceManager.injectPalaceVenues();
         document.getElementById('create-overlay').classList.add('hidden');
         this.updateStatsBar();
         this.houseManager = new HouseManager(this);
@@ -341,45 +343,6 @@ class Game {
             }
             // 爬塔入口已移至门派内部菜单（不再作为独立场景）
         }
-    }
-
-    /* ─── 皇宫妃嫔注入 ─── */
-
-    injectPalaceVenues() {
-        if (this._palaceInjected) return;
-        this._palaceInjected = true;
-        const shendu = WORLD.big_cities.find(c => c.id === 'shendu');
-        if (!shendu) return;
-        if (!this.palaceConsorts) {
-            const usedNames = new Set(Object.values(this.beautyMap || {}).flat().map(b => b.name));
-            this.palaceConsorts = {
-                donggong: generateConsorts('donggong', usedNames),
-                lenggong: generateConsorts('lenggong', usedNames),
-            };
-        }
-        const mkVenue = (c) => {
-            const group = c._lenggong ? '冷宫' : '东宫';
-            return {
-                name: `${group}·${c.name}寝宫`,
-                _isPalaceConsortVenue: true,
-                npcs: [{
-                    npcName: c.name,
-                    npcDesc: `${c._lenggong ? '居于冷宫的失宠妃嫔' : '东宫的妃嫔'}，${c.faceDesc}`,
-                    isBeauty: true,
-                    _beautyData: c,
-                    civilian: true,
-                    combatPower: 0,
-                    items: [],
-                }],
-            };
-        };
-        const consortVenues = [
-            ...this.palaceConsorts.donggong.map(mkVenue),
-            ...this.palaceConsorts.lenggong.map(mkVenue),
-        ];
-        let idx = shendu.venues.findIndex(v => v.name === '皇宫·御林军营地');
-        if (idx === -1) idx = shendu.venues.findIndex(v => v.name === '皇宫');
-        shendu.venues.splice(idx + 1, 0, ...consortVenues);
     }
 
     /* ─── 罪恶值辅助 ─── */
@@ -1041,13 +1004,21 @@ class Game {
             const entertainmentVenues = ['怡红院', '醉花楼', '潇湘阁', '春风楼', '牡丹院', '锦官阁', '汉水楼', '烟雨阁', '赌坊'];
             const isEntertainment = v => entertainmentVenues.includes(v.name);
             const isOutskirts = v => v._isOutskirts;
+            const isPalaceVenue = v => this.palaceManager && this.palaceManager.isPalaceVenue(v);
+            // 皇宫系场所（皇宫·朝堂/御花园/御膳房/藏宝阁/御林军/妃嫔寝宫）收敛到「皇宫」入口下
+            const palaceVenues = this.player.locationVenues.filter(v => isPalaceVenue(v));
+            const publicVenues = this.player.locationVenues.filter(v => !isPalaceVenue(v));
+            // 皇宫作为独立入口，进入后按 三大殿/后三宫/御花园 等中间级分层
+            if (palaceVenues.length > 0) {
+                choices.push({ text: '皇宫', action: () => this.palaceManager.showPalaceMenu() });
+            }
             const isShop = v =>
                 !isEntertainment(v) && !isOutskirts(v) && (v._isCommercialHQ || specialShops.includes(v.name) || shopKeys.some(s => v.name.includes(s)) || v.name.includes('楼') || ['房产中介', '花鸟鱼市场', '黑市'].includes(v.name));
             const groups = {
-                '城外': this.player.locationVenues.filter(v => isOutskirts(v)),
-                '商业区': this.player.locationVenues.filter(v => isShop(v)),
-                '娱乐区': this.player.locationVenues.filter(v => isEntertainment(v) && !isOutskirts(v)),
-                '居民区': this.player.locationVenues.filter(v => !isShop(v) && !isEntertainment(v) && !isOutskirts(v)),
+                '城外': publicVenues.filter(v => isOutskirts(v)),
+                '商业区': publicVenues.filter(v => isShop(v)),
+                '娱乐区': publicVenues.filter(v => isEntertainment(v) && !isOutskirts(v)),
+                '居民区': publicVenues.filter(v => !isShop(v) && !isEntertainment(v) && !isOutskirts(v)),
             };
             for (const [label, list] of Object.entries(groups)) {
                 if (list.length > 0) choices.push({ text: label, action: () => this.showGroupVenues(label, list) });
@@ -1084,7 +1055,7 @@ class Game {
     isVenueClosed(venue) {
         const t = this.player.timePeriod;
         // 皇宫及妃嫔寝宫通宵值守，昼夜不闭
-        if (venue.name.startsWith('皇宫') || venue.name.includes('寝宫')) return false;
+        if (this.palaceManager && this.palaceManager.isPalaceVenue(venue)) return false;
         // 险地（暗杀组织巢穴山）露天场所昼夜开放
         if (this.currentLocation && this._isDangerMountain(this.currentLocation.id)) return false;
         // 子时所有室内场所关闭
@@ -1868,8 +1839,8 @@ class Game {
             }
             choices.splice(choices.findIndex(c => c.text === '出售') + 1, 0, { text: '装备制造', action: () => this.showForgeMenu(venue, npc) });
         }
-        if (venue.name === '皇宫·御膳房') {
-            choices.splice(0, 0, { text: '偷御膳', action: () => this._royalKitchenSteal(venue, npc) });
+        if (this.palaceManager) {
+            this.palaceManager.addVenueChoices(venue, npc, choices);
         }
         this._maybeAddIntelChoice(venue, npc, choices);
         const huntQuest = this._getActiveBoardHuntQuest();
@@ -4697,48 +4668,7 @@ class Game {
         }
     }
 
-    /* ─── 御膳房偷膳 ─── */
-
-    _royalKitchenSteal(venue, npc) {
-        this.clearChoices();
-        const night = this.player.timePeriod === '黄昏' || this.player.timePeriod === '子时';
-        const intro = night
-            ? '此刻宫门深锁，御膳房早已熄了灶火，案上还摆着御厨们用过的残羹剩菜。'
-            : '御厨们正忙得脚不沾地，灶台上摆着一道道刚出锅的御膳珍馐。';
-        this.addMessage(`你溜进御膳房，${intro}`, 'narrator');
-        this.showChoices([
-            { text: night ? '偷剩菜（难度略低）' : '偷御膳正餐（难度极高）', action: () => this._stealKitchenFood(venue, night) },
-            { text: '算了', action: () => this.interactNpc(venue, npc) },
-        ]);
-    }
-
-    _stealKitchenFood(venue, night) {
-        this.clearChoices();
-        const item = night ? getItem('palace_leftover') : getItem('royal_feast');
-        const dex = this.player.attrs.dexterity;
-        const chance = Math.max(0.05, Math.min(0.95, dex / (dex + item.stealDiff * 1.5) + (this.player.attrs.luck - 50) / 500));
-        const roll = Math.random();
-        if (roll < chance) {
-            this.addMessage(`你眼疾手快，趁无人注意将「${item.name}」揣进怀里！`, 'event');
-            this.addMessage('得手了！你迅速退出御膳房。', 'event');
-            this.player.shadowRep += 1;
-            this.player._theftCount = (this.player._theftCount || 0) + 1;
-            this._adjEvil(2, '偷盗');
-            const stolen = { ...item };
-            if (!this.autoEquip(stolen)) this.player.items.push(stolen);
-            this.updateStatsBar();
-            setTimeout(() => this.enterVenue(venue), 400);
-        } else {
-            this.addMessage('「什么人！」御膳房外传来一声暴喝——巡夜的御林军脚步声由远及近！', 'danger');
-            this.addMessage('你仓皇翻窗逃出皇宫，险些被当场拿获！', 'danger');
-            this.player.reputation -= 2;
-            this.addMessage(`声望 -2（当前 ${this.player.reputation}）`, 'system');
-            this.player.neili -= 10;
-            if (this.player.reputation <= -40) { this.gameOver('你在皇宫偷膳失手，被御林军擒获押入天牢。江湖之路，到此为止……'); return; }
-            this.updateStatsBar();
-            setTimeout(() => this.enterVenue(venue), 500);
-        }
-    }
+/* ─── 御膳房偷膳与藏宝阁（已迁至 PalaceManager） ─── */
 
     beggarIntelFactions(venue, npc) {
         this.clearChoices();
@@ -6721,7 +6651,7 @@ class Game {
             '似乎是一个年轻人正在殴打老人。',
         ], () => {
             this.showChoices([
-                { text: '不管闲事', action: () => { q._done = true; this._questSeq_fallback(['你摇了摇头，转身离开。'], () => { this._afterQuestChoices(); }); } },
+                { text: '不管闲事', action: () => { q._done = true; this._questSeq_fallback(['你摇了摇头，转身离开。'], () => { this.questFail('rescue_ox'); this.showTravelOptions(); }); } },
                 { text: '过去看看', action: () => { q.stage = 'FIGHT_SCENE'; this._syncQuestStage('FIGHT_SCENE'); this._inlineQuestRescueOx(q); } },
             ]);
         });
@@ -6890,6 +6820,8 @@ class Game {
         this.showChoices([
             { text: '继续', action: () => {
                 this.clearChoices();
+                if (this._groupContext && this._groupContext._isPalaceMenu) { if (this.palaceManager) this.palaceManager.showPalaceMenu(); return; }
+                if (this._groupContext && this._groupContext._palaceGroup) { if (this.palaceManager) this.palaceManager.showPalaceGroup(this._groupContext._palaceGroup); return; }
                 this._groupContext ? this.showGroupVenues(this._groupContext.label, this._groupContext.venues) : this.showOutdoorChoices();
             } },
         ]);

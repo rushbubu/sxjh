@@ -99,6 +99,14 @@ const ITEMS = {
     essence_iron:    { id: 'essence_iron',    name: '精铁',      desc: '百炼精铁，质地纯净，是打造神兵利器的上等材料。',        value: 15,  stealDiff: 25, category: 'material' },
     silk_gold:       { id: 'silk_gold',       name: '金蚕丝',    desc: '罕见的天山金蚕所吐之丝，坚韧无比，可织入软甲。',        value: 20,  stealDiff: 30, category: 'material' },
 
+    // ═══ 绝世材料（橙/金/红图纸所需） ═══
+    mystic_iron:     { id: 'mystic_iron',     name: '玄铁',      desc: '天外精铁，漆黑如墨，坚硬无匹，传闻历经万年地火淬炼。',      value: 40,  stealDiff: 50, category: 'material' },
+    meteor_iron:     { id: 'meteor_iron',     name: '陨星铁',    desc: '陨落星辰携来的天外金属，泛着幽蓝冷光，凡火难熔。',          value: 90,  stealDiff: 75, category: 'material' },
+    celestial_silk:  { id: 'celestial_silk',  name: '天蚕丝',    desc: '传说天蚕吐出的灵丝，水火不侵，韧比金丝。',                   value: 60,  stealDiff: 60, category: 'material' },
+    dragon_scale:    { id: 'dragon_scale',    name: '龙鳞',      desc: '蛟龙褪下的逆鳞，坚硬如铁却又轻盈，隐隐有灵光流转。',        value: 100, stealDiff: 85, category: 'material' },
+    phoenix_plume:   { id: 'phoenix_plume',   name: '凤羽',      desc: '凤凰落下的尾羽，赤红如火，厉火不焚。',                       value: 120, stealDiff: 90, category: 'material' },
+    star_essence:    { id: 'star_essence',    name: '星髓',      desc: '星辰陨落所化的髓玉，蕴藏真灵，天下难寻。',                   value: 200, stealDiff: 110, category: 'material' },
+
     // ═══ 毒药 ═══
     poison_powder:   { id: 'poison_powder',   name: '毒粉',      desc: '用蛇毒和草药调配的毒粉，可下毒暗算。',                   value: 8,   stealDiff: 20, category: 'poison' },
     he_ding_hong:    { id: 'he_ding_hong',    name: '鹤顶红',    desc: '天下奇毒，点滴封喉，见血即亡。',                         value: 30,  stealDiff: 45, category: 'poison' },
@@ -133,6 +141,9 @@ const ITEMS = {
     pond_goldfish:   { id: 'pond_goldfish',   name: '金鱼',      desc: '小巧玲珑的金鱼，红白相间，鳞片在光下闪闪发亮。',          value: 30,  stealDiff: 15, category: 'ornament' },
     pond_koi:        { id: 'pond_koi',        name: '锦鲤',      desc: '色彩斑斓的观赏鲤鱼，寓意吉祥富贵，深得文人雅士喜爱。',   value: 150, stealDiff: 30, category: 'ornament' },
     pond_turtle:     { id: 'pond_turtle',     name: '灵龟',      desc: '通灵的老龟，背上刻着玄奥纹路，据说能辟邪纳福。',         value: 400, stealDiff: 50, category: 'ornament' },
+    fish_tai_silver: { id: 'fish_tai_silver', name: '银须龙鲤',  desc: '太后池中最常见的珍鱼，银鳞如月，须长若鞭。',              value: 600,  stealDiff: 20, category: 'ornament', tier: 'blue' },
+    fish_tai_gold:   { id: 'fish_tai_gold',   name: '金鳞龙鲤',  desc: '通体金鳞灿若流金，据说是供于御前的风水瑞兽。',           value: 6000, stealDiff: 45, category: 'ornament', tier: 'purple' },
+    fish_tai_dragon: { id: 'fish_tai_dragon', name: '赤须龙鲤',  desc: '传说中龙种遗脉，一跃可成龙，池中瑞兆。',                 value: 150000, stealDiff: 130, category: 'ornament', tier: 'red' },
     water_weed:      { id: 'water_weed',      name: '水草',      desc: '湿漉漉的水草，缠了一团，没什么用。',                     value: 0,   stealDiff: 1,  category: 'material' },
     old_shoe:        { id: 'old_shoe',        name: '破鞋子',    desc: '不知被水泡了多久的破布鞋，散发着一股怪味。',             value: 0,   stealDiff: 1,  category: 'household' },
     rusty_can:       { id: 'rusty_can',       name: '锈铁罐',    desc: '锈迹斑斑的铁罐子，不知道装了什么东西。',                 value: 0,   stealDiff: 2,  category: 'household' },
@@ -141,6 +152,40 @@ const ITEMS = {
     blueprint_steel_blade:{ id: 'blueprint_steel_blade', name: '精铁刀图纸', desc: '记载着精铁刀的锻造之法。',                  value: 5,   stealDiff: 20, category: 'blueprint', blueprint: { id: 'steel_blade', ings: { iron_ore: 4, wood_hard: 2 }, cost: 10 } },
     blueprint_blue_sword: { id: 'blueprint_blue_sword',  name: '青锋剑图纸', desc: '记载着青锋剑的锻造之法。',                  value: 15,  stealDiff: 35, category: 'blueprint', blueprint: { id: 'blue_sword', ings: { iron_ore: 8, wood_hard: 4 }, cost: 35 } },
     blueprint_gold_armor: { id: 'blueprint_gold_armor',  name: '金丝软甲图纸', desc: '记载着金丝软甲的锻造之法。',             value: 25,  stealDiff: 50, category: 'blueprint', blueprint: { id: 'gold_silk_armor', ings: { iron_ore: 10, leather_raw: 8 }, cost: 60 } },
+
+    // ═══ 绝世装备（橙·绝品） ═══
+    zhanlong_dao:     { id: 'zhanlong_dao',     name: '斩龙刀',      desc: '刀身赤红如燃着烈焰，相传曾饮恶龙之血，一刀断山河。',            value: 150, stealDiff: 75, category: 'weapon', slot: 'rightHand', tier: 'orange', attackDescs: ['怒劈', '横扫', '烈焰斩', '龙吟劈'] },
+    xuanniao_gun:     { id: 'xuanniao_gun',     name: '玄鸟戟',      desc: '玄铁为身，鸟啄为锋，挥动时有玄鸟啼鸣之音。',                    value: 140, stealDiff: 70, category: 'weapon', slot: 'rightHand', tier: 'orange', attackDescs: ['刺杀', '横扫', '贯云', '裂风'] },
+    phoenix_mirror:   { id: 'phoenix_mirror',   name: '凤羽护心镜',  desc: '以凤羽为芯、玄铁为壳锻成的护心镜，红光流转如浴火重生。',        value: 160, stealDiff: 75, category: 'armor', slot: 'upperBody', tier: 'orange' },
+    canglong_boots:   { id: 'canglong_boots',   name: '苍龙战靴',    desc: '以龙皮为底、天蚕丝织就的战靴，日行千里不觉疲。',                value: 130, stealDiff: 65, category: 'armor', slot: 'boots', tier: 'orange' },
+
+    // ═══ 绝世装备（金·神品） ═══
+    jiangyan_sword:   { id: 'jiangyan_sword',   name: '焚天剑',      desc: '剑身通体赤金，出鞘时热浪扑面，剑锋所指烈焰焚天。',              value: 260, stealDiff: 95, category: 'weapon', slot: 'rightHand', tier: 'gold', attackDescs: ['焚天斩', '烈日曜', '赤焰贯日', '天火燎原'] },
+    shangfang_jian:   { id: 'shangfang_jian',   name: '尚方宝剑',    desc: '御赐尚方剑，剑身寒光凛冽，上斩昏君、下斩佞臣。',                  value: 250, stealDiff: 95, category: 'weapon', slot: 'rightHand', tier: 'gold', attackDescs: ['君临', '一剑封喉', '斩佞', '问罪'] },
+    jinpeng_armor:    { id: 'jinpeng_armor',    name: '金鹏宝甲',    desc: '以金鹏翎羽编缀成的宝甲，轻如无物却刀枪不入。',                   value: 270, stealDiff: 90, category: 'armor', slot: 'upperBody', tier: 'gold' },
+    lingguang_crown:  { id: 'lingguang_crown',  name: '灵光冠',      desc: '天外陨铁与星髓共锻的冠冕，佩戴者目光如炬、心澄如镜。',           value: 230, stealDiff: 90, category: 'armor', slot: 'head', tier: 'gold' },
+
+    // ═══ 传世神兵（红·仙品） ═══
+    changgu_dao:      { id: 'changgu_dao',      name: '屠龙宝刀',    desc: '传说中可斩真龙的绝世宝刀，刀身暗金流转，隐有龙吟。',              value: 420, stealDiff: 120, category: 'weapon', slot: 'rightHand', tier: 'red', attackDescs: ['屠龙斩', '横扫千军', '碎岳', '开天'] },
+    jiuchen_sword:    { id: 'jiuchen_sword',    name: '九宸神剑',    desc: '九天之上落下的神剑，剑格刻九宸星辰，一剑可斩鬼神。',             value: 400, stealDiff: 120, category: 'weapon', slot: 'rightHand', tier: 'red', attackDescs: ['神剑出鞘', '九宸灭', '剑断山河', '寰宇一斩'] },
+    jiuyan_armor:     { id: 'jiuyan_armor',     name: '九渊天甲',    desc: '九渊深渊底锻成的天甲，通体玄黑泛紫光，传说中的护体至宝。',      value: 450, stealDiff: 125, category: 'armor', slot: 'upperBody', tier: 'red' },
+    tiangang_boots:   { id: 'tiangang_boots',   name: '天罡战靴',    desc: '天罡星煞所化的战靴，踏日月而驱山河。',                        value: 380, stealDiff: 115, category: 'armor', slot: 'boots', tier: 'red' },
+
+    // ═══ 锻造图纸·橙/金/红 ═══
+    blueprint_zhanlong_dao:  { id: 'blueprint_zhanlong_dao',  name: '斩龙刀图纸',  desc: '记载着斩龙刀的锻造之法。',    value: 40,  stealDiff: 75, category: 'blueprint', blueprint: { id: 'zhanlong_dao', ings: { iron_ore: 12, essence_iron: 6, mystic_iron: 4 }, cost: 200 } },
+    blueprint_xuanniao_gun:  { id: 'blueprint_xuanniao_gun',  name: '玄鸟戟图纸',  desc: '记载着玄鸟戟的锻造之法。',    value: 35,  stealDiff: 70, category: 'blueprint', blueprint: { id: 'xuanniao_gun', ings: { iron_ore: 12, essence_iron: 6, meteor_iron: 3, wood_hard: 4 }, cost: 200 } },
+    blueprint_phoenix_mirror:{ id: 'blueprint_phoenix_mirror', name: '凤凰羽护心镜图纸', desc: '记载着凤凰羽护心镜的锻造之法。', value: 45, stealDiff: 75, category: 'blueprint', blueprint: { id: 'phoenix_mirror', ings: { iron_ore: 10, silk_gold: 8, phoenix_plume: 2 }, cost: 250 } },
+    blueprint_canglong_boots:{ id: 'blueprint_canglong_boots', name: '苍龙战靴图纸', desc: '记载着苍龙战靴的锻造之法。', value: 40, stealDiff: 70, category: 'blueprint', blueprint: { id: 'canglong_boots', ings: { iron_ore: 10, leather_raw: 8, dragon_scale: 4 }, cost: 220 } },
+
+    blueprint_jiangyan_sword:{ id: 'blueprint_jiangyan_sword', name: '焚天剑图纸', desc: '记载着焚天剑的锻造之法。',      value: 55, stealDiff: 90, category: 'blueprint', blueprint: { id: 'jiangyan_sword', ings: { essence_iron: 10, meteor_iron: 6, phoenix_plume: 2 }, cost: 450 } },
+    blueprint_shangfang_jian:{ id: 'blueprint_shangfang_jian', name: '御赐宝剑图纸', desc: '记载着御赐宝剑的锻造之法。',  value: 55, stealDiff: 90, category: 'blueprint', blueprint: { id: 'shangfang_jian', ings: { essence_iron: 10, mystic_iron: 6, star_essence: 2 }, cost: 450 } },
+    blueprint_jinpeng_armor:{ id: 'blueprint_jinpeng_armor', name: '金鹏宝甲图纸', desc: '记载着金鹏宝甲的锻造之法。',     value: 60, stealDiff: 95, category: 'blueprint', blueprint: { id: 'jinpeng_armor', ings: { silk_gold: 10, celestial_silk: 8, dragon_scale: 4 }, cost: 500 } },
+    blueprint_lingguang_crown:{ id: 'blueprint_lingguang_crown', name: '灵光冠图纸', desc: '记载着灵光冠的锻造之法。',    value: 55, stealDiff: 90, category: 'blueprint', blueprint: { id: 'lingguang_crown', ings: { mystic_iron: 8, meteor_iron: 4, star_essence: 2 }, cost: 480 } },
+
+    blueprint_juilong_dao:   { id: 'blueprint_juilong_dao',   name: '屠龙宝刀图纸', desc: '记载着屠龙宝刀的锻造之法。',  value: 80, stealDiff: 110, category: 'blueprint', blueprint: { id: 'changgu_dao', ings: { meteor_iron: 10, mystic_iron: 6, star_essence: 4 }, cost: 1000 } },
+    blueprint_jiuchen_sword: { id: 'blueprint_jiuchen_sword', name: '九宸神剑图纸', desc: '记载着九宸神剑的锻造之法。',  value: 75, stealDiff: 105, category: 'blueprint', blueprint: { id: 'jiuchen_sword', ings: { essence_iron: 12, star_essence: 6, celestial_silk: 4 }, cost: 950 } },
+    blueprint_jiuyan_armor:  { id: 'blueprint_jiuyan_armor',  name: '九渊天甲图纸', desc: '记载着九渊天甲的锻造之法。', value: 85, stealDiff: 115, category: 'blueprint', blueprint: { id: 'jiuyan_armor', ings: { dragon_scale: 8, celestial_silk: 8, star_essence: 5 }, cost: 1100 } },
+    blueprint_tiangang_boots:{ id: 'blueprint_tiangang_boots', name: '天罡战靴图纸', desc: '记载着天罡战靴的锻造之法。', value: 70, stealDiff: 105, category: 'blueprint', blueprint: { id: 'tiangang_boots', ings: { meteor_iron: 8, dragon_scale: 6, star_essence: 3 }, cost: 900 } },
 
     // ═══ 心法秘籍 ═══
     massage_manual:  { id: 'massage_manual',  name: '按摩心经',  desc: '记载着经络按摩秘术的古册，习之可疏通气血、驻颜养容。', value: 5,   stealDiff: 15, category: 'skill', use: { learnInternalSkill: '按摩心经' } },
