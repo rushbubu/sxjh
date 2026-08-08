@@ -1073,6 +1073,11 @@ class Game {
         const order = ['清晨', '正午', '黄昏', '子时'];
         const idx = order.indexOf(this.player.timePeriod);
         this.player.timePeriod = order[(idx + 1) % order.length];
+        // 时辰变化，女NPC随时间段游走换场
+        if (this.player.locationVenues) {
+            this.player.locationVenues.forEach(v => v.npcs = v.npcs.filter(n => !n.isBeauty));
+            if (this.currentLocation) this.assignBeauties(this.currentLocation);
+        }
         this.updateStatsBar();
     }
 
@@ -5798,13 +5803,19 @@ class Game {
         if (venues.length === 0) return;
         const publicVenues = venues.filter(v => !v.name.includes('家') && !v.name.includes('府') && v.name !== '小树林' && v.name !== '废弃矿坑' && v.name !== '村角' && !this.isBrothelVenue(v) && !v._isPalaceConsortVenue);
         if (publicVenues.length === 0) return;
+        // 按时间段分区：上午（清晨/正午）在市集商铺，下午黄昏/子时在野外（断桥·小溪·田埂）
+        const isMorning = this.player.timePeriod === '清晨' || this.player.timePeriod === '正午';
+        const outdoorNames = ['断桥', '小溪', '田埂'];
+        const outdoorPool = publicVenues.filter(v => outdoorNames.includes(v.name));
+        const indoorPool = publicVenues.filter(v => !outdoorNames.includes(v.name));
+        const pool = isMorning ? (indoorPool.length ? indoorPool : publicVenues) : (outdoorPool.length ? outdoorPool : publicVenues);
         for (const b of beauties) {
             if (this.killedNpcs.has('beauty_' + b.id)) continue;
             let targetVenue;
             if (b.special && b.fixedVenue) {
-                targetVenue = venues.find(v => v.name === b.fixedVenue) || publicVenues[Math.floor(Math.random() * publicVenues.length)];
+                targetVenue = venues.find(v => v.name === b.fixedVenue) || pool[Math.floor(Math.random() * pool.length)];
             } else {
-                targetVenue = publicVenues[Math.floor(Math.random() * publicVenues.length)];
+                targetVenue = pool[Math.floor(Math.random() * pool.length)];
             }
             b._currentLocId = loc.id;
             b._currentVenueName = targetVenue.name;
