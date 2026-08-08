@@ -2871,6 +2871,26 @@ class Game {
         });
     }
 
+    /* 根据场所名推断红颜在干的事（避免「铁匠铺买酒」式穿帮） */
+    _pickVenueAction(venueName) {
+        const n = venueName || '街上';
+        const roll = arr => arr[Math.floor(Math.random() * arr.length)];
+        if (/茶|酒|酿|馆|肆|小吃|饭/.test(n)) return roll(['喝两杯', '小酌', '品茶', '点几个菜', '闲坐喝茶']);
+        if (/铁|兵|刀|剑|器|炉/.test(n)) return roll(['挑家伙什', '看打铁', '试刀剑', '买兵器', '讨价还价']);
+        if (/药|医|郎中/.test(n)) return roll(['抓药', '采买药材', '问诊', '挑补品']);
+        if (/珠|宝|玉|阁|古/.test(n)) return roll(['挑首饰', '看宝贝', '买珠翠', '把玩古物']);
+        if (/绸|绣|布|衣|裁/.test(n)) return roll(['量体裁衣', '挑绸缎', '买布料', '看绣样']);
+        if (/书|画|坊/.test(n)) return roll(['借书', '买书', '看字画', '闲逛书摊']);
+        if (/赌/.test(n)) return roll(['押两注', '看牌局', '玩骰子']);
+        if (/香|烛|庙|寺/.test(n)) return roll(['烧香', '听诵经', '求签']);
+        if (/花|鸟|鱼|市场|集/.test(n)) return roll(['看鱼', '买花', '逛市场', '逗鸟']);
+        if (/武馆|镖|堂/.test(n)) return roll(['看练武', '观武比斗', '打听武艺']);
+        if (/浴|汤|池/.test(n)) return roll(['泡汤', '沐浴']);
+        if (/房|宅|院/.test(n)) return roll(['看房产', '相院子', '听人讲宅子的事']);
+        if (/小树林|林|山|岗|岳/.test(n)) return roll(['采野菜', '上香', '散步', '看景', '摘野果']);
+        return roll(['散步', '闲坐', '纳凉', '赏景', '等人', '逛街']);
+    }
+
     beggarIntelBeauties(venue, npc, beat, skipIntro = false) {
         this.clearChoices();
         const loc = this.currentLocation;
@@ -2888,7 +2908,7 @@ class Game {
                     this.clearChoices();
                     const where = b._currentVenueName || '街上';
                     const who = ['我瞧见过', '听人说', '好像', '前两日还在'][Math.floor(Math.random() * 4)];
-                    const action = ['晃悠', '小酌', '买酒', '闲坐', '纳凉', '赏景', '等人'][Math.floor(Math.random() * 7)];
+                    const action = this._pickVenueAction(where);
                     this.addMessage(`乞丐压低声音：「${who}，她这会儿在${where}${action}呢。」`, 'narrator');
                     this.showChoices([
                         { text: '再问别的', action: () => this.beggarIntelBeauties(venue, npc, beat, true) },
@@ -3331,7 +3351,7 @@ class Game {
                     this.clearChoices();
                     const where = b._currentVenueName || '街上';
                     const who = ['有人说', '听隔壁大妈讲', '据说', '好像是', '前两日还见她在'][Math.floor(Math.random() * 5)];
-                    const action = ['散步', '小酌', '买酒', '闲坐', '纳凉', '赏景', '等人'][Math.floor(Math.random() * 7)];
+                    const action = this._pickVenueAction(where);
                     this.addMessage(`${npc.npcName}凑近了些，压低声音：「${who}，她这会儿在${where}${action}呢。」`, 'narrator');
                     this.showChoices([{ text: '再问别的', action: () => this.chiefIntelBeauties(venue, npc, true) }, { text: '多谢', action: () => this.chiefAction(venue, npc) }]);
                 },

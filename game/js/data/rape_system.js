@@ -45,7 +45,7 @@ const RAPE_FOREPLAY_SCENES = {
         '你按住她的膝盖将双腿大大分开，欣赏她双腿间的风光，她羞愤地别过头去。',
     ],
     feet: [
-        '你握住她的脚踝，将她的腿高高抬起，她失去平衡倒在床上。',
+        '你握住她的脚踝，将她的腿高高抬起，她失去平衡倒在{spot}。',
         '你粗暴地抓起她的脚，扯掉她的鞋袜，她徒劳地蹬了几下腿。',
         '你按住她的脚踝分开她的双腿，她再也无力抵抗。',
     ],
@@ -297,6 +297,31 @@ function _getBreastShort(bd) {
     };
     return sizes[1] + (nouns[shape.key] || '乳房');
 }
+function _getWaistDesc(bd) {
+    const w = bd.waist || 22;
+    if (w < 22) return '纤细如柳';
+    if (w < 26) return '柔若无骨';
+    if (w < 30) return '略带肉感';
+    return '丰腴圆润';
+}
+function _getHipsDesc(bd) {
+    const h = bd.hips || 34;
+    if (h < 33) return '婀娜';
+    if (h < 36) return '浑圆紧致';
+    if (h < 39) return '饱满丰盈';
+    return '丰腴肥硕';
+}
+const SPOT_MAP = {
+    '小树林': '草地上', '树林': '草地上', '山坡': '草地上', '草丛': '草地上',
+    '小溪': '溪边草地上', '河滩': '溪边草地上', '河边': '溪边',
+    '田埂': '田埂上', '稻田': '田埂上',
+    '断桥': '桥面上', '桥头': '桥面上',
+    '山崖': '崖边', '山顶': '崖边草地上',
+};
+function _getSpotLabel(bd) {
+    const v = bd._sexVenue || bd._currentVenueName || '闺房';
+    return SPOT_MAP[v] || '榻上';
+}
 function _getButtDesc(bd) {
     const shape = BUTT_SHAPES[_hashRange(bd, [7,11,13,17,19], BUTT_SHAPES.length)];
     return shape.desc;
@@ -344,8 +369,9 @@ function _renderPosDesc(template, bd) {
     return out
         .replace(/{name}/g, bd.name)
         .replace(/{bust}/g, bd.bust)
-        .replace(/{waist}/g, bd.waist)
-        .replace(/{hips}/g, bd.hips)
+        .replace(/{waist}/g, _getWaistDesc(bd))
+        .replace(/{hips}/g, _getHipsDesc(bd))
+        .replace(/{spot}/g, _getSpotLabel(bd))
         .replace(/{cup}/g, _getCupLabel(bd.bust))
         .replace(/{hl}/g, _getHeightLabel(bd.height))
         .replace(/{breast}/g, breastDesc)
@@ -1138,7 +1164,7 @@ const RAPE_FOREPLAY_SCENES_T2 = {
         '你的手沿着她的大腿内侧滑过，她的腿在你掌下微微颤抖，却没有像之前那样拼命挣扎。',
     ],
     feet: [
-        '你握住她的脚踝将她的腿高高抬起，她失去平衡倒在床上，却连挣扎的力气都没有了。',
+        '你握住她的脚踝将她的腿高高抬起，她失去平衡倒在{spot}，却连挣扎的力气都没有了。',
         '你粗暴地抓起她的脚分开她的双腿，她徒劳地蹬了一下腿，然后便放弃了，任由你摆布。',
     ],
 };
